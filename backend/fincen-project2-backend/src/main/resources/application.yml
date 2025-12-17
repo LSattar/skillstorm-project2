@@ -3,19 +3,16 @@ spring:
     name: reserveone
 
   datasource:
-    url: jdbc:h2:mem:reserveone-db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: jdbc:postgresql://localhost:5432/reserveone_db
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:reserveone}
+    password: ${DB_PASSWORD:CHANGE_ME}
 
   sql:
     init:
       mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
 
   jpa:
     hibernate:
@@ -24,19 +21,18 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        format-sql: true
 
 server:
   port: 8080
 
 logging:
+  group:
+    sql-init:
+      - org.springframework.jdbc.datasource.init.ScriptUtils
+      - org.springframework.boot.sql.init
+    hibernate-sql:
+      - org.hibernate.SQL
   level:
-    org.springframework.jdbc.datasource.init.ScriptUtils: DEBUG
-    org.springframework.boot.sql.init: DEBUG
-    org.hibernate.SQL: DEBUG
-
-info:
-  app:
-    name: ReserveOne
-    version: 0.1.0
-    description: Full-stack reservation service (H2 dev database)
+    sql-init: DEBUG
+    hibernate-sql: DEBUG

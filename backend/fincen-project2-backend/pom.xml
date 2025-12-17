@@ -42,13 +42,6 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
-        <!-- H2 (DEV ONLY) -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
         <!-- Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -61,15 +54,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-		<!---
-		PostGres Driver (Future Implementation)
+		
+		<!--PostGres Driver-->
 		<dependency>
     		<groupId>org.postgresql</groupId>
     		<artifactId>postgresql</artifactId>
    			<scope>runtime</scope>
-		</dependency> -->
-
-
+		</dependency>
     </dependencies>
 
     <build>
