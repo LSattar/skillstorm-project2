@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-FincenProject2BackendApplication<reserveone>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.skillstorm.fincen_project2_backend.FincenProject2BackendApplication",
+      "projectName": "reserveone",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}
