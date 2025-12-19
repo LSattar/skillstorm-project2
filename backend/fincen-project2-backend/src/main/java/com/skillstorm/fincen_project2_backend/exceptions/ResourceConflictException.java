@@ -1,4 +1,4 @@
-package exceptions;
+package com.skillstorm.fincen_project2_backend.exceptions;
 
 /**
  * Exception thrown when a resource operation conflicts with existing data or business rules.

@@ -1,6 +1,8 @@
 package com.skillstorm.fincen_project2_backend.models;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.hibernate.annotations.Generated;
@@ -8,29 +10,43 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uq_users_email", columnNames = "email"))
 public class User {
 
     public enum Status {
         ACTIVE, INACTIVE, SUSPENDED
     }
 
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+    private Set<Role> roles = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<OAuthIdentity> oauthIdentities = new HashSet<>();
+
     @Id
     @JdbcTypeCode(SqlTypes.UUID)
     @Generated(event = EventType.INSERT)
-    @Column(name = "user_id", nullable = false, updatable = false, length = 255)
+    @Column(name = "user_id", nullable = false, updatable = false)
     private UUID userId;
 
     @NotBlank
@@ -93,6 +109,20 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email; // set only at creation
+    }
+
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void addRole(Role role) {
+        this.roles.add(role);
+        role.internalAddUser(this);
+    }
+
+    public void removeRole(Role role) {
+        this.roles.remove(role);
+        role.internalRemoveUser(this);
     }
 
     public UUID getUserId() {
@@ -183,6 +213,25 @@ public class User {
         return updatedAt;
     }
 
+    public Set<OAuthIdentity> getOauthIdentities() {
+        return oauthIdentities;
+    }
+
+    public void addOauthIdentity(OAuthIdentity identity) {
+        oauthIdentities.add(identity);
+        identity.setUser(this);
+    }
+
+    public void removeOauthIdentity(OAuthIdentity identity) {
+        oauthIdentities.remove(identity);
+        identity.setUser(null);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)
@@ -190,11 +239,6 @@ public class User {
         if (!(o instanceof User other))
             return false;
         return userId != null && userId.equals(other.userId);
-    }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
     }
 
     @Override
