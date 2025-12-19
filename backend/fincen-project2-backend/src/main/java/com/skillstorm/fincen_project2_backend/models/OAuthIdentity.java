@@ -48,7 +48,7 @@ public class OAuthIdentity {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "provider", nullable = false, length = 50)
+    @Column(name = "provider", nullable = false)
     private Provider provider;
 
     @NotBlank
