@@ -38,10 +38,10 @@ public class User {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles = new HashSet<>();
+    private final Set<Role> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<OAuthIdentity> oauthIdentities = new HashSet<>();
+    private final Set<OAuthIdentity> oauthIdentities = new HashSet<>();
 
     @Id
     @JdbcTypeCode(SqlTypes.UUID)
@@ -106,23 +106,31 @@ public class User {
     }
 
     public User(String firstName, String lastName, String email) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email; // set only at creation
+        this.firstName = firstName == null ? null : firstName.trim();
+        this.lastName = lastName == null ? null : lastName.trim();
+        this.email = email == null ? null : email.trim();
     }
 
     public Set<Role> getRoles() {
-        return roles;
+        return java.util.Collections.unmodifiableSet(roles);
     }
 
     public void addRole(Role role) {
-        this.roles.add(role);
-        role.internalAddUser(this);
+        if (role == null) {
+            return;
+        }
+        if (this.roles.add(role)) {
+            role.internalAddUser(this);
+        }
     }
 
     public void removeRole(Role role) {
-        this.roles.remove(role);
-        role.internalRemoveUser(this);
+        if (role == null) {
+            return;
+        }
+        if (this.roles.remove(role)) {
+            role.internalRemoveUser(this);
+        }
     }
 
     public UUID getUserId() {
@@ -214,17 +222,22 @@ public class User {
     }
 
     public Set<OAuthIdentity> getOauthIdentities() {
-        return oauthIdentities;
-    }
-
-    public void addOauthIdentity(OAuthIdentity identity) {
-        oauthIdentities.add(identity);
-        identity.setUser(this);
+        return java.util.Collections.unmodifiableSet(oauthIdentities);
     }
 
     public void removeOauthIdentity(OAuthIdentity identity) {
-        oauthIdentities.remove(identity);
-        identity.setUser(null);
+        if (identity != null) {
+            oauthIdentities.remove(identity);
+        }
+    }
+
+    public void addOauthIdentity(OAuthIdentity identity) {
+        if (identity == null) {
+            return;
+        }
+
+        identity.setUser(this);
+        oauthIdentities.add(identity);
     }
 
     @Override
@@ -234,10 +247,12 @@ public class User {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
+        if (this == o) {
             return true;
-        if (!(o instanceof User other))
+        }
+        if (!(o instanceof User other)) {
             return false;
+        }
         return userId != null && userId.equals(other.userId);
     }
 

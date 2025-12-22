@@ -36,7 +36,7 @@ public class OAuthIdentity {
     }
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, updatable = false)
     @JsonIgnore
     private User user;
 
@@ -48,12 +48,12 @@ public class OAuthIdentity {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "provider", nullable = false)
+    @Column(name = "provider", nullable = false, updatable = false, length = 30)
     private Provider provider;
 
     @NotBlank
     @Size(max = 255)
-    @Column(name = "provider_user_id", nullable = false, length = 255)
+    @Column(name = "provider_user_id", nullable = false, length = 255, updatable = false)
     private String providerUserId;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
@@ -66,9 +66,19 @@ public class OAuthIdentity {
     }
 
     public OAuthIdentity(User user, Provider provider, String providerUserId) {
+        if (user == null) {
+            throw new IllegalArgumentException("User must not be null");
+        }
+        if (provider == null) {
+            throw new IllegalArgumentException("Provider must not be null");
+        }
+        if (providerUserId == null || providerUserId.isBlank()) {
+            throw new IllegalArgumentException("Provider user id must not be blank");
+        }
+
         this.user = user;
         this.provider = provider;
-        this.providerUserId = providerUserId;
+        this.providerUserId = providerUserId.trim();
     }
 
     public UUID getOauthIdentityId() {
@@ -88,6 +98,9 @@ public class OAuthIdentity {
     }
 
     void setUser(User user) {
+        if (this.user != null && user != this.user) {
+            throw new IllegalArgumentException("OAuthIdentity user cannot be changed once set");
+        }
         this.user = user;
     }
 
@@ -101,10 +114,12 @@ public class OAuthIdentity {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
+        if (this == o) {
             return true;
-        if (!(o instanceof OAuthIdentity other))
+        }
+        if (!(o instanceof OAuthIdentity other)) {
             return false;
+        }
         return oauthIdentityId != null && oauthIdentityId.equals(other.oauthIdentityId);
     }
 

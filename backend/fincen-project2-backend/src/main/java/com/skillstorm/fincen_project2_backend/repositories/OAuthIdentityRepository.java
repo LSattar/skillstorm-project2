@@ -19,4 +19,7 @@ public interface OAuthIdentityRepository extends JpaRepository<OAuthIdentity, UU
 
     // Optional: cleanup or checks
     void deleteByUser_UserIdAndProvider(UUID userId, Provider provider);
+
+    // Handy for "get this user's Google identity" or "unlink this provider"
+    Optional<OAuthIdentity> findByUser_UserIdAndProvider(UUID userId, Provider provider);
 }
