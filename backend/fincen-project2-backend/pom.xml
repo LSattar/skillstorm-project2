@@ -42,10 +42,18 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
-<!-- Security-->
+        <!-- Security-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!--Dev Tools for Auto-Restart-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
 
         <!-- Validation -->

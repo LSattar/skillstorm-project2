@@ -3,10 +3,10 @@ package com.skillstorm.fincen_project2_backend.repositories;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.skillstorm.fincen_project2_backend.models.User;
-
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.skillstorm.fincen_project2_backend.models.User;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
 
@@ -18,5 +18,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     // Fetch user with roles eagerly when needed for responses
     @EntityGraph(attributePaths = "roles")
-    Optional<User> findWithRolesById(UUID userId);
+    Optional<User> findWithRolesByUserId(UUID userId);
 }

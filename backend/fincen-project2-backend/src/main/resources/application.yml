@@ -5,12 +5,12 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/reserveone_db
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USERNAME:reserveone}
-    password: ${DB_PASSWORD:CHANGE_ME}
+    username: postgres
+    password:
 
   sql:
     init:
-      mode: always
+      mode: never
       schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
 

@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import com.skillstorm.fincen_project2_backend.dto.users.CreateUserRequest;
@@ -24,10 +26,8 @@ import com.skillstorm.fincen_project2_backend.models.User;
 public class UserMapper {
 
     // CREATE
-    public User toEntity(CreateUserRequest req) {
-        if (req == null) {
-            return null;
-        }
+    @NonNull
+    public User toEntity(@NonNull CreateUserRequest req) {
 
         User user = new User(req.firstName(), req.lastName(), req.email());
 
@@ -58,11 +58,8 @@ public class UserMapper {
         return user;
     }
 
-    // READ
-    public UserResponse toResponse(User user) {
-        if (user == null) {
-            return null;
-        }
+    @NonNull
+    public UserResponse toResponse(@NonNull User user) {
 
         return new UserResponse(
                 user.getUserId(),
@@ -81,16 +78,14 @@ public class UserMapper {
                 toRoleNames(user.getRoles()));
     }
 
-    // UPDATE STATUS
-    public void applyUpdate(UpdateUserStatusRequest req, User user) {
-        if (req == null || user == null) {
+    public void applyUpdate(@Nullable UpdateUserStatusRequest req, @NonNull User user) {
+        if (req == null) {
             return;
         }
-
         user.setStatus(req.status());
     }
 
-    private Set<String> toRoleNames(Set<Role> roles) {
+    private Set<String> toRoleNames(@Nullable Set<Role> roles) {
         if (roles == null || roles.isEmpty()) {
             return Collections.emptySet();
         }
@@ -101,9 +96,8 @@ public class UserMapper {
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    // UPDATE PROFILE
-    public void applyUpdate(UpdateUserRequest req, User user) {
-        if (req == null || user == null) {
+    public void applyUpdate(@Nullable UpdateUserRequest req, @NonNull User user) {
+        if (req == null) {
             return;
         }
 

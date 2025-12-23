@@ -2,6 +2,7 @@ package com.skillstorm.fincen_project2_backend.models;
 
 import java.time.OffsetDateTime;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
+import org.springframework.lang.NonNull;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -133,8 +135,9 @@ public class User {
         }
     }
 
+    @NonNull
     public UUID getUserId() {
-        return userId;
+        return Objects.requireNonNull(userId, "userId must not be null");
     }
 
     public String getFirstName() {
