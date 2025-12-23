@@ -1,5 +1,6 @@
 package com.skillstorm.fincen_project2_backend.models;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -27,7 +28,7 @@ public class Role {
 
     @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
     @JsonIgnore
-    private Set<User> users = new HashSet<>();
+    private final Set<User> users = new HashSet<>();
 
     @Id
     @JdbcTypeCode(SqlTypes.UUID)
@@ -37,18 +38,22 @@ public class Role {
 
     @NotBlank
     @Size(max = 40)
-    @Column(name = "name", nullable = false, length = 40)
+    @Column(name = "name", nullable = false, length = 40, updatable = false)
     private String name;
 
     protected Role() {
     }
 
     public Role(String name) {
-        this.name = name;
+        String normalized = normalizeName(name);
+        if (normalized == null || normalized.isBlank()) {
+            throw new IllegalArgumentException("Role name must not be blank");
+        }
+        this.name = normalized;
     }
 
     public Set<User> getUsers() {
-        return users;
+        return Collections.unmodifiableSet(users);
     }
 
     public UUID getRoleId() {
@@ -59,8 +64,8 @@ public class Role {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    private static String normalizeName(String name) {
+        return (name == null) ? null : name.trim().toUpperCase();
     }
 
     /**
@@ -77,7 +82,9 @@ public class Role {
      */
 
     void internalAddUser(User user) {
-        users.add(user);
+        if (user != null) {
+            users.add(user);
+        }
     }
 
     /**
@@ -90,15 +97,19 @@ public class Role {
      */
 
     void internalRemoveUser(User user) {
-        users.remove(user);
+        if (user != null) {
+            users.remove(user);
+        }
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
+        if (this == o) {
             return true;
-        if (!(o instanceof Role other))
+        }
+        if (!(o instanceof Role other)) {
             return false;
+        }
         return roleId != null && roleId.equals(other.roleId);
     }
 

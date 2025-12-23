@@ -8,6 +8,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -109,6 +111,32 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    // Handles authentication failures (missing/invalid credentials)
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail handleAuthentication(AuthenticationException ex,
+            HttpServletRequest request) {
+        log.warn("Authentication failed at {}: {}", request.getRequestURI(), ex.getMessage());
+
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+        pd.setTitle("Unauthorized");
+        pd.setDetail("Authentication is required to access this resource.");
+        pd.setProperty("path", request.getRequestURI());
+        return pd;
+    }
+
+    // Handles authorization failures (authenticated but not permitted)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex,
+            HttpServletRequest request) {
+        log.warn("Access denied at {}: {}", request.getRequestURI(), ex.getMessage());
+
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
+        pd.setTitle("Forbidden");
+        pd.setDetail("You do not have permission to perform this action.");
+        pd.setProperty("path", request.getRequestURI());
+        return pd;
+    }
+
     // Handles DataIntegrityViolations with DB-level Uniqueness Violations
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex,
@@ -163,12 +191,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ProblemDetail handleConstraintViolation(ConstraintViolationException ex,
             HttpServletRequest request) {
-        log.warn("Validation failed at {}: {}", request.getRequestURI(), ex.getMessage());
 
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         pd.setTitle("Validation Failed");
         pd.setDetail("One or more parameters are invalid.");
         pd.setProperty("path", request.getRequestURI());
+
+        var errors = ex.getConstraintViolations().stream()
+                .collect(Collectors.toMap(
+                        v -> v.getPropertyPath().toString(),
+                        v -> v.getMessage(),
+                        (a, b) -> a));
+
+        pd.setProperty("errors", errors);
         return pd;
     }
 
