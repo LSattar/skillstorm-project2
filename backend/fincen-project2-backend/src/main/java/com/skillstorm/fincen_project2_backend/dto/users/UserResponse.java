@@ -20,7 +20,5 @@ public record UserResponse(
         Status status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
-
-        // Optional: safe role names (don’t expose Role entity)
-        Set<String> roles
-) {}
+        Set<String> roles) {
+}

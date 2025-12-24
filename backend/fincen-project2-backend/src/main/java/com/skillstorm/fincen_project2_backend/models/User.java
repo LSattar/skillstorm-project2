@@ -31,7 +31,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 @Entity
-@Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uq_users_email", columnNames = "email"))
+@Table(name = "users", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_users_email", columnNames = "email")
+})
 public class User {
 
     public enum Status {
@@ -67,6 +69,10 @@ public class User {
     @Size(max = 255)
     @Column(name = "email", nullable = false, updatable = false, columnDefinition = "citext")
     private String email;
+
+    @Size(max = 255)
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
 
     @Size(max = 30)
     @Column(name = "phone", length = 30)
@@ -108,9 +114,9 @@ public class User {
     }
 
     public User(String firstName, String lastName, String email) {
-        this.firstName = firstName == null ? null : firstName.trim();
-        this.lastName = lastName == null ? null : lastName.trim();
-        this.email = email == null ? null : email.trim();
+        this.firstName = requireNonBlank(firstName, "firstName").trim();
+        this.lastName = requireNonBlank(lastName, "lastName").trim();
+        this.email = requireNonBlank(email, "email").trim().toLowerCase();
     }
 
     public Set<Role> getRoles() {
@@ -135,6 +141,24 @@ public class User {
         }
     }
 
+    public Set<OAuthIdentity> getOauthIdentities() {
+        return java.util.Collections.unmodifiableSet(oauthIdentities);
+    }
+
+    public void removeOauthIdentity(OAuthIdentity identity) {
+        if (identity != null) {
+            oauthIdentities.remove(identity);
+        }
+    }
+
+    public void addOauthIdentity(OAuthIdentity identity) {
+        if (identity == null) {
+            return;
+        }
+        identity.setUser(this);
+        oauthIdentities.add(identity);
+    }
+
     @NonNull
     public UUID getUserId() {
         return Objects.requireNonNull(userId, "userId must not be null");
@@ -145,7 +169,9 @@ public class User {
     }
 
     public void setFirstName(String firstName) {
-        this.firstName = firstName;
+        if (firstName == null || firstName.isBlank())
+            return;
+        this.firstName = firstName.trim();
     }
 
     public String getLastName() {
@@ -153,19 +179,29 @@ public class User {
     }
 
     public void setLastName(String lastName) {
-        this.lastName = lastName;
+        if (lastName == null || lastName.isBlank())
+            return;
+        this.lastName = lastName.trim();
     }
 
     public String getEmail() {
         return email;
-    } // no setter
+    } // no setter (immutable)
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 
     public String getPhone() {
         return phone;
     }
 
     public void setPhone(String phone) {
-        this.phone = phone;
+        this.phone = (phone == null || phone.isBlank()) ? null : phone.trim();
     }
 
     public String getAddress1() {
@@ -224,25 +260,6 @@ public class User {
         return updatedAt;
     }
 
-    public Set<OAuthIdentity> getOauthIdentities() {
-        return java.util.Collections.unmodifiableSet(oauthIdentities);
-    }
-
-    public void removeOauthIdentity(OAuthIdentity identity) {
-        if (identity != null) {
-            oauthIdentities.remove(identity);
-        }
-    }
-
-    public void addOauthIdentity(OAuthIdentity identity) {
-        if (identity == null) {
-            return;
-        }
-
-        identity.setUser(this);
-        oauthIdentities.add(identity);
-    }
-
     @Override
     public int hashCode() {
         return getClass().hashCode();
@@ -262,5 +279,12 @@ public class User {
     @Override
     public String toString() {
         return "User{userId=" + userId + ", status=" + status + "}";
+    }
+
+    private static String requireNonBlank(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value;
     }
 }

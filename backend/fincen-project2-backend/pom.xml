@@ -23,7 +23,6 @@
     </properties>
 
     <dependencies>
-
         <!-- Web / REST -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -56,6 +55,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Jwt Validators-->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+             <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
+
         <!-- Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -75,8 +80,23 @@
     		<artifactId>postgresql</artifactId>
    			<scope>runtime</scope>
 		</dependency>
+
+       <!-- oauth2 resource server -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- Test Spring-Security-Endpoints-->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+             <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
+    <!-- Maven-->
     <build>
         <plugins>
             <plugin>

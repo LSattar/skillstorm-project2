@@ -1,114 +1,130 @@
 package com.skillstorm.fincen_project2_backend.config;
 
+import java.util.Collection;
+
+import com.skillstorm.fincen_project2_backend.models.User;
+import com.skillstorm.fincen_project2_backend.repositories.UserRepository;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-/*
- * Temporary security configuration for development.
- * All requests are permitted to allow application development
- * before authentication and authorization are enforced.
- */
-
 @Configuration
-// enableWebSecurity - Annotation // this one enables various web security
-// functions, like basic auth, CORS, CSRF, etc.
+@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
-    /**
-     * Be careful about doing research with spring security
-     * many methods got deprecated in summer 2022
-     * 
-     * SecurityConfiguration class used to extend WebSecurityConfigureAdapter (this
-     * is deprecated)
-     * 
-     * antMatchers used to be used instead of mvcMatchers
-     * antMatchers are not deprecated but in general mvcMatchers is preferred
-     * 
-     * @param http
-     * @return
-     * @throws Exception
-     */
-
-    //Add each end point below
-
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filterChain(
+            HttpSecurity http,
+            JwtAuthenticationConverter jwtAuthConverter) throws Exception {
+
         http
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+
+                        // Public endpoints
+                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/rooms/available").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/rooms/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/rooms/hotel/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/hotels").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/hotels/*").permitAll()
+
+                        // Users
+                        .requestMatchers(HttpMethod.GET, "/users/*")
+                        .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/users/*")
+                        .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/users/*")
+                        .hasAnyRole("ADMIN", "BUSINESS_OWNER")
+                        .requestMatchers(HttpMethod.PATCH, "/users/*/status")
+                        .hasRole("ADMIN")
+
+                        // Bookings
+                        .requestMatchers(HttpMethod.POST, "/bookings")
+                        .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/bookings/*")
+                        .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/bookings/user/*")
+                        .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/bookings/*")
+                        .hasAnyRole("EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/bookings/*")
+                        .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/bookings")
+                        .hasAnyRole("EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+
+                        // Rooms
+                        .requestMatchers(HttpMethod.POST, "/rooms")
+                        .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/rooms/*")
+                        .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/rooms/*")
+                        .hasAnyRole("BUSINESS_OWNER", "ADMIN")
+
+                        // Hotels
+                        .requestMatchers(HttpMethod.POST, "/hotels")
+                        .hasAnyRole("BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/hotels/*")
+                        .hasAnyRole("BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/hotels/*")
+                        .hasRole("ADMIN")
+
+                        // OAuth Identities
+                        .requestMatchers(HttpMethod.POST, "/oauthidentities")
+                        .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/oauthidentities")
+                        .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/oauthidentities/**")
+                        .hasAnyRole("GUEST", "ADMIN")
+
+                        // Admin-only areas
+                        .requestMatchers("/roles/**").hasRole("ADMIN")
+
+                        // Reports & analytics
+                        .requestMatchers("/reports/**")
+                        .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
+                        .requestMatchers("/analytics/**")
+                        .hasAnyRole("BUSINESS_OWNER", "ADMIN")
+
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter)));
 
         return http.build();
     }
 
     /**
-     * 
-     * Chaining http object
-     * 
-     * http.httpBasic(httpBasic -> Customizer.withDefaults());
-     * 
-     * http.authorizeHttpRequests(auth -> {
-     * auth.requestMatchers("/main/**").permitAll(). // PermitAll() No
-     * authentication needed
-     * .requestMatchers("/main/protected").authenticated()); => Needs authentication
-     * })
+     * Convert Auth0 JWT -> Spring Authorities using DB roles.
+     * Requires you to store Auth0 "sub" in your User table (recommended).
      */
-
-    /**
-     * 
-     * <Using the httpSecurity object to configure which endpoints require
-     * authentication/authorization>
-     * 
-     * http.authorizeHttpRequests((authorizeHttpRequests) ->
-     * authorizeHttpRequests
-     * .mvcMatchers("/users/hello").permitAll() // allowing all access to
-     * /users/hello/without authentication
-     * );
-     * 
-     * return http.build();
-     */
-
-    /** 
-    
-    
-    //injecting our CustomerUserDetailsService here for finally authenticating the incoming password against the one in the database
-    
-    private final CustomUserDetailsService service){
-    this.service = service;
-    }
-    
-    we need a bean for our password encoder -- using bcrypt here!
     @Bean
-    PasswordEncoder passwordEncoder(){
-    return new BCryptPasswordEncoder();
-    }
-    
-    //last!!
-    //we need to say HOW we're managing authentication
-    // in our case, it's using bcrypt to handle passwords
-    // we must feed in both the http object and the password encoder as parameters
-    
-    @Bean
-    AuthenticationManager authManager(HttpSecurity http, PasswordEncoder passwordEncoder){
-        // start building an auth object
-        AuthenticationManagerBuilder auth = http.getSharedObject(AuthenticationManagerBuilder.class);
-        // chain onto that auth object with the services we want to use
-        // for us. that's our UserDetailsService object and our PasswordEncoder
-        auth.userDetailsService(service).passwordEncoder(passwordEncoder);
-        return auth.build();
-    }
-    
-    @Bean
-    SecurityFilterChain filterChain(HttpSecurity http){
-        http
-            .csrf(csrf -> csrf.diable())
-            .authroizeHttpRequests(auth -> auth
-            
-            )
-    }
-    
-    
-    //*/
+    JwtAuthenticationConverter jwtAuthConverter(UserRepository userRepository) {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            String sub = jwt.getSubject();
 
+            User user = userRepository.findByAuth0Sub(sub)
+                    .orElseThrow(() -> new BadCredentialsException("User not registered in local DB"));
+
+            Collection<GrantedAuthority> authorities = user.getRoles().stream()
+                    .map(r -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + r.getName()))
+                    .toList();
+
+            return authorities;
+        });
+        return converter;
+    }
 }

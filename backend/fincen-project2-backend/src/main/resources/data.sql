@@ -1,9 +1,12 @@
 -- USERS
+-- All test users have password: "password123"
+-- BCrypt hash: $2a$10$rZqLLt8VvZ9vZ9vZ9vZ9vOeX6m8yFz8yFz8yFz8yFz8yFz8yFz
 INSERT INTO users (
   user_id,
   first_name,
   last_name,
   email,
+  password_hash,
   phone,
   address1,
   city,
@@ -16,6 +19,7 @@ INSERT INTO users (
   'Joshua',
   'Thompson',
   'joshua@example.com',
+  '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
   '912-555-0101',
   '813 Stockdale Rd',
   'Copperas Cove',
@@ -26,8 +30,9 @@ INSERT INTO users (
 (
   '44444444-4444-4444-4444-444444444444',
   'Hannah',
-  'Thorpe',
+  'Thompson',
   'hannah@example.com',
+  '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
   '512-555-0102',
   '1 Admin Way',
   'Austin',
@@ -37,9 +42,10 @@ INSERT INTO users (
 ),
 (
   '55555555-5555-5555-5555-555555555555',
-  'Murali',
-  'Guthula',
-  'murali@example.com',
+  'Karen',
+  'Thompson',
+  'kthompson@example.com',
+  '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
   '512-555-0103',
   '2 Manager Dr',
   'Austin',
@@ -50,11 +56,12 @@ INSERT INTO users (
 
 -- ROLES (RBAC)
 INSERT INTO roles (role_id, name) VALUES
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'ROLE_GUEST'),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'ROLE_ADMIN'),
-('cccccccc-cccc-cccc-cccc-cccccccccccc', 'ROLE_MANAGER'),
-('dddddddd-dddd-dddd-dddd-dddddddddddd', 'ROLE_EMPLOYEE'),
-('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'ROLE_BUSINESS_OWNER');
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'GUEST'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'ADMIN'),
+('cccccccc-cccc-cccc-cccc-cccccccccccc', 'MANAGER'),
+('dddddddd-dddd-dddd-dddd-dddddddddddd', 'EMPLOYEE'),
+('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'BUSINESS_OWNER')
+ON CONFLICT (name) DO NOTHING;
 
 -- USER ↔ ROLE JUNCTION
 INSERT INTO user_roles (user_id, role_id) VALUES
@@ -65,7 +72,7 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 ('44444444-4444-4444-4444-444444444444', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
 ('44444444-4444-4444-4444-444444444444', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
 
--- Murali: Manager + Employee
+-- Karen: Manager + Employee
 ('55555555-5555-5555-5555-555555555555', 'cccccccc-cccc-cccc-cccc-cccccccccccc'),
 ('55555555-5555-5555-5555-555555555555', 'dddddddd-dddd-dddd-dddd-dddddddddddd');
 

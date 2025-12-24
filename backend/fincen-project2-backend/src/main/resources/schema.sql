@@ -51,30 +51,35 @@ CREATE TABLE hotels (
 
 -- Users + Roles (RBAC)
 CREATE TABLE users (
-  user_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  first_name VARCHAR(120) NOT NULL,
-  last_name  VARCHAR(120) NOT NULL,
-  email      CITEXT NOT NULL, -- case-insensitive
-  phone      VARCHAR(30),
-  address1   VARCHAR(200),
-  address2   VARCHAR(200),
-  city       VARCHAR(60),
-  state      VARCHAR(2),
-  zip        VARCHAR(10),
-  status     VARCHAR(30)  NOT NULL DEFAULT 'ACTIVE',
-  created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  user_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  first_name    VARCHAR(120) NOT NULL,
+  last_name     VARCHAR(120) NOT NULL,
+  email         CITEXT NOT NULL,
+  password_hash VARCHAR(255),
+  phone         VARCHAR(30),
+  address1      VARCHAR(200),
+  address2      VARCHAR(200),
+  city          VARCHAR(60),
+  state         VARCHAR(2),
+  zip           VARCHAR(10),
+  status        VARCHAR(30)  NOT NULL DEFAULT 'ACTIVE',
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
   CONSTRAINT uq_users_email UNIQUE (email),
+
+  CONSTRAINT ck_users_email_trimmed CHECK (email = btrim(email)),
+
   CONSTRAINT ck_users_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED')),
   CONSTRAINT ck_users_state_len CHECK (state IS NULL OR LENGTH(state) = 2),
-  CONSTRAINT ck_users_zip_len   CHECK (zip IS NULL OR LENGTH(zip) BETWEEN 5 AND 10)
+  CONSTRAINT ck_users_zip_len CHECK (zip IS NULL OR LENGTH(zip) BETWEEN 5 AND 10)
 );
 
 CREATE TABLE roles (
   role_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name    VARCHAR(40) NOT NULL,
-  CONSTRAINT uq_roles_name UNIQUE (name)
+  CONSTRAINT uq_roles_name UNIQUE (name),
+  CONSTRAINT ck_roles_name_upper CHECK (name = upper(name))
 );
 
 CREATE TABLE user_roles (
@@ -352,7 +357,7 @@ CREATE TRIGGER trg_payments_updated_at
 BEFORE UPDATE ON payment_transactions
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
-
+ 
 -- Enforce users.email immutability
 CREATE OR REPLACE FUNCTION prevent_users_email_update()
 RETURNS trigger AS $$

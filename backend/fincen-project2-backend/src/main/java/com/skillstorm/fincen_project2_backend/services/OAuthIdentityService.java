@@ -1,7 +1,6 @@
 package com.skillstorm.fincen_project2_backend.services;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.skillstorm.fincen_project2_backend.dto.oauthidentities.CreateOAuthIdentityRequest;
@@ -14,6 +13,7 @@ import com.skillstorm.fincen_project2_backend.models.OAuthIdentity.Provider;
 import com.skillstorm.fincen_project2_backend.models.User;
 import com.skillstorm.fincen_project2_backend.repositories.OAuthIdentityRepository;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +37,10 @@ public class OAuthIdentityService {
      * - user can only have one identity per provider (uq_user_provider)
      *
      * Notes:
-     * - DataIntegrityViolationException should bubble up to GlobalExceptionHandler.
+     * - Relies on database constraints for atomicity instead of check-then-act
+     * pattern
+     * - DataIntegrityViolationException is caught and converted to user-friendly
+     * messages
      */
     @Transactional
     public OAuthIdentityResponse create(@NonNull User user, @NonNull CreateOAuthIdentityRequest req) {
@@ -47,22 +50,25 @@ public class OAuthIdentityService {
         Provider provider = Objects.requireNonNull(req.provider(), "Provider is required.");
         String providerUserId = normalizeRequired(req.providerUserId(), "Provider user id is required.");
 
-        // Fail fast: one provider per user
-        UUID userId = Objects.requireNonNull(user.getUserId(), "userId must not be null");
-        if (repo.existsByUser_UserIdAndProvider(userId, provider)) {
-            throw new ResourceConflictException("User already has an identity for this provider.");
-        }
-
-        // Fail fast: provider+providerUserId cannot be linked to multiple users
-        Optional<OAuthIdentity> existing = repo.findByProviderAndProviderUserId(provider, providerUserId);
-        if (existing.isPresent()) {
-            throw new ResourceConflictException("This provider identity is already linked to a user.");
-        }
-
         OAuthIdentity entity = Objects.requireNonNull(mapper.toEntity(user, req), "mapper.toEntity returned null");
-        OAuthIdentity saved = Objects.requireNonNull(repo.save(entity), "repo.save returned null");
 
-        return Objects.requireNonNull(mapper.toResponse(saved), "mapper.toResponse returned null");
+        try {
+            OAuthIdentity saved = Objects.requireNonNull(repo.save(entity), "repo.save returned null");
+            return Objects.requireNonNull(mapper.toResponse(saved), "mapper.toResponse returned null");
+        } catch (DataIntegrityViolationException e) {
+            String message = e.getMostSpecificCause().getMessage();
+
+            // Handle constraint violations with user-friendly messages
+            if (message != null && message.contains("uq_user_provider")) {
+                throw new ResourceConflictException("User already has an identity for this provider.");
+            }
+            if (message != null && message.contains("uq_provider_user")) {
+                throw new ResourceConflictException("This provider identity is already linked to a user.");
+            }
+
+            // Re-throw unexpected constraint violations
+            throw e;
+        }
     }
 
     /**

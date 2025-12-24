@@ -31,6 +31,7 @@ public class UserService {
 
     @Transactional
     public UserResponse create(@NonNull CreateUserRequest req) {
+        // Normalize upfront (and keep behavior consistent with CITEXT)
         String email = normalizeRequired(req.email(), "Email is required.");
 
         if (repo.existsByEmail(email)) {

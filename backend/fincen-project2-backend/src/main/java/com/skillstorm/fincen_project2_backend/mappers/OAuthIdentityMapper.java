@@ -5,30 +5,27 @@ import com.skillstorm.fincen_project2_backend.dto.oauthidentities.OAuthIdentityR
 import com.skillstorm.fincen_project2_backend.models.OAuthIdentity;
 import com.skillstorm.fincen_project2_backend.models.User;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+
+import jakarta.annotation.Nullable;
 
 @Component
 public class OAuthIdentityMapper {
     // CREATE
-    public OAuthIdentity toEntity(User user, CreateOAuthIdentityRequest req) {
+    @Nullable
+    public OAuthIdentity toEntity(@NonNull User user, @Nullable CreateOAuthIdentityRequest req) {
         if (req == null) {
             return null;
         }
 
-        if (user == null) {
-            throw new IllegalArgumentException("User must not be null when creating OAuthIdentity");
-        }
-
-        if (req.provider() == null) {
-            throw new IllegalArgumentException("Provider must not be null");
-        }
-
-        String providerUserId = req.providerUserId() == null ? null : req.providerUserId().trim();
+        String providerUserId = req.providerUserId().trim();
         return new OAuthIdentity(user, req.provider(), providerUserId);
     }
 
     // READ
-    public OAuthIdentityResponse toResponse(OAuthIdentity oauthIdentity) {
+    @Nullable
+    public OAuthIdentityResponse toResponse(@Nullable OAuthIdentity oauthIdentity) {
         if (oauthIdentity == null) {
             return null;
         }

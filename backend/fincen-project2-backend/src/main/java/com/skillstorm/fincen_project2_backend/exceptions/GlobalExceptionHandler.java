@@ -141,13 +141,28 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex,
             HttpServletRequest request) {
-        log.warn("Data integrity violation at {}: {}", request.getRequestURI(),
-                ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage());
+        Throwable mostSpecificCause = ex.getMostSpecificCause();
+        String dbMessage = mostSpecificCause != null
+                ? mostSpecificCause.getMessage()
+                : ex.getMessage();
+
+        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), dbMessage);
+
+        String detail = "Request violates a data constraint.";
+
+        if (dbMessage != null) {
+            if (dbMessage.contains("uq_users_email")) {
+                detail = "Email address is already in use.";
+            } else if (dbMessage.contains("foreign key")) {
+                detail = "Request references a related resource that does not exist.";
+            }
+        }
 
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
         pd.setTitle("Conflict");
-        pd.setDetail("Request violates a data constraint (duplicate or invalid reference).");
+        pd.setDetail(detail);
         pd.setProperty("path", request.getRequestURI());
+
         return pd;
     }
 
