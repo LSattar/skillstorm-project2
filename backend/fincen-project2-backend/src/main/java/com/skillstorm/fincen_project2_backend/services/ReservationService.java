@@ -8,8 +8,12 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+
 import com.skillstorm.fincen_project2_backend.dtos.ReservationRequestDTO;
 import com.skillstorm.fincen_project2_backend.dtos.ReservationResponseDTO;
+import com.skillstorm.fincen_project2_backend.dtos.ReservationSearchDTO;
 import com.skillstorm.fincen_project2_backend.mappers.ReservationMapper;
 import com.skillstorm.fincen_project2_backend.models.Hotel;
 import com.skillstorm.fincen_project2_backend.models.Reservation;
@@ -205,6 +209,95 @@ public class ReservationService {
 
         Reservation updated = reservationRepository.save(reservation);
         return mapper.toResponse(updated);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponseDTO> searchReservations(ReservationSearchDTO search) {
+        List<Reservation> reservations = reservationRepository.findAll();
+
+        // Apply filters
+        return reservations.stream()
+            .filter(reservation -> {
+                // Filter by userId
+                if (search.userId() != null && !reservation.getUser().getUserId().equals(search.userId())) {
+                    return false;
+                }
+
+                // Filter by hotelId
+                if (search.hotelId() != null && !reservation.getHotel().getHotelId().equals(search.hotelId())) {
+                    return false;
+                }
+
+                // Filter by roomId
+                if (search.roomId() != null && !reservation.getRoom().getRoomId().equals(search.roomId())) {
+                    return false;
+                }
+
+                // Filter by roomTypeId
+                if (search.roomTypeId() != null && !reservation.getRoomType().getRoomTypeId().equals(search.roomTypeId())) {
+                    return false;
+                }
+
+                // Filter by statuses
+                if (search.statuses() != null && !search.statuses().isEmpty() 
+                    && !search.statuses().contains(reservation.getStatus())) {
+                    return false;
+                }
+
+                // Filter by start date range
+                if (search.startDateFrom() != null && reservation.getStartDate().isBefore(search.startDateFrom())) {
+                    return false;
+                }
+                if (search.startDateTo() != null && reservation.getStartDate().isAfter(search.startDateTo())) {
+                    return false;
+                }
+
+                // Filter by end date range
+                if (search.endDateFrom() != null && reservation.getEndDate().isBefore(search.endDateFrom())) {
+                    return false;
+                }
+                if (search.endDateTo() != null && reservation.getEndDate().isAfter(search.endDateTo())) {
+                    return false;
+                }
+
+                // Filter by creation date range
+                if (search.createdFrom() != null && reservation.getCreatedAt().isBefore(search.createdFrom())) {
+                    return false;
+                }
+                if (search.createdTo() != null && reservation.getCreatedAt().isAfter(search.createdTo())) {
+                    return false;
+                }
+
+                // Filter by guest count
+                if (search.minGuestCount() != null && reservation.getGuestCount() < search.minGuestCount()) {
+                    return false;
+                }
+                if (search.maxGuestCount() != null && reservation.getGuestCount() > search.maxGuestCount()) {
+                    return false;
+                }
+
+                // Filter by price range
+                if (search.minTotalAmount() != null && reservation.getTotalAmount().compareTo(search.minTotalAmount()) < 0) {
+                    return false;
+                }
+                if (search.maxTotalAmount() != null && reservation.getTotalAmount().compareTo(search.maxTotalAmount()) > 0) {
+                    return false;
+                }
+
+                // Filter by cancellation status
+                if (search.cancelledOnly() != null && search.cancelledOnly() 
+                    && reservation.getStatus() != Status.CANCELLED) {
+                    return false;
+                }
+                if (search.notCancelled() != null && search.notCancelled() 
+                    && reservation.getStatus() == Status.CANCELLED) {
+                    return false;
+                }
+
+                return true;
+            })
+            .map(mapper::toResponse)
+            .collect(Collectors.toList());
     }
 }
 
