@@ -8,11 +8,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-
 import com.skillstorm.fincen_project2_backend.dtos.ReservationHoldRequestDTO;
 import com.skillstorm.fincen_project2_backend.dtos.ReservationHoldResponseDTO;
-import com.skillstorm.fincen_project2_backend.dtos.ReservationHoldSearchDTO;
 import com.skillstorm.fincen_project2_backend.mappers.ReservationHoldMapper;
 import com.skillstorm.fincen_project2_backend.models.Hotel;
 import com.skillstorm.fincen_project2_backend.models.ReservationHold;
@@ -185,95 +182,6 @@ public class ReservationHoldService {
             hold.setStatus(Status.EXPIRED);
         }
         holdRepository.saveAll(expiredHolds);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ReservationHoldResponseDTO> searchHolds(ReservationHoldSearchDTO search) {
-        List<ReservationHold> holds = holdRepository.findAll();
-
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime tomorrow = now.plusDays(1);
-
-        // Apply filters
-        return holds.stream()
-            .filter(hold -> {
-                // Filter by userId
-                if (search.userId() != null && !hold.getUser().getUserId().equals(search.userId())) {
-                    return false;
-                }
-
-                // Filter by hotelId
-                if (search.hotelId() != null && !hold.getHotel().getHotelId().equals(search.hotelId())) {
-                    return false;
-                }
-
-                // Filter by roomId
-                if (search.roomId() != null && !hold.getRoom().getRoomId().equals(search.roomId())) {
-                    return false;
-                }
-
-                // Filter by statuses
-                if (search.statuses() != null && !search.statuses().isEmpty() 
-                    && !search.statuses().contains(hold.getStatus())) {
-                    return false;
-                }
-
-                // Filter by start date range
-                if (search.startDateFrom() != null && hold.getStartDate().isBefore(search.startDateFrom())) {
-                    return false;
-                }
-                if (search.startDateTo() != null && hold.getStartDate().isAfter(search.startDateTo())) {
-                    return false;
-                }
-
-                // Filter by end date range
-                if (search.endDateFrom() != null && hold.getEndDate().isBefore(search.endDateFrom())) {
-                    return false;
-                }
-                if (search.endDateTo() != null && hold.getEndDate().isAfter(search.endDateTo())) {
-                    return false;
-                }
-
-                // Filter by expiration date
-                if (search.expiresBefore() != null && hold.getExpiresAt().isAfter(search.expiresBefore())) {
-                    return false;
-                }
-                if (search.expiresAfter() != null && hold.getExpiresAt().isBefore(search.expiresAfter())) {
-                    return false;
-                }
-
-                // Filter by creation date range
-                if (search.createdFrom() != null && hold.getCreatedAt().isBefore(search.createdFrom())) {
-                    return false;
-                }
-                if (search.createdTo() != null && hold.getCreatedAt().isAfter(search.createdTo())) {
-                    return false;
-                }
-
-                // Special filters
-                if (search.expiredOnly() != null && search.expiredOnly() 
-                    && hold.getStatus() != Status.EXPIRED) {
-                    return false;
-                }
-
-                if (search.activeOnly() != null && search.activeOnly() 
-                    && hold.getStatus() != Status.ACTIVE) {
-                    return false;
-                }
-
-                if (search.expiringSoon() != null && search.expiringSoon()) {
-                    // Holds expiring within next 24 hours
-                    if (hold.getStatus() != Status.ACTIVE 
-                        || hold.getExpiresAt().isBefore(now) 
-                        || hold.getExpiresAt().isAfter(tomorrow)) {
-                        return false;
-                    }
-                }
-
-                return true;
-            })
-            .map(mapper::toResponse)
-            .collect(Collectors.toList());
     }
 }
 
