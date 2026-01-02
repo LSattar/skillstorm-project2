@@ -186,7 +186,7 @@
     background-position: center;
   }
   */
-  
+
   .hero-grid {
     display: grid;
     grid-template-columns: 1.2fr 0.8fr;
@@ -272,6 +272,34 @@
   .card-subtitle {
     margin: 0 0 16px;
     color: var(--muted);
+  }
+
+  .card-dark {
+    background: #344e41;
+    color: #a3b18a;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .card-dark a {
+    color: #faf9f6;
+    transition: color 0.2s ease;
+  }
+  
+  .card-dark a:hover {
+    color: #c0c0c0;
+  }
+  
+  .card-dark-em {
+    color: #ddbea9
+  }
+
+  .card-dark-title {
+    color: #faf9f6;
+    margin: 0 0 6px;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
   }
   
   .hero-side {
