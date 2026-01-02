@@ -1,0 +1,21 @@
+<header class="site-header">
+  <div class="container header-inner">
+    <!-- Brand -->
+    <a class="brand" href="#top" aria-label="ReserveOne home" (click)="closeNav.emit()">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">
+        <span class="brand-name">ReserveOne</span>
+        <span class="brand-tag">Smarter stays • Better booking</span>
+      </span>
+    </a>
+
+    <!-- Navigation (now a component) -->
+    <app-nav [isOpen]="isNavOpen" (toggle)="toggleNav.emit()" (close)="closeNav.emit()"></app-nav>
+
+    <!-- Actions -->
+    <div class="header-actions">
+      <button class="btn btn-ghost" type="button" (click)="openBooking.emit()">Search</button>
+      <a class="btn btn-primary" href="#signin" (click)="closeNav.emit()"> Sign in </a>
+    </div>
+  </div>
+</header>

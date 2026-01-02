@@ -41,3 +41,11 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Ignore any sibling backend build output accidentally seen by this repo
+../backend/**/target/
+../backend/**/*.class
+
+# Also ignore any target folders that might exist under the repo root (safe)
+**/target/
+**/*.class
