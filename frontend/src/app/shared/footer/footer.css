@@ -1,0 +1,32 @@
+.site-footer {
+  border-top:
+/* ===== Footer ===== */ 1px solid var(--border);
+  padding: 22px 0;
+  background: rgba(52, 78, 65, 0.04);
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.footer-links {
+  list-style: none;
+  display: flex;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.footer-links a:hover {
+  color: var(--primary-2);
+}

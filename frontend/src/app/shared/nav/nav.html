@@ -1,0 +1,20 @@
+<nav class="nav" aria-label="Primary navigation">
+  <button
+    class="nav-toggle"
+    type="button"
+    aria-label="Open menu"
+    [attr.aria-expanded]="isOpen"
+    (click)="toggle.emit()"
+  >
+    ☰
+  </button>
+
+  <ul class="nav-list" [class.open]="isOpen">
+    <li><a href="#rooms" (click)="close.emit()">Rooms</a></li>
+    <li><a href="#amenities" (click)="close.emit()">Amenities</a></li>
+    <li><a href="#rewards" (click)="close.emit()">Rewards</a></li>
+    <li><a href="#offers" (click)="close.emit()">Offers</a></li>
+    <li><a href="#faq" (click)="close.emit()">FAQ</a></li>
+    <li><a href="#contact" (click)="close.emit()">Contact</a></li>
+  </ul>
+</nav>
