@@ -11,6 +11,9 @@ import { Nav } from '../nav/nav';
 })
 export class Header {
   @Input() isNavOpen = false;
+  @Input() isAuthenticated = false;
+  @Input() userLabel = '';
+  @Input() roleLabel = '';
 
   @Output() toggleNav = new EventEmitter<void>();
   @Output() closeNav = new EventEmitter<void>();
@@ -18,4 +21,6 @@ export class Header {
 
   // NEW
   @Output() openSignIn = new EventEmitter<void>();
+
+  @Output() logout = new EventEmitter<void>();
 }

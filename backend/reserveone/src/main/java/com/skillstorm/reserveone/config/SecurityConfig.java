@@ -19,14 +19,34 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.skillstorm.reserveone.services.CustomOAuth2UserService;
+import com.skillstorm.reserveone.services.CustomOidcUserService;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
+        /**
+         * PSEUDOCODE / INTENT (Auth wiring overview)
+         *
+         * Problem:
+         * - Different providers/protocols use different user-service hooks:
+         * - OIDC providers (Google): use oidcUserService(...)
+         * - Non-OIDC OAuth2 providers: use userService(...)
+         * - We must enrich whichever principal is created with DB roles (ROLE_*) and
+         * localUserId.
+         *
+         * Strategy:
+         * - Wire BOTH services under oauth2Login().userInfoEndpoint(...)
+         * - For SPA/XHR requests, return 401 instead of redirecting to Google.
+         * - Expose GET /auth/me for frontend session checks.
+         */
+
         @Bean
-        SecurityFilterChain filterChain(HttpSecurity http, CustomOAuth2UserService oAuth2UserService) throws Exception {
+        SecurityFilterChain filterChain(
+                        HttpSecurity http,
+                        CustomOAuth2UserService oAuth2UserService,
+                        CustomOidcUserService oidcUserService) throws Exception {
 
                 RequestMatcher apiRequest = request -> {
                         String xrw = request.getHeader("X-Requested-With");
@@ -121,7 +141,9 @@ public class SecurityConfig {
                                                 .anyRequest().authenticated())
 
                                 .oauth2Login(oauth -> oauth
-                                                .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
+                                                .userInfoEndpoint(userInfo -> userInfo
+                                                                .oidcUserService(oidcUserService)
+                                                                .userService(oAuth2UserService))
                                                 .defaultSuccessUrl("http://localhost:4200/", true))
 
                                 .logout(logout -> logout

@@ -4,9 +4,9 @@ import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import org.hibernate.annotations.UuidGenerator;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -48,11 +48,11 @@ public class OAuthIdentity {
     @Column(name = "provider_user_id", nullable = false, updatable = false, length = 255)
     private String providerUserId;
 
-    @NotNull
+    // DB-populated (DEFAULT now())
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    @NotNull
+    // DB-populated (trigger updates on UPDATE)
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime updatedAt;
 

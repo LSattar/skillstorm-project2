@@ -17,5 +17,11 @@ export class App implements OnInit {
       next: () => {},
       error: () => {}, // don't block the app if backend isn't running yet
     });
+
+    // Populate session-backed auth state (JSESSIONID cookie) after page load/redirect.
+    this.auth.refreshMe().subscribe({
+      next: () => {},
+      error: () => {},
+    });
   }
 }

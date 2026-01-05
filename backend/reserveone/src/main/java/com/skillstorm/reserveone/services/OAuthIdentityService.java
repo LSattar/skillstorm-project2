@@ -22,6 +22,25 @@ import com.skillstorm.reserveone.repositories.OAuthIdentityRepository;
 @Service
 public class OAuthIdentityService {
 
+    /**
+     * PSEUDOCODE / INTENT (Identity management service)
+     *
+     * This service is NOT the primary OAuth/OIDC login hook.
+     * - Login-time enrichment happens in CustomOidcUserService /
+     * CustomOAuth2UserService.
+     * - This service supports controller-driven CRUD/listing of oauth_identities.
+     *
+     * Typical use cases:
+     * - Admin tooling: list identities for a user.
+     * - Account linking/unlinking: create or delete provider identities.
+     * - Safe reads: fetch identity with user + roles (security-sensitive views).
+     *
+     * Concurrency note:
+     * - linkOrGet(...) behaves like an idempotent upsert and handles races by
+     * retrying lookup
+     * when a unique constraint is hit.
+     */
+
     private final OAuthIdentityRepository repo;
     private final OAuthIdentityMapper mapper;
 
@@ -143,7 +162,6 @@ public class OAuthIdentityService {
 
         return Objects.requireNonNull(mapper.toResponse(identity), "mapper.toResponse returned null");
     }
-
 
     // DELETE by user + provider
     @Transactional

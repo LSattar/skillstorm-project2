@@ -1,9 +1,13 @@
 <app-header
   [isNavOpen]="isNavOpen"
+  [isAuthenticated]="isAuthenticated()"
+  [roleLabel]="roleLabel()"
+  [userLabel]="userLabel()"
   (toggleNav)="toggleNav()"
   (closeNav)="closeNav()"
   (openBooking)="openBooking()"
   (openSignIn)="openSignIn()"
+  (logout)="signOut()"
 ></app-header>
 
 <main id="top">

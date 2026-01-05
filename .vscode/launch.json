@@ -9,6 +9,16 @@
       "projectName": "reserveone",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-ReserveOneApplication<reserveone>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.skillstorm.reserveone.ReserveOneApplication",
+      "projectName": "reserveone",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }

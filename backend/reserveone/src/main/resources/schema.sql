@@ -2,45 +2,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS citext;     -- case-insensitive text
 CREATE EXTENSION IF NOT EXISTS btree_gist; -- needed for UUID equality in GiST exclusion constraints
 
--- Drop triggers / functions first (safe re-runs)
-DO $$
-BEGIN
-  IF to_regclass('public.hotels') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS trg_hotels_updated_at ON hotels';
-  END IF;
-
-  IF to_regclass('public.users') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS trg_users_updated_at ON users';
-  END IF;
-
-  IF to_regclass('public.oauth_identities') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS trg_oauth_updated_at ON oauth_identities';
-  END IF;
-
-  IF to_regclass('public.room_types') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS trg_room_types_updated_at ON room_types';
-  END IF;
-
-  IF to_regclass('public.rooms') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS trg_rooms_updated_at ON rooms';
-  END IF;
-
-  IF to_regclass('public.reservations') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS trg_reservations_updated_at ON reservations';
-  END IF;
-
-  IF to_regclass('public.reservation_holds') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS trg_holds_updated_at ON reservation_holds';
-  END IF;
-
-  IF to_regclass('public.payment_transactions') IS NOT NULL THEN
-    EXECUTE 'DROP TRIGGER IF EXISTS trg_payments_updated_at ON payment_transactions';
-  END IF;
-END $$;
-
-DROP FUNCTION IF EXISTS set_updated_at();
-
 -- Drop order (children first)
+-- Note: We rely on DROP TABLE ... CASCADE to remove triggers.
+-- Spring's SQL initializer splits statements on semicolons and can break DO $$ blocks.
+DROP FUNCTION IF EXISTS set_updated_at() CASCADE;
 DROP TABLE IF EXISTS payment_transactions CASCADE;
 DROP TABLE IF EXISTS reservation_holds CASCADE;
 DROP TABLE IF EXISTS reservations CASCADE;
@@ -53,7 +18,6 @@ DROP TABLE IF EXISTS user_roles CASCADE;
 DROP TABLE IF EXISTS roles CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS hotels CASCADE;
-
 
 -- Hotels
 CREATE TABLE hotels (

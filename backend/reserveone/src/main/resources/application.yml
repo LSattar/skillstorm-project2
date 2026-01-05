@@ -1,6 +1,11 @@
 spring:
   application:
     name: reserveone
+  config:
+    # Support running from either:
+    # - backend/reserveone (then .env is at ./ .env)
+    # - repo root (then .env is at ./backend/reserveone/.env)
+    import: "optional:file:.env[.properties],optional:file:backend/reserveone/.env[.properties]"
   devtools:
     restart:
       enabled: false
@@ -13,7 +18,7 @@ spring:
 
   sql:
     init:
-      mode: ${SQL_INIT_MODE:never} # manually loaded for safety
+      mode: ${SQL_INIT_MODE:never} # schema/data loaded manually (psql) to support Postgres $$ blocks
       schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
 

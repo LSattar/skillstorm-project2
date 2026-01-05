@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
@@ -13,6 +13,19 @@ import { AuthService } from '../../../auth/services/auth.service';
   styleUrls: ['./landing-page.css'],
 })
 export class LandingPage {
+  protected readonly auth = inject(AuthService);
+
+  protected readonly isAuthenticated = this.auth.isAuthenticated;
+  protected readonly roleLabel = this.auth.primaryRoleLabel;
+  protected readonly userLabel = computed(() => {
+    const me = this.auth.meSignal();
+    if (!me) return '';
+    const first = me.firstName?.trim();
+    const last = me.lastName?.trim();
+    const fullName = [first, last].filter(Boolean).join(' ');
+    return fullName || me.email || '';
+  });
+
   isNavOpen = false;
   isBookingOpen = false;
   isSignInOpen = false;
@@ -39,8 +52,6 @@ export class LandingPage {
   lastName = '';
   email = '';
 
-  constructor(private auth: AuthService) {}
-
   // Booking modal
   openBooking() {
     this.isBookingOpen = true;
@@ -66,5 +77,12 @@ export class LandingPage {
   continueWithGoogle() {
     this.isSignInOpen = false;
     this.auth.startGoogleLogin();
+  }
+
+  signOut() {
+    this.auth.logout().subscribe({
+      next: () => {},
+      error: () => {},
+    });
   }
 }
