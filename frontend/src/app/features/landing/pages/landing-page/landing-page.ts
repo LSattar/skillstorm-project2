@@ -17,6 +17,14 @@ export class LandingPage {
   isBookingOpen = false;
   isSignInOpen = false;
 
+  toggleNav() {
+    this.isNavOpen = !this.isNavOpen;
+  }
+
+  closeNav() {
+    this.isNavOpen = false;
+  }
+
   today = new Date();
 
   booking = {
