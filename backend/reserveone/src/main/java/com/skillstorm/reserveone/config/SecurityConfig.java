@@ -121,7 +121,8 @@ public class SecurityConfig {
                                                 .anyRequest().authenticated())
 
                                 .oauth2Login(oauth -> oauth
-                                                .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService)))
+                                                .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
+                                                .defaultSuccessUrl("http://localhost:4200/", true))
 
                                 .logout(logout -> logout
                                                 .logoutUrl("/logout")
