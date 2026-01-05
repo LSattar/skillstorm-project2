@@ -177,25 +177,23 @@
       </div>
 
       <form class="booking-form">
-        <div class="field-row">
-          <div class="field">
-            <label for="siFirst">First Name</label>
-            <input id="siFirst" name="firstName" type="text" [(ngModel)]="firstName" />
-          </div>
-
-          <div class="field">
-            <label for="siLast">Last Name</label>
-            <input id="siLast" name="lastName" type="text" [(ngModel)]="lastName" />
-          </div>
-        </div>
-
         <div class="field">
-          <label for="siEmail">Email Address</label>
-          <input id="siEmail" name="email" type="email" [(ngModel)]="email" />
+          <label for="siEmail">Email</label>
+          <input
+            id="siEmail"
+            name="email"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            [(ngModel)]="email"
+          />
+          <p class="auth-hint">Optional — you’ll choose your Google account on the next screen.</p>
         </div>
 
         <div class="modal-actions">
-          <button class="btn btn-primary btn-block" type="button" (click)="continueWithGoogle()">
+          <button class="btn btn-google btn-block" type="button" (click)="continueWithGoogle()">
+            <span class="g-dot" aria-hidden="true"></span>
             Continue with Google
           </button>
           <button class="btn btn-link" type="button" (click)="closeSignIn()">No thanks</button>

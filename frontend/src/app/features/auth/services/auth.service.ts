@@ -18,6 +18,15 @@ export class AuthService {
   private readonly api = 'http://localhost:8080';
   private readonly _me = signal<AuthMe | null>(null);
 
+  private readCookie(name: string): string | null {
+    const parts = document.cookie.split(';').map((c) => c.trim());
+    const prefix = `${encodeURIComponent(name)}=`;
+    for (const p of parts) {
+      if (p.startsWith(prefix)) return decodeURIComponent(p.substring(prefix.length));
+    }
+    return null;
+  }
+
   readonly meSignal = this._me.asReadonly();
   readonly isAuthenticated = computed(() => this._me() !== null);
 
@@ -29,10 +38,7 @@ export class AuthService {
     const me = this._me();
     if (!me) return '';
 
-    const authorities = [
-      ...(me.roles ?? []),
-      ...(me.principalAuthorities ?? []),
-    ];
+    const authorities = [...(me.roles ?? []), ...(me.principalAuthorities ?? [])];
 
     const roleNames = authorities
       .filter((a): a is string => typeof a === 'string')
@@ -68,12 +74,22 @@ export class AuthService {
   }
 
   logout() {
-    return this.http.post(`${this.api}/logout`, {}, { withCredentials: true }).pipe(
-      tap(() => this._me.set(null)),
-      catchError((err) => {
-        this._me.set(null);
-        return of(err);
-      })
-    );
+    const xsrf = this.readCookie('XSRF-TOKEN');
+    return this.http
+      .post(
+        `${this.api}/logout`,
+        {},
+        {
+          withCredentials: true,
+          headers: xsrf ? { 'X-XSRF-TOKEN': xsrf } : undefined,
+        }
+      )
+      .pipe(
+        tap(() => this._me.set(null)),
+        catchError((err) => {
+          this._me.set(null);
+          return of(err);
+        })
+      );
   }
 }

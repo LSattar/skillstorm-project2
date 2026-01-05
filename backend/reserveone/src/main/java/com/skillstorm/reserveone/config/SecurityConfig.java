@@ -10,6 +10,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -43,10 +47,11 @@ public class SecurityConfig {
          */
 
         @Bean
-        SecurityFilterChain filterChain(
+        public SecurityFilterChain filterChain(
                         HttpSecurity http,
                         CustomOAuth2UserService oAuth2UserService,
-                        CustomOidcUserService oidcUserService) throws Exception {
+                        CustomOidcUserService oidcUserService,
+                        ClientRegistrationRepository clientRegistrationRepository) throws Exception {
 
                 RequestMatcher apiRequest = request -> {
                         String xrw = request.getHeader("X-Requested-With");
@@ -141,6 +146,63 @@ public class SecurityConfig {
                                                 .anyRequest().authenticated())
 
                                 .oauth2Login(oauth -> oauth
+                                                .authorizationEndpoint(authorization -> {
+                                                        DefaultOAuth2AuthorizationRequestResolver defaultResolver = new DefaultOAuth2AuthorizationRequestResolver(
+                                                                        clientRegistrationRepository,
+                                                                        "/oauth2/authorization");
+
+                                                        OAuth2AuthorizationRequestResolver resolver = new OAuth2AuthorizationRequestResolver() {
+                                                                @Override
+                                                                public OAuth2AuthorizationRequest resolve(
+                                                                                jakarta.servlet.http.HttpServletRequest request) {
+                                                                        OAuth2AuthorizationRequest req = defaultResolver
+                                                                                        .resolve(request);
+                                                                        if (req == null)
+                                                                                return null;
+                                                                        String registrationId = extractRegistrationId(
+                                                                                        request);
+                                                                        return customizePrompt(registrationId, req);
+                                                                }
+
+                                                                @Override
+                                                                public OAuth2AuthorizationRequest resolve(
+                                                                                jakarta.servlet.http.HttpServletRequest request,
+                                                                                String clientRegistrationId) {
+                                                                        OAuth2AuthorizationRequest req = defaultResolver
+                                                                                        .resolve(request,
+                                                                                                        clientRegistrationId);
+                                                                        if (req == null)
+                                                                                return null;
+                                                                        return customizePrompt(clientRegistrationId,
+                                                                                        req);
+                                                                }
+
+                                                                private String extractRegistrationId(
+                                                                                jakarta.servlet.http.HttpServletRequest request) {
+                                                                        String uri = request.getRequestURI();
+                                                                        int lastSlash = uri.lastIndexOf('/');
+                                                                        return lastSlash >= 0
+                                                                                        ? uri.substring(lastSlash + 1)
+                                                                                        : uri;
+                                                                }
+
+                                                                private OAuth2AuthorizationRequest customizePrompt(
+                                                                                String registrationId,
+                                                                                OAuth2AuthorizationRequest req) {
+                                                                        if (!"google".equalsIgnoreCase(registrationId))
+                                                                                return req;
+                                                                        var additional = new java.util.LinkedHashMap<String, Object>(
+                                                                                        req.getAdditionalParameters());
+                                                                        additional.put("prompt", "select_account");
+                                                                        return OAuth2AuthorizationRequest.from(req)
+                                                                                        .additionalParameters(
+                                                                                                        additional)
+                                                                                        .build();
+                                                                }
+                                                        };
+
+                                                        authorization.authorizationRequestResolver(resolver);
+                                                })
                                                 .userInfoEndpoint(userInfo -> userInfo
                                                                 .oidcUserService(oidcUserService)
                                                                 .userService(oAuth2UserService))

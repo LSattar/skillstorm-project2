@@ -48,8 +48,6 @@ export class LandingPage {
     promo: '',
   };
 
-  firstName = '';
-  lastName = '';
   email = '';
 
   // Booking modal

@@ -14,7 +14,7 @@ INSERT INTO users (
 (
   '33333333-3333-3333-3333-333333333333',
   'Joshua',
-  'Thompson',
+  'Admin',
   'joshuathompson0526@gmail.com',
   '912-572-1579',
   '813 Stockdale Rd',
@@ -26,8 +26,8 @@ INSERT INTO users (
 (
   '44444444-4444-4444-4444-444444444444',
   'Hannah',
-  'Thompson',
-  'hannahthompson@example.com',
+  'Employee',
+  'hannah.thompson0926@gmail.com',
   '512-555-0102',
   '1 Admin Way',
   'Austin',
@@ -38,8 +38,8 @@ INSERT INTO users (
 (
   '55555555-5555-5555-5555-555555555555',
   'Karen',
-  'Thompson',
-  'kthompson@example.com',
+  'Manager',
+  'karenthompson8707@gmail.com',
   '512-555-0103',
   '2 Manager Dr',
   'Austin',
@@ -50,9 +50,9 @@ INSERT INTO users (
 -- Added: Guest
 (
   '77777777-7777-7777-7777-777777777777',
-  'Gary',
+  'Joshua',
   'Guest',
-  'gary.guest@example.com',
+  'warlord84502@gmail.com',
   '210-555-0199',
   '99 Traveler Ln',
   'San Antonio',
@@ -63,9 +63,9 @@ INSERT INTO users (
 -- Added: Business Owner
 (
   '88888888-8888-8888-8888-888888888888',
-  'Olivia',
+  'Joshua',
   'Owner',
-  'olivia.owner@example.com',
+  'jthompn0526@gmail.com',
   '214-555-0111',
   '500 Commerce St',
   'Dallas',
@@ -109,30 +109,30 @@ INSERT INTO oauth_identities (
   '66666666-6666-6666-6666-666666666666',
   '33333333-3333-3333-3333-333333333333',
   'google',
-  'google-sub-123456'
+  'google-sub-joshuathompson0526'
 ),
 (
   '99999999-9999-9999-9999-999999999999',
   '44444444-4444-4444-4444-444444444444',
   'google',
-  'google-sub-hannah'
+  'google-sub-hannah-thompson0926'
 ),
 (
   'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
   '55555555-5555-5555-5555-555555555555',
   'google',
-  'google-sub-karen'
+  'google-sub-karenthompson8707'
 ),
 (
   'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
   '77777777-7777-7777-7777-777777777777',
   'google',
-  'google-sub-gary'
+  'google-sub-warlord84502'
 ),
 (
   'cccccccc-dddd-eeee-ffff-000000000000',
   '88888888-8888-8888-8888-888888888888',
   'google',
-  'google-sub-olivia'
+  'google-sub-jthompn0526'
 )
 ON CONFLICT DO NOTHING;
