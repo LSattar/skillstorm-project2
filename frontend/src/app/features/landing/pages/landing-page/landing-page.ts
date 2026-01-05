@@ -1,78 +1,62 @@
-import { CommonModule, DOCUMENT } from '@angular/common';
-import { Component, HostListener, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
-// ✅ adjust these import paths if your folder depth differs
 import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
-
-type RoomType = 'any' | 'standard' | 'deluxe' | 'suite';
-
-type BookingFormModel = {
-  checkin: string;
-  checkout: string;
-  guests: number;
-  roomType: RoomType;
-  promo: string;
-};
+import { AuthService } from '../../../auth/services/auth.service';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
   imports: [CommonModule, FormsModule, Header, Footer],
   templateUrl: './landing-page.html',
-  styleUrl: './landing-page.css',
+  styleUrls: ['./landing-page.css'],
 })
 export class LandingPage {
-  readonly today = new Date();
-  private readonly document = inject(DOCUMENT);
-
   isNavOpen = false;
   isBookingOpen = false;
+  isSignInOpen = false;
 
-  booking: BookingFormModel = {
+  today = new Date();
+
+  booking = {
     checkin: '',
     checkout: '',
-    guests: 2,
+    guests: 1,
     roomType: 'any',
     promo: '',
   };
 
-  toggleNav(): void {
-    this.isNavOpen = !this.isNavOpen;
-  }
+  firstName = '';
+  lastName = '';
+  email = '';
 
-  closeNav(): void {
-    this.isNavOpen = false;
-  }
+  constructor(private auth: AuthService) {}
 
-  openBooking(): void {
+  // Booking modal
+  openBooking() {
     this.isBookingOpen = true;
-    this.lockBodyScroll(true);
   }
 
-  closeBooking(): void {
+  closeBooking() {
     this.isBookingOpen = false;
-    this.lockBodyScroll(false);
   }
 
-  submitBooking(): void {
-    console.log('Booking search submitted:', this.booking);
+  submitBooking() {
     this.closeBooking();
   }
 
-  @HostListener('document:keydown.escape')
-  onEsc(): void {
-    if (this.isBookingOpen) this.closeBooking();
-    if (this.isNavOpen) this.closeNav();
+  // Sign-in modal
+  openSignIn() {
+    this.isSignInOpen = true;
   }
 
-  @HostListener('window:resize')
-  onResize(): void {
-    if (window.innerWidth > 720 && this.isNavOpen) this.closeNav();
+  closeSignIn() {
+    this.isSignInOpen = false;
   }
 
-  private lockBodyScroll(locked: boolean): void {
-    this.document.body.classList.toggle('no-scroll', locked);
+  continueWithGoogle() {
+    this.isSignInOpen = false;
+    this.auth.startGoogleLogin();
   }
 }
