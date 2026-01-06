@@ -8,6 +8,7 @@ export type AuthMe = {
   firstName?: string;
   lastName?: string;
   email?: string;
+  dbRoles?: string[];
   // Backend currently returns these arrays (names are kept flexible for evolution)
   roles?: string[]; // may include ROLE_* and/or OIDC/SCOPE_*
   principalAuthorities?: string[];
@@ -38,6 +39,19 @@ export class AuthService {
     const me = this._me();
     if (!me) return '';
 
+    const normalizeRole = (r: string): string => r.trim().toUpperCase();
+    const titleize = (r: string): string =>
+      normalizeRole(r)
+        .toLowerCase()
+        .split('_')
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+
+    const dbRoleNames = (me.dbRoles ?? [])
+      .filter((r): r is string => typeof r === 'string')
+      .map(normalizeRole);
+
     const authorities = [...(me.roles ?? []), ...(me.principalAuthorities ?? [])];
 
     const roleNames = authorities
@@ -45,12 +59,15 @@ export class AuthService {
       .filter((a) => a.startsWith('ROLE_'))
       .map((a) => a.substring('ROLE_'.length));
 
-    const priority = ['ADMIN', 'BUSINESS_OWNER', 'MANAGER', 'EMPLOYEE', 'GUEST'];
-    for (const p of priority) {
-      if (roleNames.includes(p)) return p;
+    const allRoleNames = Array.from(new Set([...dbRoleNames, ...roleNames.map(normalizeRole)]));
+
+    const elevated = ['ADMIN', 'BUSINESS_OWNER', 'MANAGER', 'EMPLOYEE'];
+    for (const p of elevated) {
+      if (allRoleNames.includes(p)) return titleize(p);
     }
 
-    return roleNames[0] ?? '';
+    // Default role when authenticated but not in an elevated role.
+    return 'GUEST';
   });
 
   constructor(private http: HttpClient) {}

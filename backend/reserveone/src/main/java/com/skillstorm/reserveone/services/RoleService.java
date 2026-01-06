@@ -56,8 +56,10 @@ public class RoleService {
     public RoleResponse getById(@NonNull UUID roleId) {
         UUID id = Objects.requireNonNull(roleId, "roleId must not be null");
 
-        Role role = repo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found."));
+        Role role = Objects.requireNonNull(
+                repo.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Role not found.")),
+                "role must not be null");
 
         return Objects.requireNonNull(mapper.toResponse(role), "mapper.toResponse returned null");
     }
@@ -68,6 +70,32 @@ public class RoleService {
 
         return repo.findByName(normalizedName)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found."));
+    }
+
+    /**
+     * Returns the role by name, creating it if missing.
+     *
+     * This is useful for environments where seed SQL hasn't been applied (e.g.,
+     * a fresh remote DB) but login flows still need to assign a default role.
+     */
+    @Transactional
+    public Role getOrCreateEntityByName(@NonNull String name) {
+        String normalizedName = normalizeRoleName(name, "Role name is required.");
+
+        var existing = repo.findByName(normalizedName);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        Role role = Objects.requireNonNull(mapper.toEntity(normalizedName), "mapper.toEntity returned null");
+
+        try {
+            return Objects.requireNonNull(repo.save(role), "repo.save returned null");
+        } catch (DataIntegrityViolationException e) {
+            // Race: another thread created it between find + save
+            return repo.findByName(normalizedName)
+                    .orElseThrow(() -> e);
+        }
     }
 
     @Transactional(readOnly = true)
