@@ -2,6 +2,7 @@ package com.skillstorm.reserveone.services;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -56,6 +57,12 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
      * 5) Return an OidcUser that preserves tokens/userInfo but overrides
      * getAttributes()
      * to include "localUserId".
+     *
+     * IMPORTANT:
+     * - For Google, profile/email fields are frequently in the ID Token claims,
+     * not in oidcUser.getAttributes() (UserInfo).
+     * - So we merge ID token claims + UserInfo attributes before reading fields,
+     * ensuring new Google users get saved with email/name in the DB.
      */
 
     private static final Logger log = LoggerFactory.getLogger(CustomOidcUserService.class);
@@ -86,7 +93,9 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         OAuthProvider provider = mapProvider(registrationId);
 
-        Map<String, Object> attrs = oidcUser.getAttributes();
+        // Merge ID token claims + userInfo attributes (Google often uses ID token for
+        // email/profile).
+        Map<String, Object> attrs = mergedClaims(oidcUser);
 
         String providerUserId = firstNonBlank(asString(attrs.get("sub")), asString(attrs.get("id")));
         if (providerUserId == null || providerUserId.isBlank()) {
@@ -99,6 +108,12 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
                 .findByProviderAndProviderUserId(Objects.requireNonNull(provider), providerUserId)
                 .orElse(null);
 
+        // Pull profile fields once from merged attrs
+        Boolean emailVerified = asBoolean(attrs.get("email_verified"));
+        String email = normalizeEmailOptional(asString(attrs.get("email")));
+        String givenName = asString(attrs.get("given_name"));
+        String familyName = asString(attrs.get("family_name"));
+
         User user;
         if (identity != null) {
             String existingEmail = identity.getUser().getEmail();
@@ -108,29 +123,32 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
                 user = identity.getUser();
             }
         } else {
-            Boolean emailVerified = asBoolean(attrs.get("email_verified"));
-            String email = normalizeEmailOptional(asString(attrs.get("email")));
-
             user = null;
+
+            // If provider email is verified, try to link to an existing local user by email
             if (email != null && Boolean.TRUE.equals(emailVerified)) {
                 user = userRepo.findWithRolesByEmail(email).orElse(null);
             }
 
+            // Create a brand new local user if none exists
             if (user == null) {
                 user = new User(null, null, null);
 
-                if (email != null && Boolean.TRUE.equals(emailVerified)) {
+                // Prefer verified email, but if email_verified is missing, still store the
+                // email if present
+                // (prevents "new Google users" failing when claims are only in the ID token).
+                if (email != null && (emailVerified == null || Boolean.TRUE.equals(emailVerified))) {
                     user.setEmail(email);
                 }
 
-                user.setFirstName(asString(attrs.get("given_name")));
-                user.setLastName(asString(attrs.get("family_name")));
+                user.setFirstName(givenName);
+                user.setLastName(familyName);
                 user.setStatus(User.Status.ACTIVE);
 
                 Role guest = roleService.getOrCreateEntityByName("GUEST");
                 user.addRole(guest);
 
-                user = userRepo.save(user);
+                user = userRepo.saveAndFlush(user);
 
                 final UUID savedUserId = user.getUserId();
 
@@ -167,6 +185,34 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
             oauthRepo.save(newIdentity);
         }
 
+        // Upsert Google profile info into the local user record (ensures new users get
+        // stored values)
+        boolean changed = false;
+
+        if (email != null && (emailVerified == null || Boolean.TRUE.equals(emailVerified))) {
+            String currentEmail = user.getEmail();
+            if (currentEmail == null || !currentEmail.equalsIgnoreCase(email)) {
+                user.setEmail(email);
+                changed = true;
+            }
+        }
+
+        if (givenName != null && !givenName.isBlank()
+                && (user.getFirstName() == null || user.getFirstName().isBlank())) {
+            user.setFirstName(givenName);
+            changed = true;
+        }
+
+        if (familyName != null && !familyName.isBlank()
+                && (user.getLastName() == null || user.getLastName().isBlank())) {
+            user.setLastName(familyName);
+            changed = true;
+        }
+
+        if (changed) {
+            user = userRepo.saveAndFlush(user);
+        }
+
         Set<GrantedAuthority> authorities = new HashSet<>();
         // Keep the OIDC-provided authorities (OIDC_USER, scopes)
         authorities.addAll(oidcUser.getAuthorities());
@@ -179,13 +225,27 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         enrichedAttrs.put(ATTR_LOCAL_USER_ID, user.getUserId().toString());
 
         // DefaultOidcUser will expose idToken/userInfo; attributes come from the
-        // UserInfo endpoint.
+        // UserInfo endpoint,
+        // but we override getAttributes() so downstream code sees merged claims +
+        // localUserId.
         return new DefaultOidcUser(authorities, oidcUser.getIdToken(), oidcUser.getUserInfo(), "sub") {
             @Override
             public Map<String, Object> getAttributes() {
                 return enrichedAttrs;
             }
         };
+    }
+
+    private static Map<String, Object> mergedClaims(OidcUser oidcUser) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (oidcUser.getIdToken() != null && oidcUser.getIdToken().getClaims() != null) {
+            out.putAll(oidcUser.getIdToken().getClaims());
+        }
+        // Let UserInfo attrs win if present
+        if (oidcUser.getAttributes() != null) {
+            out.putAll(oidcUser.getAttributes());
+        }
+        return out;
     }
 
     private static OAuthProvider mapProvider(String registrationId) {
