@@ -15,9 +15,19 @@
     <!-- Actions -->
     <div class="header-actions">
       <button class="btn btn-ghost" type="button" (click)="openBooking.emit()">Search</button>
+      @if (!isAuthenticated) {
       <button class="btn btn-primary" type="button" (click)="openSignIn.emit(); closeNav.emit()">
         Sign in
       </button>
+      } @else { @if (roleLabel) {
+      <span class="header-role">{{ roleLabel }}</span>
+      } @if (userLabel) {
+      <span class="header-user">{{ userLabel }}</span>
+      }
+      <button class="btn btn-primary" type="button" (click)="logout.emit(); closeNav.emit()">
+        Sign out
+      </button>
+      }
     </div>
   </div>
 </header>

@@ -8,13 +8,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,36 +29,46 @@ import com.skillstorm.reserveone.repositories.OAuthIdentityRepository;
 import com.skillstorm.reserveone.repositories.UserRepository;
 
 @Service
-public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest, OidcUser> {
 
     /**
-     * PSEUDOCODE / INTENT (non-OIDC OAuth2 providers)
+     * PSEUDOCODE / INTENT (OIDC providers like Google)
      *
-     * Goal:
-     * - Ensure every OAuth2 login maps to exactly one local User record.
-     * - Ensure the Security principal contains DB-backed role authorities (ROLE_*).
-     * - Expose the local user id to the frontend via attribute "localUserId".
+     * Why this exists:
+     * - Google uses OIDC, so Spring Security uses an OIDC user service, not the
+     * plain OAuth2 user service.
+     * - We must enrich the OIDC principal with DB roles and a "localUserId"
+     * attribute.
      *
      * High-level login flow:
-     * 1) Delegate to Spring (super.loadUser) to fetch provider attributes.
+     * 1) Delegate to Spring's OidcUserService to get idToken/userInfo/attributes.
      * 2) Determine provider + providerUserId ("sub" preferred; fallback "id").
      * 3) Resolve local user:
-     * - If oauth_identities has (provider, providerUserId): use that user.
+     * - If oauth_identities has (provider, providerUserId): use that user (reload
+     * with roles when possible).
      * - Else if provider email is VERIFIED:
      * - try find local user by email (load roles)
      * - if none exists: create local user with GUEST role
      * then create oauth_identity linking (provider, providerUserId) -> user
-     * 4) Build authorities = DB roles as ROLE_<NAME>.
-     * 5) Return DefaultOAuth2User with enriched attributes incl. "localUserId".
+     * 4) Build authorities:
+     * - keep original OIDC authorities (e.g., OIDC_USER + SCOPE_*)
+     * - add DB roles as ROLE_<NAME>
+     * 5) Return an OidcUser that preserves tokens/userInfo but overrides
+     * getAttributes()
+     * to include "localUserId".
      */
 
+    private static final Logger log = LoggerFactory.getLogger(CustomOidcUserService.class);
+
     private static final String ATTR_LOCAL_USER_ID = "localUserId";
+
+    private final OidcUserService delegate = new OidcUserService();
 
     private final OAuthIdentityRepository oauthRepo;
     private final UserRepository userRepo;
     private final RoleService roleService;
 
-    public CustomOAuth2UserService(
+    public CustomOidcUserService(
             OAuthIdentityRepository oauthRepo,
             UserRepository userRepo,
             RoleService roleService) {
@@ -67,25 +80,27 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     @Override
     @Transactional
-    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        OAuth2User oauth2User = super.loadUser(userRequest);
+    public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
+        OidcUser oidcUser = delegate.loadUser(userRequest);
 
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
-        OAuthProvider provider = Objects.requireNonNull(mapProvider(registrationId), "provider must not be null");
+        OAuthProvider provider = mapProvider(registrationId);
 
-        Map<String, Object> attrs = oauth2User.getAttributes();
+        Map<String, Object> attrs = oidcUser.getAttributes();
 
         String providerUserId = firstNonBlank(asString(attrs.get("sub")), asString(attrs.get("id")));
         if (providerUserId == null || providerUserId.isBlank()) {
             throw new OAuth2AuthenticationException("Missing user identifier from OAuth provider");
         }
 
-        // Find identity first (authoritative)
-        OAuthIdentity identity = oauthRepo.findByProviderAndProviderUserId(provider, providerUserId).orElse(null);
+        log.info("OIDC login: provider={}, sub={}, email={}", registrationId, providerUserId, attrs.get("email"));
+
+        OAuthIdentity identity = oauthRepo
+                .findByProviderAndProviderUserId(Objects.requireNonNull(provider), providerUserId)
+                .orElse(null);
 
         User user;
         if (identity != null) {
-            // Ensure roles are loaded for authorities
             String existingEmail = identity.getUser().getEmail();
             if (existingEmail != null) {
                 user = userRepo.findWithRolesByEmail(existingEmail).orElse(identity.getUser());
@@ -93,7 +108,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 user = identity.getUser();
             }
         } else {
-            // Only link by email if verified
             Boolean emailVerified = asBoolean(attrs.get("email_verified"));
             String email = normalizeEmailOptional(asString(attrs.get("email")));
 
@@ -105,7 +119,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             if (user == null) {
                 user = new User(null, null, null);
 
-                // Store email only if verified
                 if (email != null && Boolean.TRUE.equals(emailVerified)) {
                     user.setEmail(email);
                 }
@@ -121,8 +134,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
                 final UUID savedUserId = user.getUserId();
 
-                user = userRepo
-                        .findWithRolesByUserId(Objects.requireNonNull(savedUserId, "savedUserId must not be null"))
+                user = userRepo.findWithRolesByUserId(Objects.requireNonNull(savedUserId))
                         .orElseThrow(() -> new IllegalStateException(
                                 "User saved but could not be reloaded with roles: " + savedUserId));
             }
@@ -136,6 +148,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             if (existingByUserAndProvider.isPresent()) {
                 OAuthIdentity existing = existingByUserAndProvider.get();
                 if (!providerUserId.equals(existing.getProviderUserId())) {
+                    log.warn(
+                            "Replacing existing OAuthIdentity for userId={} provider={} (old sub={}, new sub={})",
+                            userId,
+                            provider,
+                            existing.getProviderUserId(),
+                            providerUserId);
                     // Delete + flush so the unique constraint won't trip on the subsequent insert
                     oauthRepo.delete(existing);
                     oauthRepo.flush();
@@ -150,6 +168,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
 
         Set<GrantedAuthority> authorities = new HashSet<>();
+        // Keep the OIDC-provided authorities (OIDC_USER, scopes)
+        authorities.addAll(oidcUser.getAuthorities());
+        // Add DB roles
         for (Role r : user.getRoles()) {
             authorities.add(new SimpleGrantedAuthority("ROLE_" + r.getName()));
         }
@@ -157,10 +178,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         Map<String, Object> enrichedAttrs = new HashMap<>(attrs);
         enrichedAttrs.put(ATTR_LOCAL_USER_ID, user.getUserId().toString());
 
-        // Name attribute key: prefer sub if present, else id
-        String nameAttributeKey = attrs.containsKey("sub") ? "sub" : "id";
-
-        return new DefaultOAuth2User(authorities, enrichedAttrs, nameAttributeKey);
+        // DefaultOidcUser will expose idToken/userInfo; attributes come from the
+        // UserInfo endpoint.
+        return new DefaultOidcUser(authorities, oidcUser.getIdToken(), oidcUser.getUserInfo(), "sub") {
+            @Override
+            public Map<String, Object> getAttributes() {
+                return enrichedAttrs;
+            }
+        };
     }
 
     private static OAuthProvider mapProvider(String registrationId) {

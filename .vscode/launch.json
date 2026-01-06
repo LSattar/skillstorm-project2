@@ -1,14 +1,33 @@
 {
+  "version": "0.2.0",
   "configurations": [
     {
       "type": "java",
-      "name": "Spring Boot-FincenProject2BackendApplication<reserveone>",
+      "name": "Backend: Spring Boot (ReserveOne)",
       "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "mainClass": "com.skillstorm.fincen_project2_backend.FincenProject2BackendApplication",
+      "cwd": "${workspaceFolder}/backend/reserveone",
+      "mainClass": "com.skillstorm.reserveone.ReserveOneApplication",
       "projectName": "reserveone",
       "args": "",
-      "envFile": "${workspaceFolder}/.env"
+      "envFile": "${workspaceFolder}/backend/reserveone/.env"
+    },
+    {
+      "type": "pwa-chrome",
+      "name": "Frontend: Angular (Chrome)",
+      "request": "launch",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}/frontend/src",
+      "preLaunchTask": "frontend: start",
+      "runtimeArgs": ["--new-window"]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack: Spring Boot + Angular",
+      "configurations": [
+        "Backend: Spring Boot (ReserveOne)",
+        "Frontend: Angular (Chrome)"
+      ]
     }
   ]
 }

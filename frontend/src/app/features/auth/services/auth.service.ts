@@ -1,9 +1,57 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
+import { catchError, of, tap } from 'rxjs';
+
+export type AuthMe = {
+  // Backend returns localUserId (UUID) when authenticated
+  localUserId?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  // Backend currently returns these arrays (names are kept flexible for evolution)
+  roles?: string[]; // may include ROLE_* and/or OIDC/SCOPE_*
+  principalAuthorities?: string[];
+};
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = 'http://localhost:8080';
+  private readonly _me = signal<AuthMe | null>(null);
+
+  private readCookie(name: string): string | null {
+    const parts = document.cookie.split(';').map((c) => c.trim());
+    const prefix = `${encodeURIComponent(name)}=`;
+    for (const p of parts) {
+      if (p.startsWith(prefix)) return decodeURIComponent(p.substring(prefix.length));
+    }
+    return null;
+  }
+
+  readonly meSignal = this._me.asReadonly();
+  readonly isAuthenticated = computed(() => this._me() !== null);
+
+  /**
+   * UI-only helper: pick a single role label to display.
+   * Prefers highest-privilege role when multiple exist.
+   */
+  readonly primaryRoleLabel = computed(() => {
+    const me = this._me();
+    if (!me) return '';
+
+    const authorities = [...(me.roles ?? []), ...(me.principalAuthorities ?? [])];
+
+    const roleNames = authorities
+      .filter((a): a is string => typeof a === 'string')
+      .filter((a) => a.startsWith('ROLE_'))
+      .map((a) => a.substring('ROLE_'.length));
+
+    const priority = ['ADMIN', 'BUSINESS_OWNER', 'MANAGER', 'EMPLOYEE', 'GUEST'];
+    for (const p of priority) {
+      if (roleNames.includes(p)) return p;
+    }
+
+    return roleNames[0] ?? '';
+  });
 
   constructor(private http: HttpClient) {}
 
@@ -15,11 +63,33 @@ export class AuthService {
     return this.http.get(`${this.api}/csrf`, { withCredentials: true });
   }
 
-  me() {
-    return this.http.get(`${this.api}/auth/me`, { withCredentials: true });
+  refreshMe() {
+    return this.http.get<AuthMe>(`${this.api}/auth/me`, { withCredentials: true }).pipe(
+      tap((me) => this._me.set(me)),
+      catchError(() => {
+        this._me.set(null);
+        return of(null);
+      })
+    );
   }
 
   logout() {
-    return this.http.post(`${this.api}/logout`, {}, { withCredentials: true });
+    const xsrf = this.readCookie('XSRF-TOKEN');
+    return this.http
+      .post(
+        `${this.api}/logout`,
+        {},
+        {
+          withCredentials: true,
+          headers: xsrf ? { 'X-XSRF-TOKEN': xsrf } : undefined,
+        }
+      )
+      .pipe(
+        tap(() => this._me.set(null)),
+        catchError((err) => {
+          this._me.set(null);
+          return of(err);
+        })
+      );
   }
 }

@@ -50,6 +50,18 @@
   align-items: center;
 }
 
+.header-role {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.header-user {
+  font-weight: 600;
+}
+
 @media (max-width: 720px) {
   .header-actions .btn-ghost {
     display: none;
