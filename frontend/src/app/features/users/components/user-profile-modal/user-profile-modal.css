@@ -1,0 +1,114 @@
+/* ===== Modals (Booking + Sign in) ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 2000; /* above sticky header (z-index: 30) */
+}
+
+.modal.open {
+  display: block;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(52, 78, 65, 0.6);
+  backdrop-filter: blur(3px);
+}
+
+.modal-panel {
+  position: relative;
+  width: min(720px, calc(100% - 32px));
+  margin: 88px auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(163, 177, 138, 0.22), rgba(221, 190, 169, 0.16));
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  margin: 0;
+  color: var(--primary-2);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.modal-subtitle {
+  margin: 6px 0 0 0;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.icon-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.booking-form {
+  padding: 18px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label {
+  font-weight: 800;
+  color: var(--primary-2);
+  font-size: 0.9rem;
+}
+
+.field input,
+.field select {
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+.modal-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .modal-panel {
+    margin: 72px auto;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}

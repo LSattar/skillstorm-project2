@@ -91,11 +91,9 @@ public class User {
     @Column(name = "status", nullable = false, length = 30)
     private Status status = Status.ACTIVE;
 
-    @NotNull
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    @NotNull
     @Column(name = "updated_at", insertable = false, updatable = false)
     private OffsetDateTime updatedAt;
 

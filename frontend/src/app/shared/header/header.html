@@ -19,14 +19,32 @@
       <button class="btn btn-primary" type="button" (click)="openSignIn.emit(); closeNav.emit()">
         Sign in
       </button>
-      } @else { @if (roleLabel) {
-      <span class="header-role">{{ roleLabel }}</span>
-      } @if (userLabel) {
-      <span class="header-user">{{ userLabel }}</span>
-      }
-      <button class="btn btn-primary" type="button" (click)="logout.emit(); closeNav.emit()">
-        Sign out
-      </button>
+      } @else {
+      <div class="user-menu">
+        <button
+          class="avatar-btn"
+          type="button"
+          aria-label="Open user menu"
+          (click)="toggleUserMenu()"
+        >
+          <span class="avatar">{{ avatarText }}</span>
+        </button>
+
+        @if (userMenuOpen) {
+        <div class="menu-backdrop" (click)="closeUserMenu()"></div>
+        <div class="menu-panel" role="menu" aria-label="User menu">
+          @if (roleLabel) {
+          <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
+          }
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
+            Profile settings
+          </button>
+          <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
+            Log out
+          </button>
+        </div>
+        }
+      </div>
       }
     </div>
   </div>
