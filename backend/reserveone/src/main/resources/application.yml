@@ -50,6 +50,9 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  servlet:
+    session:
+      persistent: false
 
 logging:
   group:
