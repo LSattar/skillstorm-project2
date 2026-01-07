@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { catchError, of, tap } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export type AuthMe = {
   // Backend returns localUserId (UUID) when authenticated
@@ -16,7 +17,7 @@ export type AuthMe = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly api = 'http://reserveone-env.eba-4wue3g7x.us-east-1.elasticbeanstalk.com';
+  private readonly api = environment.apiBaseUrl;
 
   private readonly _me = signal<AuthMe | null>(null);
 
