@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { switchMap } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export type UserProfile = {
   userId?: string;
@@ -29,7 +30,7 @@ export type UserProfileUpdate = {
 
 @Injectable({ providedIn: 'root' })
 export class UserProfileService {
-  private readonly api = 'http://localhost:8080';
+  private readonly api = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
 

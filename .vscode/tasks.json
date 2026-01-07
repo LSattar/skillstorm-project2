@@ -6,7 +6,11 @@
       "type": "shell",
       "command": "npm run start",
       "options": {
-        "cwd": "${workspaceFolder}/frontend"
+        "cwd": "${workspaceFolder}/frontend",
+        "shell": {
+          "executable": "/bin/bash",
+          "args": ["-lc"]
+        }
       },
       "isBackground": true,
       "problemMatcher": {

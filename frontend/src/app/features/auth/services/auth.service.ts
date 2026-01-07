@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { catchError, of, tap } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export type AuthMe = {
   // Backend returns localUserId (UUID) when authenticated
@@ -16,7 +17,8 @@ export type AuthMe = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly api = 'http://localhost:8080';
+  private readonly api = environment.apiBaseUrl;
+
   private readonly _me = signal<AuthMe | null>(null);
 
   private readCookie(name: string): string | null {
