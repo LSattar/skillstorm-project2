@@ -145,7 +145,7 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
                 user.setLastName(familyName);
                 user.setStatus(User.Status.ACTIVE);
 
-                Role guest = roleService.getEntityByName("GUEST");
+                Role guest = roleService.getOrCreateEntityByName("GUEST");
                 user.addRole(guest);
 
                 user = userRepo.saveAndFlush(user);

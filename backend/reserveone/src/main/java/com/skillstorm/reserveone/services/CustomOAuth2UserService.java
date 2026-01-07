@@ -114,7 +114,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 user.setLastName(asString(attrs.get("family_name")));
                 user.setStatus(User.Status.ACTIVE);
 
-                Role guest = roleService.getEntityByName("GUEST");
+                Role guest = roleService.getOrCreateEntityByName("GUEST");
                 user.addRole(guest);
 
                 user = userRepo.save(user);

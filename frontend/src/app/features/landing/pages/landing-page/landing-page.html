@@ -3,11 +3,13 @@
   [isAuthenticated]="isAuthenticated()"
   [roleLabel]="roleLabel()"
   [userLabel]="userLabel()"
+  [userEmail]="userEmail()"
   (toggleNav)="toggleNav()"
   (closeNav)="closeNav()"
   (openBooking)="openBooking()"
   (openSignIn)="openSignIn()"
   (logout)="signOut()"
+  (openProfile)="openProfile()"
 ></app-header>
 
 <main id="top">
@@ -152,7 +154,7 @@
     </div>
   </div>
 
-  <!-- Sign in Modal -->
+  <!-- Sign In Modal -->
   <div
     class="modal"
     id="signInModal"
@@ -164,11 +166,11 @@
   >
     <div class="modal-backdrop" (click)="closeSignIn()"></div>
 
-    <div class="modal-panel" role="document">
+    <div class="modal-panel modal-panel--sm" role="document">
       <div class="modal-header">
         <div>
           <h2 id="signInTitle" class="modal-title">Sign in</h2>
-          <p class="modal-subtitle">Continue securely with Google.</p>
+          <p class="modal-subtitle">Use Google to continue.</p>
         </div>
 
         <button class="icon-btn" type="button" aria-label="Close sign in" (click)="closeSignIn()">
@@ -176,31 +178,23 @@
         </button>
       </div>
 
-      <form class="booking-form">
-        <div class="field">
-          <label for="siEmail">Email</label>
-          <input
-            id="siEmail"
-            name="email"
-            type="email"
-            inputmode="email"
-            autocomplete="email"
-            placeholder="you@example.com"
-            [(ngModel)]="email"
-          />
-          <p class="auth-hint">Optional — you’ll choose your Google account on the next screen.</p>
-        </div>
-
+      <div class="modal-body">
         <div class="modal-actions">
           <button class="btn btn-google btn-block" type="button" (click)="continueWithGoogle()">
             <span class="g-dot" aria-hidden="true"></span>
             Continue with Google
           </button>
-          <button class="btn btn-link" type="button" (click)="closeSignIn()">No thanks</button>
+          <button class="btn btn-link" type="button" (click)="closeSignIn()">Cancel</button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
+
+  <app-user-profile-modal
+    [open]="isProfileOpen"
+    (closed)="closeProfile()"
+    (saved)="closeProfile()"
+  ></app-user-profile-modal>
 
   <!-- Experience (image section) -->
   <section class="experience section" id="amenities">

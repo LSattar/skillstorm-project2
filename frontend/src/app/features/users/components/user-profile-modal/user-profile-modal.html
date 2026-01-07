@@ -1,0 +1,129 @@
+<div
+  class="modal"
+  id="profileModal"
+  (click)="close()"
+  (keydown)="onKeydown($event)"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="profileTitle"
+  [attr.aria-hidden]="!open"
+  [class.open]="open"
+>
+  <div class="modal-backdrop" (click)="close()"></div>
+
+  <div class="modal-panel" role="document" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2 id="profileTitle" class="modal-title">Profile settings</h2>
+      </div>
+
+      <button class="icon-btn" type="button" aria-label="Close profile" (click)="close()">✕</button>
+
+      @if (loading) {
+      <p class="auth-hint" style="margin: 10px 0 0">Loading your profile…</p>
+      }
+    </div>
+
+    <form class="booking-form" (ngSubmit)="save()">
+      @if (error) {
+      <p class="auth-error" role="alert">{{ error }}</p>
+      }
+
+      <div class="field-row">
+        <div class="field">
+          <label for="pfFirst">First name</label>
+          <input id="pfFirst" name="firstName" type="text" [(ngModel)]="profile.firstName" />
+        </div>
+
+        <div class="field">
+          <label for="pfLast">Last name</label>
+          <input id="pfLast" name="lastName" type="text" [(ngModel)]="profile.lastName" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="pfPhone">Phone</label>
+          <input
+            id="pfPhone"
+            name="phone"
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="(555) 555-5555"
+            [(ngModel)]="profile.phone"
+          />
+        </div>
+
+        <div class="field">
+          <label for="pfState">State</label>
+          <input
+            id="pfState"
+            name="state"
+            type="text"
+            maxlength="2"
+            autocomplete="address-level1"
+            placeholder="TX"
+            [(ngModel)]="profile.state"
+          />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pfAddress1">Address line 1</label>
+        <input
+          id="pfAddress1"
+          name="address1"
+          type="text"
+          autocomplete="address-line1"
+          [(ngModel)]="profile.address1"
+        />
+      </div>
+
+      <div class="field">
+        <label for="pfAddress2">Address line 2</label>
+        <input
+          id="pfAddress2"
+          name="address2"
+          type="text"
+          autocomplete="address-line2"
+          [(ngModel)]="profile.address2"
+        />
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="pfCity">City</label>
+          <input
+            id="pfCity"
+            name="city"
+            type="text"
+            autocomplete="address-level2"
+            [(ngModel)]="profile.city"
+          />
+        </div>
+
+        <div class="field">
+          <label for="pfZip">ZIP</label>
+          <input
+            id="pfZip"
+            name="zip"
+            type="text"
+            inputmode="numeric"
+            autocomplete="postal-code"
+            placeholder="76522"
+            [(ngModel)]="profile.zip"
+          />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-block" type="submit" [disabled]="saving || loading">
+          @if (saving) { Saving... } @else { Save changes }
+        </button>
+        <button class="btn btn-link" type="button" (click)="close()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>

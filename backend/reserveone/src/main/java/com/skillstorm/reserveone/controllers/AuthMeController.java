@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -16,9 +17,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.skillstorm.reserveone.models.User;
+import com.skillstorm.reserveone.repositories.UserRepository;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthMeController {
+
+    private final UserRepository userRepo;
+
+    public AuthMeController(UserRepository userRepo) {
+        this.userRepo = Objects.requireNonNull(userRepo, "userRepo must not be null");
+    }
 
     /**
      * PSEUDOCODE / INTENT (SPA session introspection)
@@ -73,17 +83,45 @@ public class AuthMeController {
         body.put("registrationId", token.getAuthorizedClientRegistrationId());
         body.put("localUserId", localUserId == null ? null : localUserId.toString());
         body.put("localUserIdRaw", idObj == null ? null : String.valueOf(idObj));
-        body.put("email", principal.getAttribute("email"));
+        Object principalEmail = principal.getAttribute("email");
         Object givenName = principal.getAttribute("given_name");
         Object familyName = principal.getAttribute("family_name");
-        body.put("given_name", givenName);
-        body.put("family_name", familyName);
+
+        String dbEmail = null;
+        String dbFirst = null;
+        String dbLast = null;
+
+        User dbUser = null;
+        if (localUserId != null) {
+            dbUser = userRepo.findWithRolesByUserId(localUserId).orElse(null);
+        }
+        if (dbUser != null) {
+            dbEmail = dbUser.getEmail();
+            dbFirst = dbUser.getFirstName();
+            dbLast = dbUser.getLastName();
+        }
+
+        List<String> dbRoles = List.of();
+        if (dbUser != null) {
+            dbRoles = dbUser.getRoles().stream()
+                    .map(r -> r == null ? null : r.getName())
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
+                    .sorted()
+                    .collect(Collectors.toList());
+        }
+
+        body.put("email", dbEmail != null ? dbEmail : principalEmail);
+        body.put("given_name", dbFirst != null ? dbFirst : givenName);
+        body.put("family_name", dbLast != null ? dbLast : familyName);
         // convenient aliases for SPA
-        body.put("firstName", givenName);
-        body.put("lastName", familyName);
+        body.put("firstName", dbFirst != null ? dbFirst : givenName);
+        body.put("lastName", dbLast != null ? dbLast : familyName);
         body.put("sub", principal.getAttribute("sub"));
         body.put("roles", authAuthorities);
         body.put("principalAuthorities", principalAuthorities);
+        body.put("dbRoles", dbRoles);
 
         return ResponseEntity.ok(body);
     }
