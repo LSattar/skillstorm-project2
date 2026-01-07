@@ -49,7 +49,7 @@ spring:
             issuer-uri: https://accounts.google.com
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:5000}
   servlet:
     session:
       persistent: false

@@ -3,9 +3,8 @@
   position: fixed;
   inset: 0;
   display: none;
-  z-index: 2000; /* above sticky header (z-index: 30) */
+  z-index: 2000;
 }
-
 .modal.open {
   display: block;
 }
@@ -30,7 +29,6 @@
 
 .modal-header {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 16px 18px;
@@ -44,9 +42,8 @@
   font-weight: 900;
   letter-spacing: -0.01em;
 }
-
 .modal-subtitle {
-  margin: 6px 0 0 0;
+  margin: 6px 0 0;
   color: var(--muted);
   font-weight: 650;
 }
@@ -75,7 +72,6 @@
   display: grid;
   gap: 6px;
 }
-
 .field label {
   font-weight: 800;
   color: var(--primary-2);
@@ -88,9 +84,9 @@
   padding: 0 14px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: #ffffff;
+  background: #fff;
   font-size: 14px;
-  outline: none;
+  outline: 0;
 }
 
 .modal-actions {
@@ -98,7 +94,6 @@
   gap: 10px;
   margin-top: 14px;
 }
-
 .btn-block {
   width: 100%;
 }
@@ -107,7 +102,6 @@
   .modal-panel {
     margin: 72px auto;
   }
-
   .field-row {
     grid-template-columns: 1fr;
   }

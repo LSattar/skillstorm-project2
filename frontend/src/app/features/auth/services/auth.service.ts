@@ -16,7 +16,8 @@ export type AuthMe = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly api = 'http://localhost:8080';
+  private readonly api = 'http://reserveone-env.eba-4wue3g7x.us-east-1.elasticbeanstalk.com';
+
   private readonly _me = signal<AuthMe | null>(null);
 
   private readCookie(name: string): string | null {
