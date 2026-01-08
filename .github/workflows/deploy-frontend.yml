@@ -42,20 +42,7 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          # Find the actual build output directory
-          BUILD_DIR="./frontend/dist/reserveone-client"
-          if [ -d "$BUILD_DIR/browser" ]; then
-            SYNC_DIR="$BUILD_DIR/browser"
-          elif [ -d "$BUILD_DIR" ]; then
-            SYNC_DIR="$BUILD_DIR"
-          else
-            echo "ERROR: Build output not found. Listing dist directory:"
-            ls -la ./frontend/dist/ || true
-            exit 1
-          fi
-          
-          echo "Syncing from: $SYNC_DIR"
-          aws s3 sync "$SYNC_DIR" "s3://${{ secrets.S3_BUCKET }}/" \
+          aws s3 sync "./frontend/dist/reserveone-client/browser" "s3://${{ secrets.S3_BUCKET }}/" \
             --delete
 
       - name: Invalidate CloudFront (optional)
