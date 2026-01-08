@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
+import { SystemSettingsModal } from '../../../admin/components/system-settings-modal/system-settings-modal';
 import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer, UserProfileModal],
+  imports: [CommonModule, FormsModule, Header, Footer, UserProfileModal, SystemSettingsModal],
   templateUrl: './landing-page.html',
   styleUrls: ['./landing-page.css'],
 })
@@ -27,11 +28,13 @@ export class LandingPage {
   });
 
   protected readonly userEmail = computed(() => this.auth.meSignal()?.email ?? '');
+  protected readonly showSystemSettings = this.auth.isAdmin;
 
   isNavOpen = false;
   isBookingOpen = false;
   isSignInOpen = false;
   isProfileOpen = false;
+  isSystemSettingsOpen = false;
   profileSaveError = '';
 
   toggleNav() {
@@ -87,6 +90,14 @@ export class LandingPage {
   closeProfile() {
     this.isProfileOpen = false;
     this.profileSaveError = '';
+  }
+
+  openSystemSettings() {
+    this.isSystemSettingsOpen = true;
+  }
+
+  closeSystemSettings() {
+    this.isSystemSettingsOpen = false;
   }
 
   signOut() {

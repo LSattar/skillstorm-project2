@@ -1,14 +1,9 @@
 package com.skillstorm.reserveone.controllers;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-
-import com.skillstorm.reserveone.dto.users.CreateUserRequest;
-import com.skillstorm.reserveone.dto.users.UpdateUserRequest;
-import com.skillstorm.reserveone.dto.users.UpdateUserStatusRequest;
-import com.skillstorm.reserveone.dto.users.UserResponse;
-import com.skillstorm.reserveone.services.UserService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +20,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import com.skillstorm.reserveone.dto.users.CreateUserRequest;
+import com.skillstorm.reserveone.dto.users.UpdateUserRequest;
+import com.skillstorm.reserveone.dto.users.UpdateUserRolesRequest;
+import com.skillstorm.reserveone.dto.users.UpdateUserStatusRequest;
+import com.skillstorm.reserveone.dto.users.UserResponse;
+import com.skillstorm.reserveone.services.UserService;
 
 import jakarta.validation.Valid;
 
@@ -118,6 +121,20 @@ public class UserController {
         }
         UUID userId = requireLocalUserId(principal);
         return ResponseEntity.ok(service.updateProfile(userId, req));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<UserResponse>> search(
+            @RequestParam(name = "q", defaultValue = "") String q,
+            @RequestParam(name = "limit", defaultValue = "20") int limit) {
+        return ResponseEntity.ok(service.search(q, limit));
+    }
+
+    @PatchMapping("/{userId}/roles")
+    public ResponseEntity<UserResponse> updateRoles(
+            @NonNull @PathVariable UUID userId,
+            @NonNull @Valid @RequestBody UpdateUserRolesRequest req) {
+        return ResponseEntity.ok(service.updateRoles(userId, req));
     }
 
     // CREATE

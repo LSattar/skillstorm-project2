@@ -35,8 +35,7 @@
         <div class="menu-panel" role="menu" aria-label="User menu">
           @if (roleLabel) {
           <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
-          }
-          @if (isAdmin) {
+          } @if (isAdmin) {
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenAdminDashboard()">
             Admin Dashboard
           </button>
@@ -44,6 +43,13 @@
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
             Profile settings
           </button>
+
+          @if (showSystemSettings) {
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenSystemSettings()">
+            System settings
+          </button>
+          }
+
           <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
             Log out
           </button>
