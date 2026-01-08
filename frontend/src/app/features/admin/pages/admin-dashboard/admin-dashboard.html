@@ -1,0 +1,161 @@
+<app-header
+  [isNavOpen]="isNavOpen"
+  [isAuthenticated]="isAuthenticated()"
+  [roleLabel]="roleLabel()"
+  [userLabel]="userLabel()"
+  [userEmail]="userEmail()"
+  (toggleNav)="toggleNav()"
+  (closeNav)="closeNav()"
+  (openBooking)="openBooking()"
+  (openSignIn)="openSignIn()"
+  (logout)="signOut()"
+  (openProfile)="openProfile()"
+></app-header>
+
+<main>
+  <div class="admin-dashboard">
+
+    @if (loading) {
+    <div class="loading-state">
+      <p>Loading dashboard data...</p>
+    </div>
+  } @else {
+    @if (error) {
+      <div class="error-state">
+        <p>{{ error }}</p>
+        <button class="btn btn-primary" (click)="loadMockData()">Reload</button>
+      </div>
+    }
+
+    <!-- Alerts Section -->
+    @if (alerts.length > 0) {
+      <section class="alerts-section">
+        <h2>Alerts & Notifications</h2>
+        <div class="alerts-grid">
+          @for (alert of alerts; track alert.title) {
+            <div class="alert-card alert-{{ alert.type }}">
+              <div class="alert-header">
+                <h3>{{ alert.title }}</h3>
+                @if (alert.count !== undefined) {
+                  <span class="alert-count">{{ alert.count }}</span>
+                }
+              </div>
+              <p>{{ alert.message }}</p>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Key Metrics for Hotel Admin -->
+    @if (operationalMetrics) {
+      <section class="stats-section">
+        <h2>Today's Overview</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-icon material-symbols-outlined" aria-hidden="true">hotel</span>
+            <div class="stat-content">
+              <h3>Occupancy Rate</h3>
+              <p class="stat-value">{{ operationalMetrics.occupancyRate }}%</p>
+              <span class="stat-subtext">{{ operationalMetrics.occupiedRooms }} of {{ operationalMetrics.totalRooms }} rooms</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-icon material-symbols-outlined" aria-hidden="true">login</span>
+            <div class="stat-content">
+              <h3>Check-ins Today</h3>
+              <p class="stat-value">{{ operationalMetrics.checkInsToday }}</p>
+              <span class="stat-subtext">{{ operationalMetrics.checkInsPending }} still pending</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-icon material-symbols-outlined" aria-hidden="true">logout</span>
+            <div class="stat-content">
+              <h3>Check-outs Today</h3>
+              <p class="stat-value">{{ operationalMetrics.checkOutsToday }}</p>
+              <span class="stat-subtext">{{ operationalMetrics.checkOutsPending }} still pending</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- Revenue Chart -->
+    @if (monthlyRevenue.length > 0) {
+      <section class="revenue-section">
+        <h2>Monthly Revenue</h2>
+        <div class="revenue-chart">
+          <div class="chart-bars">
+            @for (month of monthlyRevenue; track month.month + month.year) {
+              <div class="chart-bar-container">
+                <div class="chart-bar-wrapper">
+                  <div class="chart-bar" [style.height.%]="getBarHeight(month.revenue)">
+                    <span class="bar-value">{{ formatCurrency(month.revenue) }}</span>
+                  </div>
+                </div>
+                <div class="bar-label">
+                  <span class="month-name">{{ month.month }}</span>
+                  <span class="year">{{ month.year }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="chart-summary">
+          <p>
+            <strong>Total Revenue:</strong>
+            {{ formatCurrency(totalRevenueLast12) }}
+          </p>
+          <p>
+            <strong>Total Bookings:</strong>
+            {{ totalBookingsLast12 }}
+          </p>
+        </div>
+      </section>
+    }
+
+    <!-- Recent Bookings -->
+    @if (recentBookings.length > 0) {
+      <section class="recent-bookings-section">
+        <h2>Recent Bookings</h2>
+        <div class="bookings-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Hotel</th>
+                <th>Guest</th>
+                <th>Status</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>Guests</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (booking of recentBookings; track booking.reservationId) {
+                <tr>
+                  <td class="hotel-name">{{ booking.hotelName || '—' }}</td>
+                  <td class="guest-name">{{ booking.guestName || '—' }}</td>
+                  <td>
+                    <span class="status-badge" [ngClass]="getStatusClass(booking.status)">
+                      {{ booking.status }}
+                    </span>
+                  </td>
+                  <td>{{ formatDate(booking.startDate) }}</td>
+                  <td>{{ formatDate(booking.endDate) }}</td>
+                  <td>{{ booking.guestCount }}</td>
+                  <td class="amount">{{ formatCurrency(booking.totalAmount) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  }
+  </div>
+</main>
+
+<app-footer [year]="today.getFullYear()"></app-footer>
