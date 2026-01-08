@@ -1,0 +1,171 @@
+<app-header
+  [isNavOpen]="isNavOpen"
+  [isAuthenticated]="isAuthenticated()"
+  [roleLabel]="roleLabel()"
+  [userLabel]="userLabel()"
+  [userEmail]="userEmail()"
+  (toggleNav)="toggleNav()"
+  (closeNav)="closeNav()"
+  (openBooking)="openBooking()"
+  (openSignIn)="openSignIn()"
+  (logout)="signOut()"
+  (openProfile)="openProfile()"
+></app-header>
+
+<main>
+  <div class="reservation-lookup">
+
+    <!-- Search Section -->
+    <section class="search-section">
+      <h2>Search Reservations</h2>
+      <div class="search-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="searchReservationId">Reservation ID</label>
+            <input
+              type="text"
+              id="searchReservationId"
+              [(ngModel)]="searchReservationId"
+              (input)="applyFilters()"
+              placeholder="Enter reservation ID"
+            />
+          </div>
+          <div class="form-group">
+            <label for="searchGuestLastName">Guest Last Name</label>
+            <input
+              type="text"
+              id="searchGuestLastName"
+              [(ngModel)]="searchGuestLastName"
+              (input)="applyFilters()"
+              placeholder="Enter guest's last name"
+            />
+          </div>
+          <div class="form-group">
+            <label for="searchHotelName">Hotel Name</label>
+            <input
+              type="text"
+              id="searchHotelName"
+              [(ngModel)]="searchHotelName"
+              (input)="applyFilters()"
+              placeholder="Enter hotel name"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="searchStatus">Status</label>
+            <select id="searchStatus" [(ngModel)]="searchStatus" (change)="applyFilters()">
+              <option value="">All Statuses</option>
+              @for (status of statusOptions; track status) {
+                <option [value]="status">{{ status }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="searchStartDate">Check-in From</label>
+            <input
+              type="date"
+              id="searchStartDate"
+              [(ngModel)]="searchStartDate"
+              (change)="applyFilters()"
+            />
+          </div>
+          <div class="form-group">
+            <label for="searchEndDate">Check-out To</label>
+            <input
+              type="date"
+              id="searchEndDate"
+              [(ngModel)]="searchEndDate"
+              (change)="applyFilters()"
+            />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary" (click)="onSearch()">
+            <span class="material-symbols-outlined">search</span>
+            Search
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="clearFilters()">
+            <span class="material-symbols-outlined">clear</span>
+            Clear Filters
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section">
+      <div class="results-header">
+        <h2>Search Results</h2>
+        <span class="result-count">{{ filteredReservations.length }} reservation(s) found</span>
+      </div>
+
+      @if (loading) {
+        <div class="loading-state">
+          <p>Loading reservations...</p>
+        </div>
+      } @else if (error) {
+        <div class="error-state">
+          <p>{{ error }}</p>
+          <button class="btn btn-primary" (click)="loadMockData()">Retry</button>
+        </div>
+      } @else if (filteredReservations.length === 0) {
+        <div class="empty-state">
+          <span class="material-symbols-outlined">search_off</span>
+          <p>No reservations found matching your criteria.</p>
+        </div>
+      } @else {
+        <div class="reservations-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Reservation ID</th>
+                <th>Guest</th>
+                <th>Hotel</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>Guests</th>
+                <th>Amount</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (reservation of filteredReservations; track reservation.reservationId) {
+                <tr>
+                  <td class="reservation-id">{{ reservation.reservationId }}</td>
+                  <td class="guest-name">{{ reservation.guestName || '—' }}</td>
+                  <td class="hotel-name">{{ reservation.hotelName || '—' }}</td>
+                  <td>{{ formatDate(reservation.startDate) }}</td>
+                  <td>{{ formatDate(reservation.endDate) }}</td>
+                  <td>{{ reservation.guestCount }}</td>
+                  <td class="amount">{{ formatCurrency(reservation.totalAmount) }}</td>
+                  <td class="actions">
+                    <button
+                      class="btn btn-sm btn-primary"
+                      (click)="openEditModal(reservation)"
+                      title="Edit Reservation"
+                    >
+                      <span class="material-symbols-outlined">edit</span>
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+</main>
+
+<!-- Edit Modal -->
+@if (showEditModal && selectedReservation) {
+  <app-reservation-edit-modal
+    [reservation]="selectedReservation"
+    (close)="closeEditModal()"
+    (updated)="onReservationUpdated($event)"
+  ></app-reservation-edit-modal>
+}
+
+<app-footer [year]="today.getFullYear()"></app-footer>
