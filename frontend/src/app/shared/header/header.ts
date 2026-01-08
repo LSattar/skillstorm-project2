@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { Nav } from '../nav/nav';
 
 @Component({
@@ -10,6 +10,8 @@ import { Nav } from '../nav/nav';
   styleUrl: './header.css',
 })
 export class Header {
+  private readonly router = inject(Router);
+
   @Input() isNavOpen = false;
   @Input() isAuthenticated = false;
   @Input() userLabel = '';
@@ -36,6 +38,10 @@ export class Header {
     return '?';
   }
 
+  get isAdmin(): boolean {
+    return this.roleLabel?.toLowerCase() === 'admin';
+  }
+
   toggleUserMenu() {
     this.userMenuOpen = !this.userMenuOpen;
   }
@@ -52,6 +58,12 @@ export class Header {
 
   onOpenProfile() {
     this.openProfile.emit();
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
+  onOpenAdminDashboard() {
+    this.router.navigate(['/admin-dashboard']);
     this.closeUserMenu();
     this.closeNav.emit();
   }
