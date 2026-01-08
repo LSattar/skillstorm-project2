@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -65,11 +66,18 @@ public class SecurityConfig {
 
                 http
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(csrf -> csrf
-                                                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                                // If you want logout to work without CSRF header, uncomment:
-                                // .ignoringRequestMatchers("/logout")
-                                )
+                                .csrf(csrf -> {
+                                        CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository
+                                                        .withHttpOnlyFalse();
+                                        csrfRepo.setCookieCustomizer(
+                                                        (ResponseCookie.ResponseCookieBuilder builder) -> builder
+                                                                        .sameSite("None")
+                                                                        .secure(true));
+
+                                        csrf.csrfTokenRepository(csrfRepo);
+                                        // If you want logout to work without CSRF header, uncomment:
+                                        // .ignoringRequestMatchers("/logout")
+                                })
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                                 .exceptionHandling(ex -> ex
