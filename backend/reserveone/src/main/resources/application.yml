@@ -1,11 +1,13 @@
 spring:
   application:
     name: reserveone
+
   config:
     # Support running from either:
     # - backend/reserveone (then .env is at ./ .env)
     # - repo root (then .env is at ./backend/reserveone/.env)
     import: "optional:file:.env[.properties],optional:file:backend/reserveone/.env[.properties]"
+
   devtools:
     restart:
       enabled: false
@@ -18,7 +20,7 @@ spring:
 
   sql:
     init:
-      mode: ${SQL_INIT_MODE:never} # schema/data loaded manually (psql) to support Postgres $$ blocks
+      mode: ${SQL_INIT_MODE:never}
       schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
 
@@ -43,16 +45,19 @@ spring:
               - openid
               - profile
               - email
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            # 🔑 Force OAuth callback to CloudFront (no guessing)
+            redirect-uri: "${APP_BASE_URL}/login/oauth2/code/{registrationId}"
         provider:
           google:
             issuer-uri: https://accounts.google.com
 
 server:
-  forward-headers-strategy: framework
   port: ${SERVER_PORT:5000}
+
+  # REQUIRED behind CloudFront + ALB
+  forward-headers-strategy: framework
+
   servlet:
-    context-path: /api
     session:
       persistent: false
       cookie:
@@ -66,6 +71,7 @@ logging:
       - org.springframework.boot.sql.init
     hibernate-sql:
       - org.hibernate.SQL
+
   level:
     sql-init: DEBUG
     hibernate-sql: DEBUG
