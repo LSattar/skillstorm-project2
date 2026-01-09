@@ -1,9 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, SimpleChanges, inject } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  SimpleChanges,
+  inject,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  SystemSettingsService,
   RoleResponse,
+  SystemSettingsService,
   UserAdminView,
 } from '../../services/system-settings.service';
 
@@ -16,6 +24,7 @@ import {
 })
 export class SystemSettingsModal {
   private readonly api = inject(SystemSettingsService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() open = false;
   @Output() closed = new EventEmitter<void>();
@@ -51,14 +60,18 @@ export class SystemSettingsModal {
     this.loading = true;
     this.selected = null;
     this.users = [];
+    this.cdr.markForCheck();
+
     this.api.getRoles().subscribe({
       next: (roles) => {
         this.roles = Array.isArray(roles) ? roles : [];
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.error = 'Failed to load roles.';
         this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -66,15 +79,19 @@ export class SystemSettingsModal {
   search(): void {
     this.error = '';
     this.loading = true;
+    this.cdr.markForCheck();
+
     this.api.searchUsers(this.query, 25).subscribe({
       next: (users) => {
         this.users = Array.isArray(users) ? users : [];
         this.selected = this.users[0] ?? null;
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.error = 'Search failed.';
         this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
