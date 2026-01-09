@@ -4,12 +4,14 @@
   [roleLabel]="roleLabel()"
   [userLabel]="userLabel()"
   [userEmail]="userEmail()"
+  [showSystemSettings]="showSystemSettings()"
   (toggleNav)="toggleNav()"
   (closeNav)="closeNav()"
   (openBooking)="openBooking()"
   (openSignIn)="openSignIn()"
   (logout)="signOut()"
   (openProfile)="openProfile()"
+  (openSystemSettings)="openSystemSettings()"
 ></app-header>
 
 <main id="top">
@@ -195,6 +197,11 @@
     (closed)="closeProfile()"
     (saved)="closeProfile()"
   ></app-user-profile-modal>
+
+  <app-system-settings-modal
+    [open]="isSystemSettingsOpen"
+    (closed)="closeSystemSettings()"
+  ></app-system-settings-modal>
 
   <!-- Experience (image section) -->
   <section class="experience section" id="amenities">

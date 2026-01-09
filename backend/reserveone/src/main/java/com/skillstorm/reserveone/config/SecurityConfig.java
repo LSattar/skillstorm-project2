@@ -116,6 +116,9 @@ public class SecurityConfig {
                                                 .hasAnyRole("ADMIN", "BUSINESS_OWNER")
                                                 .requestMatchers(HttpMethod.PATCH, "/users/*/status")
                                                 .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/users/search").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/users/*/roles").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/users").hasRole("ADMIN")
 
                                                 // Bookings
                                                 .requestMatchers(HttpMethod.POST, "/bookings")

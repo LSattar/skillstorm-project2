@@ -111,4 +111,25 @@ export class AuthService {
         })
       );
   }
+
+  readonly isAdmin = computed(() => {
+    const me = this._me();
+    if (!me) return false;
+
+    const normalizeRole = (r: string): string => r.trim().toUpperCase();
+
+    const dbRoleNames = (me.dbRoles ?? [])
+      .filter((r): r is string => typeof r === 'string')
+      .map(normalizeRole);
+
+    const authorities = [...(me.roles ?? []), ...(me.principalAuthorities ?? [])];
+
+    const roleNames = authorities
+      .filter((a): a is string => typeof a === 'string')
+      .filter((a) => a.startsWith('ROLE_'))
+      .map((a) => normalizeRole(a.substring('ROLE_'.length)));
+
+    const allRoleNames = new Set([...dbRoleNames, ...roleNames]);
+    return allRoleNames.has('ADMIN');
+  });
 }

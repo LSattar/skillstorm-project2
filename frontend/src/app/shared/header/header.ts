@@ -7,7 +7,7 @@ import { Nav } from '../nav/nav';
   standalone: true,
   imports: [Nav, RouterLink],
   templateUrl: './header.html',
-  styleUrl: './header.css',
+  styleUrls: ['./header.css'],
 })
 export class Header {
   private readonly router = inject(Router);
@@ -16,8 +16,8 @@ export class Header {
   @Input() isAuthenticated = false;
   @Input() userLabel = '';
   @Input() roleLabel = '';
-
   @Input() userEmail = '';
+  @Input() showSystemSettings = false;
 
   @Output() toggleNav = new EventEmitter<void>();
   @Output() closeNav = new EventEmitter<void>();
@@ -25,6 +25,7 @@ export class Header {
   @Output() openSignIn = new EventEmitter<void>();
   @Output() logout = new EventEmitter<void>();
   @Output() openProfile = new EventEmitter<void>();
+  @Output() openSystemSettings = new EventEmitter<void>();
 
   userMenuOpen = false;
 
@@ -64,6 +65,12 @@ export class Header {
 
   onOpenAdminDashboard() {
     this.router.navigate(['/admin-dashboard']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
+  onOpenSystemSettings() {
+    this.openSystemSettings.emit();
     this.closeUserMenu();
     this.closeNav.emit();
   }
