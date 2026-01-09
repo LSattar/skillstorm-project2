@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -108,7 +110,11 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal @NonNull Object principal) {
         UUID userId = requireLocalUserId(principal);
-        return ResponseEntity.ok(service.getById(userId));
+        // This endpoint is user-specific and should never be cached by browsers/CDNs.
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .body(service.getById(userId));
     }
 
     // PATCH /users/me (profile fields only)
@@ -120,7 +126,11 @@ public class UserController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required.");
         }
         UUID userId = requireLocalUserId(principal);
-        return ResponseEntity.ok(service.updateProfile(userId, req));
+        // Also mark the update response as non-cacheable.
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .body(service.updateProfile(userId, req));
     }
 
     @GetMapping("/search")
