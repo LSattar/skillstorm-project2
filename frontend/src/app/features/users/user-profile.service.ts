@@ -45,7 +45,10 @@ export class UserProfileService {
 
   /** Get the currently-authenticated user's profile */
   getMe() {
-    return this.http.get<UserProfile>(`${this.api}/users/me`, { withCredentials: true });
+    // Cache-bust to avoid stale responses when behind CDNs (e.g., CloudFront)
+    // that may cache GETs even when cookies are involved.
+    const url = `${this.api}/users/me?ts=${Date.now()}`;
+    return this.http.get<UserProfile>(url, { withCredentials: true });
   }
 
   private ensureCsrfToken() {
