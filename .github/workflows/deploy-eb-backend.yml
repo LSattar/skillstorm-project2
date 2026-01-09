@@ -156,6 +156,27 @@ jobs:
       - name: Deploy version to environment
         run: |
           set -euo pipefail
+
+          echo "---"
+          echo "Preflight: show EB configuration roles (instance profile / service role if present)"
+          aws elasticbeanstalk describe-configuration-settings \
+            --application-name "${{ env.EB_APPLICATION_NAME }}" \
+            --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
+            --output json | \
+            jq -r '
+              .ConfigurationSettings[0].OptionSettings
+              | map(select(.OptionName=="IamInstanceProfile" or .OptionName=="ServiceRole" or .OptionName=="ServiceRoleForManagedUpdates"))
+              | .[]
+              | "\(.Namespace) \(.OptionName)=\(.Value)"
+            ' || true
+
+          echo "---"
+          echo "Preflight: can assumed role read EB patching resource object? (helps diagnose S3 403)"
+          aws s3api head-object \
+            --bucket "elasticbeanstalk-env-resources-${{ env.AWS_REGION }}" \
+            --key "eb_patching_resources/instance_patch_extension.linux" \
+            --output json >/dev/null && echo "OK: head-object succeeded" || echo "WARN: head-object failed (expected with current error)"
+
           aws elasticbeanstalk update-environment \
             --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
             --version-label "${{ steps.meta.outputs.version_label }}"
