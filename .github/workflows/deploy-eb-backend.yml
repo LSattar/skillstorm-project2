@@ -51,24 +51,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          # pick the built jar
           JAR_PATH="$(ls -1 target/*.jar | head -n 1)"
           echo "Using jar: ${JAR_PATH}"
 
-          # create bundle root
           rm -rf eb-bundle bundle.zip
           mkdir -p eb-bundle
 
-          # EB Java platform can run a jar from the root of the bundle.
-          # Name doesn't matter much; keeping it stable helps.
           cp "${JAR_PATH}" eb-bundle/application.jar
 
-          # include platform configs if you have them
           [ -d ".platform" ] && cp -R .platform eb-bundle/.platform || true
           [ -d ".ebextensions" ] && cp -R .ebextensions eb-bundle/.ebextensions || true
           [ -f "Procfile" ] && cp Procfile eb-bundle/Procfile || true
 
-          # zip contents at bundle root
           (cd eb-bundle && zip -r ../bundle.zip .)
 
       - name: Compute EB bucket + version label
@@ -76,15 +70,13 @@ jobs:
         run: |
           set -euo pipefail
           ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-          echo "account_id=${ACCOUNT_ID}" >> $GITHUB_OUTPUT
+          echo "account_id=${ACCOUNT_ID}" >> "$GITHUB_OUTPUT"
 
-          # Default EB bucket convention in each account/region:
           EB_BUCKET="elasticbeanstalk-${{ env.AWS_REGION }}-${ACCOUNT_ID}"
-          echo "eb_bucket=${EB_BUCKET}" >> $GITHUB_OUTPUT
+          echo "eb_bucket=${EB_BUCKET}" >> "$GITHUB_OUTPUT"
 
-          # version label (must be unique)
-          VERSION_LABEL="github-${GITHUB_SHA}-${GITHUB_RUN_NUMBER}"
-          echo "version_label=${VERSION_LABEL}" >> $GITHUB_OUTPUT
+          VERSION_LABEL="github-${GITHUB_SHA}-${GITHUB_RUN_ID}"
+          echo "version_label=${VERSION_LABEL}" >> "$GITHUB_OUTPUT"
 
       - name: Upload bundle to S3
         working-directory: ${{ env.BACKEND_DIR }}
@@ -94,13 +86,26 @@ jobs:
             "bundle.zip" \
             "s3://${{ steps.meta.outputs.eb_bucket }}/${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip"
 
-      - name: Create new Elastic Beanstalk application version
+      - name: Create new Elastic Beanstalk application version (idempotent)
         run: |
           set -euo pipefail
-          aws elasticbeanstalk create-application-version \
+
+          VERSION_LABEL="${{ steps.meta.outputs.version_label }}"
+
+          EXISTING="$(aws elasticbeanstalk describe-application-versions \
             --application-name "${{ env.EB_APPLICATION_NAME }}" \
-            --version-label "${{ steps.meta.outputs.version_label }}" \
-            --source-bundle S3Bucket="${{ steps.meta.outputs.eb_bucket }}",S3Key="${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip"
+            --version-labels "$VERSION_LABEL" \
+            --query "ApplicationVersions[0].VersionLabel" \
+            --output text 2>/dev/null || true)"
+
+          if [ "$EXISTING" = "$VERSION_LABEL" ]; then
+            echo "EB application version $VERSION_LABEL already exists. Skipping create."
+          else
+            aws elasticbeanstalk create-application-version \
+              --application-name "${{ env.EB_APPLICATION_NAME }}" \
+              --version-label "$VERSION_LABEL" \
+              --source-bundle S3Bucket="${{ steps.meta.outputs.eb_bucket }}",S3Key="${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip"
+          fi
 
       - name: Deploy version to environment
         run: |
