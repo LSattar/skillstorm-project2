@@ -53,7 +53,8 @@ spring:
             issuer-uri: https://accounts.google.com
 
 server:
-  port: ${SERVER_PORT:5000}
+  # Elastic Beanstalk commonly sets PORT. Support that first.
+  port: ${PORT:${SERVER_PORT:5000}}
 
   # REQUIRED behind CloudFront + ALB
   forward-headers-strategy: framework
