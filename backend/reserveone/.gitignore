@@ -67,3 +67,8 @@ jacoco/
 docker-data/
 .pgdata/
 
+### Elastic Beanstalk local bundle artifacts ###
+eb-bundle/
+bundle.zip
+
+
