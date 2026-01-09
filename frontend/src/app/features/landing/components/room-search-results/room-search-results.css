@@ -1,0 +1,98 @@
+/* Component-specific styles */
+.results-content {
+  padding: 18px;
+}
+
+.availability-success {
+  display: grid;
+  gap: 18px;
+}
+
+.success-message {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(163, 177, 138, 0.15), rgba(163, 177, 138, 0.08));
+  border: 1px solid rgba(163, 177, 138, 0.3);
+  border-radius: 12px;
+  color: var(--primary-2);
+  font-weight: 700;
+  margin: 0;
+}
+
+.booking-summary {
+  padding: 16px;
+  background: rgba(250, 249, 246, 0.75);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.booking-summary h3 {
+  margin: 0 0 12px 0;
+  color: var(--primary-2);
+  font-size: 1.1rem;
+}
+
+.summary-details {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-label {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.summary-value {
+  font-weight: 800;
+  color: var(--text);
+}
+
+.availability-unavailable {
+  display: grid;
+  gap: 18px;
+}
+
+.unavailable-message {
+  padding: 14px 16px;
+  background: rgba(221, 190, 169, 0.15);
+  border: 1px solid rgba(221, 190, 169, 0.3);
+  border-radius: 12px;
+  color: var(--text);
+  font-weight: 650;
+  margin: 0;
+}
+
+.suggestions {
+  padding: 16px;
+  background: rgba(250, 249, 246, 0.75);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.suggestions h3 {
+  margin: 0 0 12px 0;
+  color: var(--primary-2);
+  font-size: 1rem;
+}
+
+.suggestions ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.suggestions li {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.modal-body {
+  padding: 0;
+}

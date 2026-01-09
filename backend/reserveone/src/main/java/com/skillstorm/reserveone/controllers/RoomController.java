@@ -1,8 +1,10 @@
 package com.skillstorm.reserveone.controllers;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,6 +53,16 @@ public class RoomController {
             return service.readAll();
         }
         return service.readAll();
+    }
+
+    @GetMapping("/available")
+    public List<RoomResponseDTO> searchAvailableRooms(
+            @RequestParam(required = false) UUID hotelId,
+            @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Integer guestCount,
+            @RequestParam(required = false) UUID roomTypeId) {
+        return service.searchAvailableRooms(hotelId, startDate, endDate, guestCount, roomTypeId);
     }
 
     @PutMapping("/{id}")

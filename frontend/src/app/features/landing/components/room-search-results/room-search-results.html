@@ -1,0 +1,109 @@
+<div
+  class="modal"
+  id="searchResultsModal"
+  (click)="close()"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="resultsTitle"
+  [attr.aria-hidden]="!open"
+  [class.open]="open"
+>
+  <div class="modal-backdrop" (click)="close()"></div>
+
+  <div class="modal-panel" role="document" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2 id="resultsTitle" class="modal-title">Search Results</h2>
+        <p class="modal-subtitle">
+          @if (hasAvailableRooms) {
+          Rooms available for your dates
+          } @else {
+          No rooms available
+          }
+        </p>
+      </div>
+
+      <button class="icon-btn" type="button" aria-label="Close results" (click)="close()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      @if (error) {
+      <p class="auth-error" role="alert">{{ error }}</p>
+      }
+
+      @if (hasAvailableRooms && resultsData) {
+      <div class="results-content">
+        <div class="availability-success">
+          <p class="success-message">
+            ✓ We found {{ resultsData.rooms.length }} room(s) available for your dates!
+          </p>
+
+          <div class="booking-summary">
+            <h3>Booking Summary</h3>
+            <div class="summary-details">
+              @if (hotel) {
+              <div class="summary-item">
+                <span class="summary-label">Hotel:</span>
+                <span class="summary-value">{{ hotel.name }}</span>
+              </div>
+              }
+              <div class="summary-item">
+                <span class="summary-label">Check-in:</span>
+                <span class="summary-value">{{ resultsData.searchParams.startDate }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Check-out:</span>
+                <span class="summary-value">{{ resultsData.searchParams.endDate }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Guests:</span>
+                <span class="summary-value">{{ resultsData.searchParams.guestCount || 1 }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              class="btn btn-primary btn-block"
+              type="button"
+              (click)="bookNow()"
+              [disabled]="booking"
+            >
+              @if (booking) { Booking... } @else { Book Now }
+            </button>
+            <button class="btn btn-link" type="button" (click)="onModifySearch()">
+              Modify Search
+            </button>
+          </div>
+        </div>
+      </div>
+      } @else {
+      <div class="results-content">
+        <div class="availability-unavailable">
+          <p class="unavailable-message">
+            We're sorry, but there are no rooms available for your selected dates and criteria.
+          </p>
+
+          <div class="suggestions">
+            <h3>Try modifying your search:</h3>
+            <ul>
+              <li>Select different check-in or check-out dates</li>
+              <li>Try a different room type</li>
+              <li>Adjust the number of guests</li>
+              <li>Try a different hotel location</li>
+            </ul>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-primary btn-block" type="button" (click)="onModifySearch()">
+              Modify Search
+            </button>
+            <button class="btn btn-link" type="button" (click)="close()">Close</button>
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+</div>
