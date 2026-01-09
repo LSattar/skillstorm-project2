@@ -76,5 +76,15 @@ public class ReservationController {
                                                     @RequestParam(required = false) String reason) {
         return service.cancelReservation(id, reason);
     }
+
+    @PostMapping("/{id}/check-in")
+    public ReservationResponseDTO checkIn(@PathVariable UUID id) {
+        return service.checkIn(id);
+    }
+
+    @PostMapping("/{id}/check-out")
+    public ReservationResponseDTO checkOut(@PathVariable UUID id) {
+        return service.checkOut(id);
+    }
 }
 

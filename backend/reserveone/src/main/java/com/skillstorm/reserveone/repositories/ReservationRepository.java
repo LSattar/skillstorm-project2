@@ -36,6 +36,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     List<Reservation> findByRoom_RoomIdAndStatusInAndStartDateLessThanAndEndDateGreaterThan(
         UUID roomId, List<Status> statuses, LocalDate endDate, LocalDate startDate);
     
+    List<Reservation> findByStatusAndStartDate(Status status, LocalDate startDate);
+    
+    List<Reservation> findByStatusAndEndDate(Status status, LocalDate endDate);
+    
+    List<Reservation> findByHotel_HotelIdAndStatusAndStartDate(UUID hotelId, Status status, LocalDate startDate);
+    
+    List<Reservation> findByHotel_HotelIdAndStatusAndEndDate(UUID hotelId, Status status, LocalDate endDate);
     // Find all reservations for a list of rooms in a date range
     @Query("SELECT r FROM Reservation r WHERE r.room.roomId IN :roomIds AND " +
            "r.status IN :statuses AND " +
