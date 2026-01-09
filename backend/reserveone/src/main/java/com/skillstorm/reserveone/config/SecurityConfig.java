@@ -75,7 +75,11 @@ public class SecurityConfig {
                                                                         .secure(true));
 
                                         csrf.csrfTokenRepository(csrfRepo);
-                                        csrf.ignoringRequestMatchers("/actuator/**", "/health");
+                                        csrf.ignoringRequestMatchers(
+                                                        "/actuator/**",
+                                                        "/api/actuator/**",
+                                                        "/health",
+                                                        "/api/health");
                                         // If you want logout to work without CSRF header, uncomment:
                                         // .ignoringRequestMatchers("/logout")
                                 })
@@ -92,12 +96,20 @@ public class SecurityConfig {
                                                 // ALB health check (IMPORTANT)
                                                 .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/actuator/health").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/actuator/health/**")
+                                                .permitAll()
                                                 .requestMatchers(HttpMethod.HEAD, "/actuator/health").permitAll()
                                                 .requestMatchers(HttpMethod.HEAD, "/actuator/health/**").permitAll()
+                                                .requestMatchers(HttpMethod.HEAD, "/api/actuator/health").permitAll()
+                                                .requestMatchers(HttpMethod.HEAD, "/api/actuator/health/**")
+                                                .permitAll()
 
                                                 // Convenience health endpoint (context path makes this /api/health)
                                                 .requestMatchers(HttpMethod.GET, "/health").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                                                 .requestMatchers(HttpMethod.HEAD, "/health").permitAll()
+                                                .requestMatchers(HttpMethod.HEAD, "/api/health").permitAll()
 
                                                 // OAuth2 handshake endpoints
                                                 .requestMatchers("/oauth2/**", "/login/**").permitAll()
