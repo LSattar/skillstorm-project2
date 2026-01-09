@@ -275,11 +275,18 @@ jobs:
               jq -r '
                 .StackEvents
                 | map(select(
-                    (.ResourceStatus|test("FAILED|ROLLBACK|DELETE_FAILED"))
+                    (.ResourceStatus | test("FAILED|ROLLBACK|DELETE_FAILED"))
                     or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
                   ))
                 | .[]
-                | "\(.Timestamp)\t\(.ResourceStatus)\t\(.ResourceType)\t\(.LogicalResourceId)\t\(.ResourceStatusReason // \"\")"' \
+                | [
+                    (.Timestamp | tostring),
+                    (.ResourceStatus // ""),
+                    (.ResourceType // ""),
+                    (.LogicalResourceId // ""),
+                    (.ResourceStatusReason // "")
+                  ]
+                | @tsv' \
               | head -n 50 || true
           }
 
@@ -363,11 +370,18 @@ jobs:
               jq -r '
                 .StackEvents
                 | map(select(
-                    (.ResourceStatus|test("FAILED|ROLLBACK|DELETE_FAILED"))
+                    (.ResourceStatus | test("FAILED|ROLLBACK|DELETE_FAILED"))
                     or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
                   ))
                 | .[]
-                | "\(.Timestamp)\t\(.ResourceStatus)\t\(.ResourceType)\t\(.LogicalResourceId)\t\(.ResourceStatusReason // \"\")"' \
+                | [
+                    (.Timestamp | tostring),
+                    (.ResourceStatus // ""),
+                    (.ResourceType // ""),
+                    (.LogicalResourceId // ""),
+                    (.ResourceStatusReason // "")
+                  ]
+                | @tsv' \
               | head -n 50 || true
           else
             echo "WARN: Could not resolve EnvironmentId; skipping CloudFormation events." >&2
