@@ -76,16 +76,27 @@ jobs:
           echo "Using jar: ${JAR_PATH}"
           sha256sum "${JAR_PATH}" || true
 
+          # IMPORTANT: EB only applies health checks, nginx overrides, and hooks if they are
+          # shipped inside the source bundle. A "jar-only" upload will NOT include these.
+          for required_dir in .ebextensions .platform; do
+            if [ ! -d "${required_dir}" ]; then
+              echo "Missing required directory '${required_dir}' in ${PWD}." >&2
+              echo "This workflow expects '${required_dir}' to be present so EB receives healthcheck/nginx hook config." >&2
+              exit 1
+            fi
+          done
+
           rm -rf eb-bundle bundle.zip
           mkdir -p eb-bundle
 
-          cp "${JAR_PATH}" eb-bundle/application.jar
+          # Keep the original JAR name for traceability in EB.
+          cp "${JAR_PATH}" "eb-bundle/$(basename "${JAR_PATH}")"
 
-          [ -d ".platform" ] && cp -R .platform eb-bundle/.platform || true
-          [ -d ".ebextensions" ] && cp -R .ebextensions eb-bundle/.ebextensions || true
+          cp -R .platform eb-bundle/.platform
+          cp -R .ebextensions eb-bundle/.ebextensions
           [ -f "Procfile" ] && cp Procfile eb-bundle/Procfile || true
 
-          (cd eb-bundle && zip -r ../bundle.zip .)
+          (cd eb-bundle && zip -qr ../bundle.zip .)
 
           echo
           echo "Bundle contents:"
