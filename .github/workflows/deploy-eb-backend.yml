@@ -177,6 +177,13 @@ jobs:
             --key "eb_patching_resources/instance_patch_extension.linux" \
             --output json >/dev/null && echo "OK: head-object succeeded" || echo "WARN: head-object failed (expected with current error)"
 
+          echo "---"
+          echo "Preflight: can assumed role call ec2:DescribeImages? (required by UpdateEnvironment on some EB platform flows)"
+          aws ec2 describe-images \
+            --owners self \
+            --max-results 5 \
+            --output json >/dev/null && echo "OK: describe-images succeeded" || echo "WARN: describe-images failed (permission likely missing)"
+
           aws elasticbeanstalk update-environment \
             --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
             --version-label "${{ steps.meta.outputs.version_label }}"
