@@ -8,6 +8,10 @@ on:
       - ".github/workflows/deploy-eb-backend.yml"
   workflow_dispatch:
 
+concurrency:
+  group: eb-backend-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   id-token: write
   contents: read
@@ -157,6 +161,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          VERSION_LABEL="${{ steps.meta.outputs.version_label }}"
+
           echo "---"
           echo "Preflight: show EB configuration roles (instance profile / service role if present)"
           aws elasticbeanstalk describe-configuration-settings \
@@ -184,13 +190,55 @@ jobs:
             --max-results 5 \
             --output json >/dev/null && echo "OK: describe-images succeeded" || echo "WARN: describe-images failed (permission likely missing)"
 
-          aws elasticbeanstalk update-environment \
+          echo "---"
+          echo "Deploying VersionLabel=${VERSION_LABEL} to environment..."
+
+          UPDATE_JSON="$(aws elasticbeanstalk update-environment \
             --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
-            --version-label "${{ steps.meta.outputs.version_label }}"
+            --version-label "${VERSION_LABEL}" \
+            --output json)"
+
+          echo "UpdateEnvironment response:"
+          echo "$UPDATE_JSON" | jq '{EnvironmentName, Status, VersionLabel, AbortableOperationInProgress, Health, HealthStatus}'
+
+          RESP_VERSION="$(echo "$UPDATE_JSON" | jq -r '.VersionLabel // empty')"
+          if [ "$RESP_VERSION" != "$VERSION_LABEL" ]; then
+            echo "UpdateEnvironment response VersionLabel was '$RESP_VERSION' (expected '$VERSION_LABEL')." >&2
+            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
+            exit 1
+          fi
+
+          echo "Waiting briefly for EB to start applying the update..."
+          STARTED="false"
+          for _ in {1..24}; do
+            ENV_JSON="$(aws elasticbeanstalk describe-environments \
+              --environment-names "${{ env.EB_ENVIRONMENT_NAME }}" \
+              --query 'Environments[0]' \
+              --output json)"
+
+            CUR_VERSION="$(echo "$ENV_JSON" | jq -r '.VersionLabel // empty')"
+            IN_PROGRESS="$(echo "$ENV_JSON" | jq -r '.AbortableOperationInProgress // false')"
+
+            if [ "$CUR_VERSION" = "$VERSION_LABEL" ] || [ "$IN_PROGRESS" = "true" ]; then
+              STARTED="true"
+              echo "EB acknowledged update: VersionLabel=$CUR_VERSION, AbortableOperationInProgress=$IN_PROGRESS"
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$STARTED" != "true" ]; then
+            echo "EB did not appear to start applying the update within ~2 minutes." >&2
+            echo "Recent events:" >&2
+            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
+            exit 1
+          fi
 
       - name: Wait for environment update + verify health
         run: |
           set -euo pipefail
+
+          VERSION_LABEL="${{ steps.meta.outputs.version_label }}"
 
           aws elasticbeanstalk wait environment-updated \
             --environment-names "${{ env.EB_ENVIRONMENT_NAME }}"
@@ -207,8 +255,8 @@ jobs:
           HEALTH="$(echo "$ENV_JSON" | jq -r '.Health // empty')"
           VERSION="$(echo "$ENV_JSON" | jq -r '.VersionLabel // empty')"
 
-          if [ "$VERSION" != "${{ steps.meta.outputs.version_label }}" ]; then
-            echo "Expected VersionLabel ${{ steps.meta.outputs.version_label }}, but environment is on $VERSION" >&2
+          if [ "$VERSION" != "$VERSION_LABEL" ]; then
+            echo "Expected VersionLabel $VERSION_LABEL, but environment is on $VERSION" >&2
             echo "Recent events:" >&2
             aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
             exit 1
