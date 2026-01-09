@@ -82,6 +82,20 @@ export class ReservationService {
   }
 
   /**
+   * Create a new reservation
+   */
+  createReservation(payload: ReservationRequest): Observable<ReservationResponse> {
+    return this.ensureCsrfToken().pipe(
+      switchMap((csrf) =>
+        this.http.post<ReservationResponse>(`${this.api}/reservations`, payload, {
+          withCredentials: true,
+          headers: csrf?.token ? { [csrf.headerName || 'X-XSRF-TOKEN']: csrf.token } : undefined,
+        })
+      )
+    );
+  }
+
+  /**
    * Update a reservation
    */
   updateReservation(id: string, payload: ReservationRequest): Observable<ReservationResponse> {
