@@ -253,12 +253,34 @@ jobs:
             fi
 
             stack_name="awseb-${env_id}-stack"
-            echo "CloudFormation stack events (latest 25) for ${stack_name}:" >&2
+
+            echo "CloudFormation stack status for ${stack_name}:" >&2
+            aws cloudformation describe-stacks \
+              --stack-name "$stack_name" \
+              --query 'Stacks[0].{StackStatus:StackStatus,StackStatusReason:StackStatusReason,LastUpdatedTime:LastUpdatedTime,CreationTime:CreationTime}' \
+              --output table || true
+
+            echo "CloudFormation stack events (latest 200) for ${stack_name}:" >&2
             aws cloudformation describe-stack-events \
               --stack-name "$stack_name" \
-              --max-items 25 \
+              --max-items 200 \
               --query 'StackEvents[*].{Time:Timestamp,Status:ResourceStatus,Type:ResourceType,LogicalId:LogicalResourceId,Reason:ResourceStatusReason}' \
               --output table || true
+
+            echo "CloudFormation failures / AccessDenied (filtered):" >&2
+            aws cloudformation describe-stack-events \
+              --stack-name "$stack_name" \
+              --max-items 200 \
+              --output json | \
+              jq -r '
+                .StackEvents
+                | map(select(
+                    (.ResourceStatus|test("FAILED|ROLLBACK|DELETE_FAILED"))
+                    or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
+                  ))
+                | .[]
+                | "\(.Timestamp)\t\(.ResourceStatus)\t\(.ResourceType)\t\(.LogicalResourceId)\t\(.ResourceStatusReason // \"\")"' \
+              | head -n 50 || true
           }
 
           aws elasticbeanstalk wait environment-updated \
@@ -320,12 +342,33 @@ jobs:
             --output text 2>/dev/null || true)"
           if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "None" ]; then
             STACK_NAME="awseb-${ENV_ID}-stack"
-            echo "CloudFormation stack events (latest 25) for ${STACK_NAME}:"
+            echo "CloudFormation stack status for ${STACK_NAME}:"
+            aws cloudformation describe-stacks \
+              --stack-name "$STACK_NAME" \
+              --query 'Stacks[0].{StackStatus:StackStatus,StackStatusReason:StackStatusReason,LastUpdatedTime:LastUpdatedTime,CreationTime:CreationTime}' \
+              --output table || true
+
+            echo "CloudFormation stack events (latest 200) for ${STACK_NAME}:"
             aws cloudformation describe-stack-events \
               --stack-name "$STACK_NAME" \
-              --max-items 25 \
+              --max-items 200 \
               --query 'StackEvents[*].{Time:Timestamp,Status:ResourceStatus,Type:ResourceType,LogicalId:LogicalResourceId,Reason:ResourceStatusReason}' \
               --output table || true
+
+            echo "CloudFormation failures / AccessDenied (filtered):"
+            aws cloudformation describe-stack-events \
+              --stack-name "$STACK_NAME" \
+              --max-items 200 \
+              --output json | \
+              jq -r '
+                .StackEvents
+                | map(select(
+                    (.ResourceStatus|test("FAILED|ROLLBACK|DELETE_FAILED"))
+                    or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
+                  ))
+                | .[]
+                | "\(.Timestamp)\t\(.ResourceStatus)\t\(.ResourceType)\t\(.LogicalResourceId)\t\(.ResourceStatusReason // \"\")"' \
+              | head -n 50 || true
           else
             echo "WARN: Could not resolve EnvironmentId; skipping CloudFormation events." >&2
           fi
