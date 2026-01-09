@@ -32,7 +32,7 @@ curl_one() {
 # Give the app/proxy a moment to settle after flip + reload.
 sleep 2
 
-curl_one "http://127.0.0.1/api/actuator/health" "nginx:/api/actuator/health"
-curl_one "http://127.0.0.1:5000/api/actuator/health" "app-direct:/api/actuator/health"
+curl_one "http://127.0.0.1/api/actuator/health/liveness" "nginx:/api/actuator/health/liveness"
+curl_one "http://127.0.0.1:5000/api/actuator/health/liveness" "app-direct:/api/actuator/health/liveness"
 
 log "Postdeploy health probes complete."

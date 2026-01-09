@@ -10,9 +10,8 @@ import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -67,7 +66,7 @@ public class RoomType {
     private Integer bedCount = 1;
 
     @NotNull
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = BedTypeConverter.class)
     @Column(name = "bed_type", nullable = false, length = 60)
     private BedType bedType = BedType.QUEEN;
 
@@ -187,4 +186,3 @@ public class RoomType {
         return "RoomType{roomTypeId=" + roomTypeId + ", name=" + name + "}";
     }
 }
-
