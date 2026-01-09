@@ -46,6 +46,8 @@ jobs:
         run: |
           set -euo pipefail
           aws sts get-caller-identity --output json
+          ARN="$(aws sts get-caller-identity --query Arn --output text)"
+          echo "Assumed role/session: $(echo \"$ARN\" | awk -F'/' '{print $(NF-1) "/" $NF}')"
 
       - name: Build JAR (Maven)
         working-directory: ${{ env.BACKEND_DIR }}
