@@ -299,26 +299,36 @@ jobs:
               --output table || true
 
             echo "CloudFormation failures / AccessDenied (filtered):" >&2
-            aws cloudformation describe-stack-events \
+            STACK_EVENTS_JSON="$(aws cloudformation describe-stack-events \
               --stack-name "$stack_name" \
               --max-items 200 \
-              --output json | \
-              jq -r '
-                .StackEvents
-                | map(select(
-                    (.ResourceStatus | test("FAILED|ROLLBACK|DELETE_FAILED"))
-                    or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
-                  ))
-                | .[]
-                | [
-                    (.Timestamp | tostring),
-                    (.ResourceStatus // ""),
-                    (.ResourceType // ""),
-                    (.LogicalResourceId // ""),
-                    (.ResourceStatusReason // "")
-                  ]
-                | @tsv' \
-              | head -n 50 || true
+              --output json 2>/dev/null || true)"
+            if [ -z "$STACK_EVENTS_JSON" ]; then
+              echo "(unable to fetch stack events)" >&2
+              return 0
+            fi
+
+            FILTERED="$(echo "$STACK_EVENTS_JSON" | jq -r '
+              (.StackEvents // [])
+              | map(select(
+                  (.ResourceStatus | test("FAILED|ROLLBACK|DELETE_FAILED"))
+                  or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
+                ))
+              | .[]
+              | [
+                  (.Timestamp | tostring),
+                  (.ResourceStatus // ""),
+                  (.ResourceType // ""),
+                  (.LogicalResourceId // ""),
+                  (.ResourceStatusReason // "")
+                ]
+              | @tsv' 2>/dev/null || true)"
+
+            if [ -z "$FILTERED" ]; then
+              echo "(none)" >&2
+            else
+              echo "$FILTERED" | head -n 50 >&2
+            fi
           }
 
           aws elasticbeanstalk wait environment-updated \
@@ -394,12 +404,15 @@ jobs:
               --output table || true
 
             echo "CloudFormation failures / AccessDenied (filtered):"
-            aws cloudformation describe-stack-events \
+            STACK_EVENTS_JSON="$(aws cloudformation describe-stack-events \
               --stack-name "$STACK_NAME" \
               --max-items 200 \
-              --output json | \
-              jq -r '
-                .StackEvents
+              --output json 2>/dev/null || true)"
+            if [ -z "$STACK_EVENTS_JSON" ]; then
+              echo "(unable to fetch stack events)"
+            else
+              FILTERED="$(echo "$STACK_EVENTS_JSON" | jq -r '
+                (.StackEvents // [])
                 | map(select(
                     (.ResourceStatus | test("FAILED|ROLLBACK|DELETE_FAILED"))
                     or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
@@ -412,8 +425,14 @@ jobs:
                     (.LogicalResourceId // ""),
                     (.ResourceStatusReason // "")
                   ]
-                | @tsv' \
-              | head -n 50 || true
+                | @tsv' 2>/dev/null || true)"
+
+              if [ -z "$FILTERED" ]; then
+                echo "(none)"
+              else
+                echo "$FILTERED" | head -n 50
+              fi
+            fi
           else
             echo "WARN: Could not resolve EnvironmentId; skipping CloudFormation events." >&2
           fi
