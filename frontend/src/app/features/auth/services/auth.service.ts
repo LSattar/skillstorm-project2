@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { catchError, of, tap } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export type AuthMe = {
   // Backend returns localUserId (UUID) when authenticated
@@ -16,7 +17,8 @@ export type AuthMe = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly api = 'http://localhost:8080';
+  private readonly api = environment.apiBaseUrl;
+
   private readonly _me = signal<AuthMe | null>(null);
 
   private readCookie(name: string): string | null {
@@ -109,4 +111,25 @@ export class AuthService {
         })
       );
   }
+
+  readonly isAdmin = computed(() => {
+    const me = this._me();
+    if (!me) return false;
+
+    const normalizeRole = (r: string): string => r.trim().toUpperCase();
+
+    const dbRoleNames = (me.dbRoles ?? [])
+      .filter((r): r is string => typeof r === 'string')
+      .map(normalizeRole);
+
+    const authorities = [...(me.roles ?? []), ...(me.principalAuthorities ?? [])];
+
+    const roleNames = authorities
+      .filter((a): a is string => typeof a === 'string')
+      .filter((a) => a.startsWith('ROLE_'))
+      .map((a) => normalizeRole(a.substring('ROLE_'.length)));
+
+    const allRoleNames = new Set([...dbRoleNames, ...roleNames]);
+    return allRoleNames.has('ADMIN');
+  });
 }

@@ -116,10 +116,20 @@
       </section>
     }
 
+    <!-- Reservation Management Link -->
+    <section class="reservation-link-section">
+      <a routerLink="/admin/reservations" class="btn btn-primary">
+        <span class="material-symbols-outlined">search</span>
+        Manage Reservations
+      </a>
+    </section>
+
     <!-- Recent Bookings -->
     @if (recentBookings.length > 0) {
       <section class="recent-bookings-section">
-        <h2>Recent Bookings</h2>
+        <div class="section-header">
+          <h2>Recent Bookings</h2>
+        </div>
         <div class="bookings-table">
           <table>
             <thead>

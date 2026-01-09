@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { Nav } from '../nav/nav';
 
 @Component({
@@ -7,15 +7,17 @@ import { Nav } from '../nav/nav';
   standalone: true,
   imports: [Nav, RouterLink],
   templateUrl: './header.html',
-  styleUrl: './header.css',
+  styleUrls: ['./header.css'],
 })
 export class Header {
+  private readonly router = inject(Router);
+
   @Input() isNavOpen = false;
   @Input() isAuthenticated = false;
   @Input() userLabel = '';
   @Input() roleLabel = '';
-
   @Input() userEmail = '';
+  @Input() showSystemSettings = false;
 
   @Output() toggleNav = new EventEmitter<void>();
   @Output() closeNav = new EventEmitter<void>();
@@ -23,6 +25,7 @@ export class Header {
   @Output() openSignIn = new EventEmitter<void>();
   @Output() logout = new EventEmitter<void>();
   @Output() openProfile = new EventEmitter<void>();
+  @Output() openSystemSettings = new EventEmitter<void>();
 
   userMenuOpen = false;
 
@@ -34,6 +37,10 @@ export class Header {
     if (label) return label[0].toUpperCase();
 
     return '?';
+  }
+
+  get isAdmin(): boolean {
+    return this.roleLabel?.toLowerCase() === 'admin';
   }
 
   toggleUserMenu() {
@@ -52,6 +59,18 @@ export class Header {
 
   onOpenProfile() {
     this.openProfile.emit();
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
+  onOpenAdminDashboard() {
+    this.router.navigate(['/admin-dashboard']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
+  onOpenSystemSettings() {
+    this.openSystemSettings.emit();
     this.closeUserMenu();
     this.closeNav.emit();
   }

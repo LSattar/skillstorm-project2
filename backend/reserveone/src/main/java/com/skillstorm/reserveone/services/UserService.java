@@ -1,21 +1,28 @@
 package com.skillstorm.reserveone.services;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.skillstorm.reserveone.dto.users.CreateUserRequest;
 import com.skillstorm.reserveone.dto.users.UpdateUserRequest;
+import com.skillstorm.reserveone.dto.users.UpdateUserRolesRequest;
 import com.skillstorm.reserveone.dto.users.UpdateUserStatusRequest;
 import com.skillstorm.reserveone.dto.users.UserResponse;
 import com.skillstorm.reserveone.exceptions.ResourceConflictException;
 import com.skillstorm.reserveone.exceptions.ResourceNotFoundException;
 import com.skillstorm.reserveone.mappers.UserMapper;
+import com.skillstorm.reserveone.models.Role;
 import com.skillstorm.reserveone.models.User;
+import com.skillstorm.reserveone.repositories.RoleRepository;
 import com.skillstorm.reserveone.repositories.UserRepository;
 
 @Service
@@ -23,10 +30,13 @@ public class UserService {
 
     private final UserRepository repo;
     private final UserMapper mapper;
+    private final RoleRepository roleRepo;
 
-    public UserService(@NonNull UserRepository repo, @NonNull UserMapper mapper) {
+    public UserService(@NonNull UserRepository repo, @NonNull UserMapper mapper,
+            @NonNull RoleRepository roleRepo) {
         this.repo = Objects.requireNonNull(repo, "repo must not be null");
         this.mapper = Objects.requireNonNull(mapper, "mapper must not be null");
+        this.roleRepo = Objects.requireNonNull(roleRepo, "roleRepo must not be null");
     }
 
     @Transactional
@@ -177,4 +187,73 @@ public class UserService {
             return null;
         return trimmed.toLowerCase();
     }
+
+    @Transactional(readOnly = true)
+    public List<UserResponse> search(@NonNull String q, int limit) {
+        final String query = q.trim();
+        final int size = Math.min(Math.max(limit, 1), 50);
+
+        return repo.searchWithRoles(query, PageRequest.of(0, size))
+                .stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public UserResponse updateRoles(@NonNull UUID userId, @NonNull UpdateUserRolesRequest req) {
+        Objects.requireNonNull(req, "req must not be null");
+        final UUID id = Objects.requireNonNull(userId, "userId must not be null");
+
+        final User user = repo.findWithRolesByUserId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        applyRoleChanges(user, req.add(), req.remove());
+
+        final User saved = Objects.requireNonNull(repo.save(user), "repo.save returned null");
+        final UUID savedId = Objects.requireNonNull(saved.getUserId(), "saved.userId must not be null");
+
+        final User withRoles = repo.findWithRolesByUserId(savedId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "User updated but could not be reloaded with roles: " + savedId));
+
+        return Objects.requireNonNull(mapper.toResponse(withRoles), "mapper.toResponse returned null");
+    }
+
+    private void applyRoleChanges(User user, Set<String> add, Set<String> remove) {
+        if (remove != null) {
+            for (String raw : remove) {
+                String roleName = normalizeRoleNameOptional(raw);
+                if (roleName == null)
+                    continue;
+
+                Role role = roleRepo.findByName(roleName)
+                        .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
+
+                user.removeRole(role);
+            }
+        }
+
+        if (add != null) {
+            for (String raw : add) {
+                String roleName = normalizeRoleNameOptional(raw);
+                if (roleName == null)
+                    continue;
+
+                Role role = roleRepo.findByName(roleName)
+                        .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
+
+                user.addRole(role);
+            }
+        }
+    }
+
+    private static String normalizeRoleNameOptional(String value) {
+        if (value == null)
+            return null;
+        String t = value.trim();
+        if (t.isBlank())
+            return null;
+        return t.toUpperCase(Locale.ROOT);
+    }
+
 }

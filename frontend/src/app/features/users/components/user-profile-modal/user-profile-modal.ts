@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
-  NgZone,
   OnChanges,
   Output,
   SimpleChanges,
@@ -25,18 +25,13 @@ import { UserProfileService, UserProfileUpdate } from './../../../users/user-pro
 export class UserProfileModal implements OnChanges {
   private readonly userProfile = inject(UserProfileService);
   private readonly auth = inject(AuthService);
-  private readonly zone = inject(NgZone);
   private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() open = false;
 
-  /** Fired when the user closes the modal (backdrop, cancel, or ESC). */
   @Output() closed = new EventEmitter<void>();
-
-  /** Fired after a successful save (parent can refresh /auth/me and close). */
   @Output() saved = new EventEmitter<void>();
 
-  // Form model
   profile: UserProfileUpdate = {
     firstName: '',
     lastName: '',
@@ -77,28 +72,56 @@ export class UserProfileModal implements OnChanges {
       .updateMe(this.profile)
       .pipe(
         finalize(() => {
-          this.zone.run(() => {
-            this.saving = false;
-            this.cdr.markForCheck();
-          });
+          this.saving = false;
+          this.cdr.markForCheck();
         })
       )
       .subscribe({
         next: () => {
-          this.zone.run(() => {
-            // Keep header labels in sync (backend may now return DB fields)
-            this.auth.refreshMe().subscribe();
-            this.saved.emit();
-            this.cdr.markForCheck();
-          });
+          // Keep header labels in sync (backend may now return DB fields)
+          this.auth.refreshMe().subscribe();
+          this.saved.emit();
+          this.cdr.markForCheck();
         },
-        error: () => {
-          this.zone.run(() => {
-            this.error = 'Could not save your profile. Please try again.';
-            this.cdr.markForCheck();
-          });
+        error: (err: unknown) => {
+          this.error = this.formatHttpError('Could not save your profile', err);
+          this.cdr.markForCheck();
         },
       });
+  }
+
+  private formatHttpError(prefix: string, err: unknown): string {
+    // Angular HttpClient errors are usually HttpErrorResponse.
+    if (err instanceof HttpErrorResponse) {
+      const status = err.status;
+
+      // CORS / network errors often show up as status 0.
+      if (status === 0) {
+        return `${prefix}. Network/CORS error (status 0). Check CloudFront/CORS and that cookies + headers are forwarded.`;
+      }
+
+      // Spring Boot error shape typically includes { error, message, status, path }.
+      const maybeBody = err.error as any;
+      const messageFromBody =
+        (typeof maybeBody === 'string' && maybeBody.trim()) ||
+        (maybeBody && typeof maybeBody === 'object' && (maybeBody.message || maybeBody.error));
+
+      const detail = messageFromBody ? `: ${messageFromBody}` : '';
+
+      if (status === 401) {
+        return `${prefix}. Unauthorized (401). Please sign in again.${detail}`;
+      }
+      if (status === 403) {
+        return `${prefix}. Forbidden (403) — often CSRF token missing/blocked by CDN.${detail}`;
+      }
+      if (status === 400) {
+        return `${prefix}. Bad request (400) — check field validation (state=2 chars, zip length, etc).${detail}`;
+      }
+
+      return `${prefix}. Request failed (${status}).${detail}`;
+    }
+
+    return `${prefix}. Please try again.`;
   }
 
   private loadProfile(): void {
@@ -109,34 +132,28 @@ export class UserProfileModal implements OnChanges {
       .getMe()
       .pipe(
         finalize(() => {
-          this.zone.run(() => {
-            this.loading = false;
-            this.cdr.markForCheck();
-          });
+          this.loading = false;
+          this.cdr.markForCheck();
         })
       )
       .subscribe({
         next: (me) => {
-          this.zone.run(() => {
-            if (!me) return;
-            this.profile = {
-              firstName: me.firstName ?? '',
-              lastName: me.lastName ?? '',
-              phone: me.phone ?? '',
-              address1: me.address1 ?? '',
-              address2: me.address2 ?? '',
-              city: me.city ?? '',
-              state: me.state ?? '',
-              zip: me.zip ?? '',
-            };
-            this.cdr.markForCheck();
-          });
+          if (!me) return;
+          this.profile = {
+            firstName: me.firstName ?? '',
+            lastName: me.lastName ?? '',
+            phone: me.phone ?? '',
+            address1: me.address1 ?? '',
+            address2: me.address2 ?? '',
+            city: me.city ?? '',
+            state: me.state ?? '',
+            zip: me.zip ?? '',
+          };
+          this.cdr.markForCheck();
         },
         error: () => {
-          this.zone.run(() => {
-            this.error = 'Could not load your profile. Please sign in and try again.';
-            this.cdr.markForCheck();
-          });
+          this.error = 'Could not load your profile. Please sign in and try again.';
+          this.cdr.markForCheck();
         },
       });
   }

@@ -1,11 +1,15 @@
 package com.skillstorm.reserveone.config;
 
+import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,26 +29,22 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.skillstorm.reserveone.services.CustomOAuth2UserService;
 import com.skillstorm.reserveone.services.CustomOidcUserService;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
         /**
-         * PSEUDOCODE / INTENT (Auth wiring overview)
-         *
-         * Problem:
-         * - Different providers/protocols use different user-service hooks:
-         * - OIDC providers (Google): use oidcUserService(...)
-         * - Non-OIDC OAuth2 providers: use userService(...)
-         * - We must enrich whichever principal is created with DB roles (ROLE_*) and
-         * localUserId.
-         *
-         * Strategy:
-         * - Wire BOTH services under oauth2Login().userInfoEndpoint(...)
-         * - For SPA/XHR requests, return 401 instead of redirecting to Google.
-         * - Expose GET /auth/me for frontend session checks.
+         * FRONTEND_URL
+         * - Local: defaults to http://localhost:4200
+         * - Prod (EB): set env var FRONTEND_URL=https://your-frontend-domain
          */
+        @Value("${FRONTEND_URL:http://localhost:4200}")
+        private String frontendUrl;
 
         @Bean
         public SecurityFilterChain filterChain(
@@ -53,6 +53,8 @@ public class SecurityConfig {
                         CustomOidcUserService oidcUserService,
                         ClientRegistrationRepository clientRegistrationRepository) throws Exception {
 
+                // Treat XHR/SPA JSON calls differently: return 401 instead of redirecting to
+                // Google
                 RequestMatcher apiRequest = request -> {
                         String xrw = request.getHeader("X-Requested-With");
                         if (xrw != null && "xmlhttprequest".equalsIgnoreCase(xrw)) {
@@ -64,23 +66,31 @@ public class SecurityConfig {
 
                 http
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(csrf -> csrf
-                                                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                                // If you want logout to work without CSRF header, uncomment:
-                                // .ignoringRequestMatchers("/logout")
-                                )
+                                .csrf(csrf -> {
+                                        CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository
+                                                        .withHttpOnlyFalse();
+                                        csrfRepo.setCookieCustomizer(
+                                                        (ResponseCookie.ResponseCookieBuilder builder) -> builder
+                                                                        .sameSite("None")
+                                                                        .secure(true));
+
+                                        csrf.csrfTokenRepository(csrfRepo);
+                                        // If you want logout to work without CSRF header, uncomment:
+                                        // .ignoringRequestMatchers("/logout")
+                                })
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-
-                                // For SPA/XHR calls, return 401 instead of redirecting to OAuth login.
                                 .exceptionHandling(ex -> ex
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                                                                 apiRequest))
-
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .requestMatchers("/error").permitAll()
+
+                                                // ALB health check (IMPORTANT)
+                                                .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
 
                                                 // OAuth2 handshake endpoints
                                                 .requestMatchers("/oauth2/**", "/login/**").permitAll()
@@ -107,6 +117,9 @@ public class SecurityConfig {
                                                 .hasAnyRole("ADMIN", "BUSINESS_OWNER")
                                                 .requestMatchers(HttpMethod.PATCH, "/users/*/status")
                                                 .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/users/search").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/users/*/roles").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/users").hasRole("ADMIN")
 
                                                 // Bookings
                                                 .requestMatchers(HttpMethod.POST, "/bookings")
@@ -144,7 +157,6 @@ public class SecurityConfig {
                                                 .requestMatchers("/analytics/**").hasAnyRole("BUSINESS_OWNER", "ADMIN")
 
                                                 .anyRequest().authenticated())
-
                                 .oauth2Login(oauth -> oauth
                                                 .authorizationEndpoint(authorization -> {
                                                         DefaultOAuth2AuthorizationRequestResolver defaultResolver = new DefaultOAuth2AuthorizationRequestResolver(
@@ -154,7 +166,7 @@ public class SecurityConfig {
                                                         OAuth2AuthorizationRequestResolver resolver = new OAuth2AuthorizationRequestResolver() {
                                                                 @Override
                                                                 public OAuth2AuthorizationRequest resolve(
-                                                                                jakarta.servlet.http.HttpServletRequest request) {
+                                                                                HttpServletRequest request) {
                                                                         OAuth2AuthorizationRequest req = defaultResolver
                                                                                         .resolve(request);
                                                                         if (req == null)
@@ -166,7 +178,7 @@ public class SecurityConfig {
 
                                                                 @Override
                                                                 public OAuth2AuthorizationRequest resolve(
-                                                                                jakarta.servlet.http.HttpServletRequest request,
+                                                                                HttpServletRequest request,
                                                                                 String clientRegistrationId) {
                                                                         OAuth2AuthorizationRequest req = defaultResolver
                                                                                         .resolve(request,
@@ -178,10 +190,10 @@ public class SecurityConfig {
                                                                 }
 
                                                                 private String extractRegistrationId(
-                                                                                jakarta.servlet.http.HttpServletRequest request) {
+                                                                                HttpServletRequest request) {
                                                                         String uri = request.getRequestURI();
                                                                         int lastSlash = uri.lastIndexOf('/');
-                                                                        return lastSlash >= 0
+                                                                        return (lastSlash >= 0)
                                                                                         ? uri.substring(lastSlash + 1)
                                                                                         : uri;
                                                                 }
@@ -191,7 +203,7 @@ public class SecurityConfig {
                                                                                 OAuth2AuthorizationRequest req) {
                                                                         if (!"google".equalsIgnoreCase(registrationId))
                                                                                 return req;
-                                                                        var additional = new java.util.LinkedHashMap<String, Object>(
+                                                                        LinkedHashMap<String, Object> additional = new LinkedHashMap<>(
                                                                                         req.getAdditionalParameters());
                                                                         additional.put("prompt", "select_account");
                                                                         return OAuth2AuthorizationRequest.from(req)
@@ -206,8 +218,8 @@ public class SecurityConfig {
                                                 .userInfoEndpoint(userInfo -> userInfo
                                                                 .oidcUserService(oidcUserService)
                                                                 .userService(oAuth2UserService))
-                                                .defaultSuccessUrl("http://localhost:4200/", true))
-
+                                                // Redirect to your SPA after successful login
+                                                .successHandler(this::oauth2SuccessRedirect))
                                 .logout(logout -> logout
                                                 .logoutUrl("/logout")
                                                 .invalidateHttpSession(true)
@@ -218,19 +230,34 @@ public class SecurityConfig {
                 return http.build();
         }
 
+        private void oauth2SuccessRedirect(HttpServletRequest req, HttpServletResponse res,
+                        org.springframework.security.core.Authentication auth)
+                        throws IOException, ServletException {
+
+                String target = (frontendUrl == null || frontendUrl.isBlank())
+                                ? "http://localhost:4200/"
+                                : frontendUrl.endsWith("/") ? frontendUrl : frontendUrl + "/";
+
+                res.setStatus(302);
+                res.setHeader("Location", target);
+        }
+
         @Bean
         CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
 
+                // Allow deployed SPA + local dev
+                // NOTE: Use explicit origins when allowCredentials(true)
                 config.setAllowedOriginPatterns(List.of(
+                                frontendUrl,
                                 "http://localhost:4200",
                                 "http://127.0.0.1:4200"));
 
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
                 config.setAllowedHeaders(List.of(
-                                "Authorization", "Content-Type", "X-XSRF-TOKEN", "X-Requested-With", "Accept", "Origin",
-                                "Referer"));
+                                "Authorization", "Content-Type", "X-XSRF-TOKEN", "X-Requested-With", "Accept",
+                                "Origin", "Referer"));
 
                 config.setExposedHeaders(List.of("Set-Cookie", "XSRF-TOKEN"));
                 config.setAllowCredentials(true);

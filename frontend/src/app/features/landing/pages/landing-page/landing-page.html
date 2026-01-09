@@ -4,12 +4,14 @@
   [roleLabel]="roleLabel()"
   [userLabel]="userLabel()"
   [userEmail]="userEmail()"
+  [showSystemSettings]="showSystemSettings()"
   (toggleNav)="toggleNav()"
   (closeNav)="closeNav()"
   (openBooking)="openBooking()"
   (openSignIn)="openSignIn()"
   (logout)="signOut()"
   (openProfile)="openProfile()"
+  (openSystemSettings)="openSystemSettings()"
 ></app-header>
 
 <main id="top">
@@ -67,92 +69,22 @@
   </section>
 
   <!-- Booking Modal -->
-  <div
-    class="modal"
-    id="bookingModal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="bookingTitle"
-    [attr.aria-hidden]="!isBookingOpen"
-    [class.open]="isBookingOpen"
-  >
-    <div class="modal-backdrop" (click)="closeBooking()"></div>
+  <app-room-search-modal
+    [open]="isBookingOpen"
+    (closed)="closeBooking()"
+    (searchResults)="onSearchResults($event)"
+    (signInRequired)="onSignInRequired()"
+  ></app-room-search-modal>
 
-    <div class="modal-panel" role="document">
-      <div class="modal-header">
-        <div>
-          <h2 id="bookingTitle" class="modal-title">Search availability</h2>
-          <p class="modal-subtitle">Choose dates, guests, and room type.</p>
-        </div>
-
-        <button class="icon-btn" type="button" aria-label="Close booking" (click)="closeBooking()">
-          ✕
-        </button>
-      </div>
-
-      <form class="booking-form" (ngSubmit)="submitBooking()" #f="ngForm">
-        <div class="field-row">
-          <div class="field">
-            <label for="checkin">Check in</label>
-            <input id="checkin" name="checkin" type="date" required [(ngModel)]="booking.checkin" />
-          </div>
-
-          <div class="field">
-            <label for="checkout">Check out</label>
-            <input
-              id="checkout"
-              name="checkout"
-              type="date"
-              required
-              [(ngModel)]="booking.checkout"
-            />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label for="guests">Guests</label>
-            <select id="guests" name="guests" [(ngModel)]="booking.guests">
-              <option [ngValue]="1">1 guest</option>
-              <option [ngValue]="2">2 guests</option>
-              <option [ngValue]="3">3 guests</option>
-              <option [ngValue]="4">4 guests</option>
-              <option [ngValue]="5">5 guests</option>
-              <option [ngValue]="6">6 guests</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="roomType">Room type</label>
-            <select id="roomType" name="roomType" [(ngModel)]="booking.roomType">
-              <option value="any">Any</option>
-              <option value="standard">Standard</option>
-              <option value="deluxe">Deluxe</option>
-              <option value="suite">Suite</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="promo">Promo code</label>
-          <input
-            id="promo"
-            name="promo"
-            type="text"
-            placeholder="E.g., WELCOME10"
-            [(ngModel)]="booking.promo"
-          />
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn btn-primary btn-block" type="submit" [disabled]="f.invalid">
-            Search rooms
-          </button>
-          <button class="btn btn-link" type="button" (click)="closeBooking()">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <!-- Search Results Modal -->
+  <app-room-search-results
+    [open]="isResultsOpen"
+    [resultsData]="searchResultsData"
+    (closed)="closeResults()"
+    (modifySearch)="onModifySearch()"
+    (bookingComplete)="onBookingComplete()"
+    (signInRequired)="onSignInRequired()"
+  ></app-room-search-results>
 
   <!-- Sign In Modal -->
   <div
@@ -195,6 +127,11 @@
     (closed)="closeProfile()"
     (saved)="closeProfile()"
   ></app-user-profile-modal>
+
+  <app-system-settings-modal
+    [open]="isSystemSettingsOpen"
+    (closed)="closeSystemSettings()"
+  ></app-system-settings-modal>
 
   <!-- Experience (image section) -->
   <section class="experience section" id="amenities">

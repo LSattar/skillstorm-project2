@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.skillstorm.reserveone.models.Reservation;
@@ -41,5 +43,14 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     List<Reservation> findByHotel_HotelIdAndStatusAndStartDate(UUID hotelId, Status status, LocalDate startDate);
     
     List<Reservation> findByHotel_HotelIdAndStatusAndEndDate(UUID hotelId, Status status, LocalDate endDate);
+    // Find all reservations for a list of rooms in a date range
+    @Query("SELECT r FROM Reservation r WHERE r.room.roomId IN :roomIds AND " +
+           "r.status IN :statuses AND " +
+           "r.startDate < :endDate AND r.endDate > :startDate")
+    List<Reservation> findByRoomIdsAndStatusInAndDateRange(
+        @Param("roomIds") List<UUID> roomIds,
+        @Param("statuses") List<Status> statuses,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate);
 }
 

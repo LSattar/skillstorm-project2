@@ -354,6 +354,57 @@ select:focus {
   border: 0;
 }
 
+/* Card dark styles (for error pages) */
+.card-dark {
+  background: #344e41;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+}
+
+.card-dark-title {
+  margin: 0 0 1rem;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #faf9f6;
+}
+
+.card-dark p {
+  margin: 0 0 1.5rem;
+  color: #faf9f6;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.card-dark-em {
+  font-style: italic;
+  color: #ddbea9;
+}
+
+.card-dark a {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: #faf9f6;
+  color: #344e41;
+  border: 2px solid #faf9f6;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-weight: 700;
+  transition: box-shadow 0.15s ease, background 0.15s ease, transform 0.08s ease;
+}
+
+.card-dark a:hover {
+  background: rgba(250, 249, 246, 0.95);
+  box-shadow: 0 8px 20px rgba(250, 249, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.card-dark a:active {
+  transform: translateY(0);
+}
+
 /* Responsive (global primitives) */
 @media (max-width: 720px) {
   .field-row {
