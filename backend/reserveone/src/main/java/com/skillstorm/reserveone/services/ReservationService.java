@@ -206,5 +206,49 @@ public class ReservationService {
         Reservation updated = reservationRepository.save(reservation);
         return mapper.toResponse(updated);
     }
+
+    public ReservationResponseDTO checkIn(UUID id) {
+        Reservation reservation = reservationRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getStatus() != Status.CONFIRMED) {
+            throw new ResourceConflictException(
+                "Reservation must be in CONFIRMED status to check in. Current status: " + reservation.getStatus());
+        }
+
+        if (reservation.getStartDate().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Cannot check in before the reservation start date");
+        }
+
+        Room room = reservation.getRoom();
+        if (room.getStatus() == Room.Status.OCCUPIED) {
+            throw new ResourceConflictException("Room is already occupied");
+        }
+
+        reservation.setStatus(Status.CHECKED_IN);
+        room.setStatus(Room.Status.OCCUPIED);
+
+        Reservation updated = reservationRepository.save(reservation);
+        roomRepository.save(room);
+        return mapper.toResponse(updated);
+    }
+
+    public ReservationResponseDTO checkOut(UUID id) {
+        Reservation reservation = reservationRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getStatus() != Status.CHECKED_IN) {
+            throw new ResourceConflictException(
+                "Reservation must be in CHECKED_IN status to check out. Current status: " + reservation.getStatus());
+        }
+
+        Room room = reservation.getRoom();
+        reservation.setStatus(Status.CHECKED_OUT);
+        room.setStatus(Room.Status.AVAILABLE);
+
+        Reservation updated = reservationRepository.save(reservation);
+        roomRepository.save(room);
+        return mapper.toResponse(updated);
+    }
 }
 

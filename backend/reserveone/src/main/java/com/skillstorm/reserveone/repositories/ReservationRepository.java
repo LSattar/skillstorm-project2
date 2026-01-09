@@ -33,5 +33,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
     // Using half-open range [startDate, endDate)
     List<Reservation> findByRoom_RoomIdAndStatusInAndStartDateLessThanAndEndDateGreaterThan(
         UUID roomId, List<Status> statuses, LocalDate endDate, LocalDate startDate);
+    
+    List<Reservation> findByStatusAndStartDate(Status status, LocalDate startDate);
+    
+    List<Reservation> findByStatusAndEndDate(Status status, LocalDate endDate);
+    
+    List<Reservation> findByHotel_HotelIdAndStatusAndStartDate(UUID hotelId, Status status, LocalDate startDate);
+    
+    List<Reservation> findByHotel_HotelIdAndStatusAndEndDate(UUID hotelId, Status status, LocalDate endDate);
 }
 
