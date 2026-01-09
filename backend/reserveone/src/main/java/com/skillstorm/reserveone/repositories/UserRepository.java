@@ -15,26 +15,27 @@ import com.skillstorm.reserveone.models.User;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
 
-    boolean existsByEmail(@NonNull String email);
+  boolean existsByEmail(@NonNull String email);
 
-    Optional<User> findByEmail(@NonNull String email);
+  Optional<User> findByEmail(@NonNull String email);
 
-    @EntityGraph(attributePaths = { "roles" })
-    Optional<User> findWithRolesByEmail(@NonNull String email);
+  @EntityGraph(attributePaths = { "roles" })
+  Optional<User> findWithRolesByEmail(@NonNull String email);
 
-    @EntityGraph(attributePaths = { "roles" })
-    Optional<User> findWithRolesByUserId(@NonNull UUID userId);
+  @EntityGraph(attributePaths = { "roles" })
+  Optional<User> findWithRolesByUserId(@NonNull UUID userId);
 
-    boolean existsByUserId(@NonNull UUID userId);
+  boolean existsByUserId(@NonNull UUID userId);
 
-    @EntityGraph(attributePaths = { "roles" })
-    @Query("""
-            select u from User u
-            where
-              (:q is null or btrim(:q) = '')
-              or lower(coalesce(u.email, '')) like lower(concat('%', :q, '%'))
-              or lower(coalesce(u.firstName, '')) like lower(concat('%', :q, '%'))
-              or lower(coalesce(u.lastName, '')) like lower(concat('%', :q, '%'))
-            """)
-    Page<User> searchWithRoles(@Param("q") String q, Pageable pageable);
+  @Query("""
+      select distinct u
+      from User u
+      left join fetch u.roles r
+      where (:q is null or :q = ''
+         or lower(u.email) like lower(concat('%', :q, '%'))
+         or lower(u.firstName) like lower(concat('%', :q, '%'))
+         or lower(u.lastName) like lower(concat('%', :q, '%'))
+      )
+      """)
+  Page<User> searchWithRoles(@Param("q") String q, Pageable pageable);
 }
