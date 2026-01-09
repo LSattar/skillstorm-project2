@@ -2,7 +2,7 @@ name: Deploy Backend (Spring Boot) to Elastic Beanstalk
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - "backend/reserveone/**"
       - ".github/workflows/deploy-eb-backend.yml"
@@ -83,7 +83,7 @@ jobs:
           echo "eb_bucket=${EB_BUCKET}" >> $GITHUB_OUTPUT
 
           # version label (must be unique)
-          VERSION_LABEL="github-${GITHUB_SHA}"
+          VERSION_LABEL="github-${GITHUB_SHA}-${GITHUB_RUN_NUMBER}"
           echo "version_label=${VERSION_LABEL}" >> $GITHUB_OUTPUT
 
       - name: Upload bundle to S3
