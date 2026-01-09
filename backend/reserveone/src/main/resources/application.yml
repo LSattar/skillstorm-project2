@@ -45,8 +45,9 @@ spring:
               - openid
               - profile
               - email
-            # 🔑 Force OAuth callback to CloudFront (no guessing)
-            redirect-uri: "${APP_BASE_URL}/login/oauth2/code/{registrationId}"
+            # Force OAuth callback to CloudFront (no guessing)
+            # IMPORTANT: /api is now part of the public callback path
+            redirect-uri: "${APP_BASE_URL}/api/login/oauth2/code/{registrationId}"
         provider:
           google:
             issuer-uri: https://accounts.google.com
@@ -58,6 +59,8 @@ server:
   forward-headers-strategy: framework
 
   servlet:
+    context-path: /api
+
     session:
       persistent: false
       cookie:
