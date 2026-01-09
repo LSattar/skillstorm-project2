@@ -42,6 +42,11 @@ jobs:
           mask-aws-account-id: true
           unset-current-credentials: true
 
+      - name: Debug AWS identity
+        run: |
+          set -euo pipefail
+          aws sts get-caller-identity --output json
+
       - name: Build JAR (Maven)
         working-directory: ${{ env.BACKEND_DIR }}
         run: mvn -B -DskipTests package
@@ -107,6 +112,14 @@ jobs:
             --key "${S3_KEY}" \
             --query '{ContentLength:ContentLength, LastModified:LastModified, ETag:ETag}' \
             --output table
+
+          echo
+          echo "Verifying role can read object ACL (matches EB error if denied):"
+          aws s3api get-object-acl \
+            --bucket "${{ steps.meta.outputs.eb_bucket }}" \
+            --key "${S3_KEY}" \
+            --query '{Owner:Owner,Grants:Grants}' \
+            --output json
 
       - name: Create new Elastic Beanstalk application version (idempotent)
         run: |
