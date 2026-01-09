@@ -89,7 +89,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/error").permitAll()
 
                                                 // ALB health check (IMPORTANT)
-                                                .requestMatchers(HttpMethod.GET, "/health").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
 
                                                 // OAuth2 handshake endpoints
                                                 .requestMatchers("/oauth2/**", "/login/**").permitAll()
