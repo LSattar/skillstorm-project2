@@ -55,7 +55,9 @@ jobs:
 
       - name: Build JAR (Maven)
         working-directory: ${{ env.BACKEND_DIR }}
-        run: mvn -B -DskipTests package
+        run: |
+          set -euo pipefail
+          mvn -B -DskipTests package
 
       - name: Prepare Elastic Beanstalk source bundle (zip)
         working-directory: ${{ env.BACKEND_DIR }}
