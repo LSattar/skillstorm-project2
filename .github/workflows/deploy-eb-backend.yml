@@ -193,6 +193,35 @@ jobs:
             --output json >/dev/null && echo "OK: describe-images succeeded" || echo "WARN: describe-images failed (permission likely missing)"
 
           echo "---"
+          echo "Preflight: ensure EB environment is Ready before UpdateEnvironment"
+          READY="false"
+          for i in {1..60}; do
+            ENV_JSON="$(aws elasticbeanstalk describe-environments \
+              --environment-names "${{ env.EB_ENVIRONMENT_NAME }}" \
+              --query 'Environments[0]' \
+              --output json)"
+
+            STATUS="$(echo "$ENV_JSON" | jq -r '.Status // empty')"
+            HEALTH="$(echo "$ENV_JSON" | jq -r '.Health // empty')"
+            HEALTH_STATUS="$(echo "$ENV_JSON" | jq -r '.HealthStatus // empty')"
+            IN_PROGRESS="$(echo "$ENV_JSON" | jq -r '.AbortableOperationInProgress // false')"
+
+            echo "Status=${STATUS} AbortableOperationInProgress=${IN_PROGRESS} Health=${HEALTH} HealthStatus=${HEALTH_STATUS}"
+            if [ "$STATUS" = "Ready" ] && [ "$IN_PROGRESS" != "true" ]; then
+              READY="true"
+              break
+            fi
+            sleep 10
+          done
+
+          if [ "$READY" != "true" ]; then
+            echo "EB environment was not Ready after ~10 minutes; refusing to call UpdateEnvironment." >&2
+            echo "Recent events:" >&2
+            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
+            exit 1
+          fi
+
+          echo "---"
           echo "Deploying VersionLabel=${VERSION_LABEL} to environment..."
 
           UPDATE_JSON="$(aws elasticbeanstalk update-environment \
