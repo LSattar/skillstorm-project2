@@ -199,3 +199,24 @@ jobs:
             aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
             exit 1
           fi
+
+      - name: Fetch EB logs on failure
+        if: ${{ failure() }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          echo "Requesting Elastic Beanstalk log bundle..."
+          aws elasticbeanstalk request-environment-info \
+            --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
+            --info-type bundle
+
+          # Give EB a moment to generate the bundle.
+          sleep 30
+
+          echo "Retrieving log bundle URL (look for eb-engine.log inside):"
+          aws elasticbeanstalk retrieve-environment-info \
+            --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
+            --info-type bundle \
+            --query 'EnvironmentInfo[0].Message' \
+            --output text || true
