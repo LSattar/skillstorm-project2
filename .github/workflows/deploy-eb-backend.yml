@@ -51,8 +51,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          JAR_PATH="$(ls -1 target/*.jar | head -n 1)"
+          echo "Built artifacts:"
+          ls -lh target || true
+          echo
+
+          JAR_PATH="$(ls -1t target/*.jar | grep -vE '(original|sources|javadoc|tests)' | head -n 1)"
+          if [ -z "${JAR_PATH}" ]; then
+            echo "No deployable JAR found in target/." >&2
+            exit 1
+          fi
           echo "Using jar: ${JAR_PATH}"
+          sha256sum "${JAR_PATH}" || true
 
           rm -rf eb-bundle bundle.zip
           mkdir -p eb-bundle
@@ -64,6 +73,10 @@ jobs:
           [ -f "Procfile" ] && cp Procfile eb-bundle/Procfile || true
 
           (cd eb-bundle && zip -r ../bundle.zip .)
+
+          echo
+          echo "Bundle contents:"
+          unzip -l bundle.zip | head -n 50
 
       - name: Compute EB bucket + version label
         id: meta
@@ -82,9 +95,18 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           set -euo pipefail
+          S3_KEY="${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip"
           aws s3 cp \
             "bundle.zip" \
-            "s3://${{ steps.meta.outputs.eb_bucket }}/${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip"
+            "s3://${{ steps.meta.outputs.eb_bucket }}/${S3_KEY}"
+
+          echo
+          echo "Verifying S3 upload exists:"
+          aws s3api head-object \
+            --bucket "${{ steps.meta.outputs.eb_bucket }}" \
+            --key "${S3_KEY}" \
+            --query '{ContentLength:ContentLength, LastModified:LastModified, ETag:ETag}' \
+            --output table
 
       - name: Create new Elastic Beanstalk application version (idempotent)
         run: |
@@ -104,8 +126,17 @@ jobs:
             aws elasticbeanstalk create-application-version \
               --application-name "${{ env.EB_APPLICATION_NAME }}" \
               --version-label "$VERSION_LABEL" \
-              --source-bundle S3Bucket="${{ steps.meta.outputs.eb_bucket }}",S3Key="${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip"
+              --source-bundle S3Bucket="${{ steps.meta.outputs.eb_bucket }}",S3Key="${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip" \
+              --process
           fi
+
+          echo
+          echo "Confirming EB version exists:"
+          aws elasticbeanstalk describe-application-versions \
+            --application-name "${{ env.EB_APPLICATION_NAME }}" \
+            --version-labels "$VERSION_LABEL" \
+            --query 'ApplicationVersions[0].{VersionLabel:VersionLabel,Status:Status,DateCreated:DateCreated}' \
+            --output table
 
       - name: Deploy version to environment
         run: |
@@ -113,3 +144,43 @@ jobs:
           aws elasticbeanstalk update-environment \
             --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
             --version-label "${{ steps.meta.outputs.version_label }}"
+
+      - name: Wait for environment update + verify health
+        run: |
+          set -euo pipefail
+
+          aws elasticbeanstalk wait environment-updated \
+            --environment-names "${{ env.EB_ENVIRONMENT_NAME }}"
+
+          ENV_JSON="$(aws elasticbeanstalk describe-environments \
+            --environment-names "${{ env.EB_ENVIRONMENT_NAME }}" \
+            --query 'Environments[0]' \
+            --output json)"
+
+          echo "Environment summary:"
+          echo "$ENV_JSON" | jq '{EnvironmentName, ApplicationName, Status, Health, HealthStatus, VersionLabel, EndpointURL}'
+
+          STATUS="$(echo "$ENV_JSON" | jq -r '.Status // empty')"
+          HEALTH="$(echo "$ENV_JSON" | jq -r '.Health // empty')"
+          VERSION="$(echo "$ENV_JSON" | jq -r '.VersionLabel // empty')"
+
+          if [ "$VERSION" != "${{ steps.meta.outputs.version_label }}" ]; then
+            echo "Expected VersionLabel ${{ steps.meta.outputs.version_label }}, but environment is on $VERSION" >&2
+            echo "Recent events:" >&2
+            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
+            exit 1
+          fi
+
+          if [ "$STATUS" != "Ready" ]; then
+            echo "Environment status is $STATUS (expected Ready)." >&2
+            echo "Recent events:" >&2
+            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
+            exit 1
+          fi
+
+          if [ "$HEALTH" = "Red" ] || [ "$HEALTH" = "Grey" ]; then
+            echo "Environment health is $HEALTH." >&2
+            echo "Recent events:" >&2
+            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
+            exit 1
+          fi
