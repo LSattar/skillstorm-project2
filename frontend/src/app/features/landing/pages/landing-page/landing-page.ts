@@ -14,7 +14,7 @@ import { HotelResponse } from '../../services/hotel.service';
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer, UserProfileModal, SystemSettingsModal, RoomSearchModal, RoomSearchResults],
+  imports: [CommonModule, FormsModule, Header, Footer, UserProfileModal, RoomSearchModal, RoomSearchResults],
   templateUrl: './landing-page.html',
   styleUrls: ['./landing-page.css'],
 })
