@@ -7,7 +7,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -75,13 +74,18 @@ public class SecurityConfig {
                                                                         .secure(true));
 
                                         csrf.csrfTokenRepository(csrfRepo);
+
+                                        // Health + actuator must never require CSRF (ALB probes, uptime monitors)
                                         csrf.ignoringRequestMatchers(
-                                                        "/actuator/**",
-                                                        "/api/actuator/**",
                                                         "/health",
-                                                        "/api/health");
+                                                        "/health/**",
+                                                        "/api/health",
+                                                        "/api/health/**",
+                                                        "/actuator/**",
+                                                        "/api/actuator/**");
+
                                         // If you want logout to work without CSRF header, uncomment:
-                                        // .ignoringRequestMatchers("/logout")
+                                        // csrf.ignoringRequestMatchers("/logout");
                                 })
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
@@ -90,84 +94,97 @@ public class SecurityConfig {
                                                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                                                                 apiRequest))
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                // Preflight
+                                                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**")
+                                                .permitAll()
                                                 .requestMatchers("/error").permitAll()
 
-                                                // ALB health check (IMPORTANT)
-                                                .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/actuator/health").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/actuator/health/**")
+                                                // === Health checks (ALB / EB) ===
+                                                // Spring Security can evaluate these with or without context-path
+                                                // (/api),
+                                                // so allow BOTH forms and allow ANY method to avoid ALB quirks.
+                                                .requestMatchers("/health", "/health/**").permitAll()
+                                                .requestMatchers("/api/health", "/api/health/**").permitAll()
+                                                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                                                .requestMatchers("/api/actuator/health", "/api/actuator/health/**")
                                                 .permitAll()
-                                                .requestMatchers(HttpMethod.HEAD, "/actuator/health").permitAll()
-                                                .requestMatchers(HttpMethod.HEAD, "/actuator/health/**").permitAll()
-                                                .requestMatchers(HttpMethod.HEAD, "/api/actuator/health").permitAll()
-                                                .requestMatchers(HttpMethod.HEAD, "/api/actuator/health/**")
-                                                .permitAll()
-
-                                                // Convenience health endpoint (context path makes this /api/health)
-                                                .requestMatchers(HttpMethod.GET, "/health").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
-                                                .requestMatchers(HttpMethod.HEAD, "/health").permitAll()
-                                                .requestMatchers(HttpMethod.HEAD, "/api/health").permitAll()
 
                                                 // OAuth2 handshake endpoints
                                                 .requestMatchers("/oauth2/**", "/login/**").permitAll()
 
                                                 // CSRF bootstrap for SPA
-                                                .requestMatchers(HttpMethod.GET, "/csrf").permitAll()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/csrf")
+                                                .permitAll()
 
                                                 // Session check for SPA
-                                                .requestMatchers(HttpMethod.GET, "/auth/me").permitAll()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/auth/me")
+                                                .permitAll()
 
                                                 // Public endpoints
-                                                .requestMatchers(HttpMethod.GET, "/rooms/available").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/rooms/*").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/rooms/hotel/*").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/hotels").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/hotels/*").permitAll()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/rooms/available")
+                                                .permitAll()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/rooms/*")
+                                                .permitAll()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/rooms/hotel/*")
+                                                .permitAll()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels")
+                                                .permitAll()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*")
+                                                .permitAll()
 
                                                 // Users
-                                                .requestMatchers(HttpMethod.GET, "/users/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/users/*")
                                                 .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.PATCH, "/users/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.PATCH, "/users/*")
                                                 .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.DELETE, "/users/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/users/*")
                                                 .hasAnyRole("ADMIN", "BUSINESS_OWNER")
-                                                .requestMatchers(HttpMethod.PATCH, "/users/*/status")
+                                                .requestMatchers(org.springframework.http.HttpMethod.PATCH,
+                                                                "/users/*/status")
                                                 .hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.GET, "/users/search").hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.PATCH, "/users/*/roles").hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.POST, "/users").hasRole("ADMIN")
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/users/search")
+                                                .hasRole("ADMIN")
+                                                .requestMatchers(org.springframework.http.HttpMethod.PATCH,
+                                                                "/users/*/roles")
+                                                .hasRole("ADMIN")
+                                                .requestMatchers(org.springframework.http.HttpMethod.POST, "/users")
+                                                .hasRole("ADMIN")
 
                                                 // Bookings
-                                                .requestMatchers(HttpMethod.POST, "/bookings")
+                                                .requestMatchers(org.springframework.http.HttpMethod.POST, "/bookings")
                                                 .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.GET, "/bookings/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/bookings/*")
                                                 .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.GET, "/bookings/user/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/bookings/user/*")
                                                 .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.PATCH, "/bookings/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.PATCH,
+                                                                "/bookings/*")
                                                 .hasAnyRole("EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.DELETE, "/bookings/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.DELETE,
+                                                                "/bookings/*")
                                                 .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.GET, "/bookings")
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET, "/bookings")
                                                 .hasAnyRole("EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
 
                                                 // Rooms
-                                                .requestMatchers(HttpMethod.POST, "/rooms")
+                                                .requestMatchers(org.springframework.http.HttpMethod.POST, "/rooms")
                                                 .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.PATCH, "/rooms/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.PATCH, "/rooms/*")
                                                 .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.DELETE, "/rooms/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/rooms/*")
                                                 .hasAnyRole("BUSINESS_OWNER", "ADMIN")
 
                                                 // Hotels
-                                                .requestMatchers(HttpMethod.POST, "/hotels")
+                                                .requestMatchers(org.springframework.http.HttpMethod.POST, "/hotels")
                                                 .hasAnyRole("BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.PATCH, "/hotels/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.PATCH, "/hotels/*")
                                                 .hasAnyRole("BUSINESS_OWNER", "ADMIN")
-                                                .requestMatchers(HttpMethod.DELETE, "/hotels/*")
+                                                .requestMatchers(org.springframework.http.HttpMethod.DELETE,
+                                                                "/hotels/*")
                                                 .hasRole("ADMIN")
 
                                                 .requestMatchers("/roles/**").hasRole("ADMIN")
@@ -255,7 +272,7 @@ public class SecurityConfig {
 
                 String target = (frontendUrl == null || frontendUrl.isBlank())
                                 ? "http://localhost:4200/"
-                                : frontendUrl.endsWith("/") ? frontendUrl : frontendUrl + "/";
+                                : (frontendUrl.endsWith("/") ? frontendUrl : frontendUrl + "/");
 
                 res.setStatus(302);
                 res.setHeader("Location", target);
@@ -275,8 +292,13 @@ public class SecurityConfig {
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
                 config.setAllowedHeaders(List.of(
-                                "Authorization", "Content-Type", "X-XSRF-TOKEN", "X-Requested-With", "Accept",
-                                "Origin", "Referer"));
+                                "Authorization",
+                                "Content-Type",
+                                "X-XSRF-TOKEN",
+                                "X-Requested-With",
+                                "Accept",
+                                "Origin",
+                                "Referer"));
 
                 config.setExposedHeaders(List.of("Set-Cookie", "XSRF-TOKEN"));
                 config.setAllowCredentials(true);
