@@ -14,7 +14,6 @@
 
 <main>
   <div class="reservation-lookup">
-
     <!-- Search Section -->
     <section class="search-section">
       <h2>Search Reservations</h2>
@@ -57,7 +56,7 @@
             <select id="searchStatus" [(ngModel)]="searchStatus" (change)="applyFilters()">
               <option value="">All Statuses</option>
               @for (status of statusOptions; track status) {
-                <option [value]="status">{{ status }}</option>
+              <option [value]="status">{{ status }}</option>
               }
             </select>
           </div>
@@ -101,59 +100,59 @@
       </div>
 
       @if (loading) {
-        <div class="loading-state">
-          <p>Loading reservations...</p>
-        </div>
+      <div class="loading-state">
+        <p>Loading reservations...</p>
+      </div>
       } @else if (error) {
-        <div class="error-state">
-          <p>{{ error }}</p>
-          <button class="btn btn-primary" (click)="loadMockData()">Retry</button>
-        </div>
+      <div class="error-state">
+        <p>{{ error }}</p>
+        <button class="btn btn-primary" (click)="loadMockData()">Retry</button>
+      </div>
       } @else if (filteredReservations.length === 0) {
-        <div class="empty-state">
-          <span class="material-symbols-outlined">search_off</span>
-          <p>No reservations found matching your criteria.</p>
-        </div>
+      <div class="empty-state">
+        <span class="material-symbols-outlined">search_off</span>
+        <p>No reservations found matching your criteria.</p>
+      </div>
       } @else {
-        <div class="reservations-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Reservation ID</th>
-                <th>Guest</th>
-                <th>Hotel</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Guests</th>
-                <th>Amount</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (reservation of filteredReservations; track reservation.reservationId) {
-                <tr>
-                  <td class="reservation-id">{{ reservation.reservationId }}</td>
-                  <td class="guest-name">{{ reservation.guestName || '—' }}</td>
-                  <td class="hotel-name">{{ reservation.hotelName || '—' }}</td>
-                  <td>{{ formatDate(reservation.startDate) }}</td>
-                  <td>{{ formatDate(reservation.endDate) }}</td>
-                  <td>{{ reservation.guestCount }}</td>
-                  <td class="amount">{{ formatCurrency(reservation.totalAmount) }}</td>
-                  <td class="actions">
-                    <button
-                      class="btn btn-sm btn-primary"
-                      (click)="openEditModal(reservation)"
-                      title="Edit Reservation"
-                    >
-                      <span class="material-symbols-outlined">edit</span>
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+      <div class="reservations-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Reservation ID</th>
+              <th>Guest</th>
+              <th>Hotel</th>
+              <th>Check-in</th>
+              <th>Check-out</th>
+              <th>Guests</th>
+              <th>Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (reservation of filteredReservations; track reservation.reservationId) {
+            <tr>
+              <td class="reservation-id">{{ reservation.reservationId }}</td>
+              <td class="guest-name">{{ reservation.guestName || '—' }}</td>
+              <td class="hotel-name">{{ reservation.hotelName || '—' }}</td>
+              <td>{{ formatDate(reservation.startDate) }}</td>
+              <td>{{ formatDate(reservation.endDate) }}</td>
+              <td>{{ reservation.guestCount }}</td>
+              <td class="amount">{{ formatCurrency(reservation.totalAmount) }}</td>
+              <td class="actions">
+                <button
+                  class="btn btn-sm btn-primary"
+                  (click)="openEditModal(reservation)"
+                  title="Edit Reservation"
+                >
+                  <span class="material-symbols-outlined">edit</span>
+                  Edit
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
       }
     </section>
   </div>
@@ -161,11 +160,17 @@
 
 <!-- Edit Modal -->
 @if (showEditModal && selectedReservation) {
-  <app-reservation-edit-modal
-    [reservation]="selectedReservation"
-    (close)="closeEditModal()"
-    (updated)="onReservationUpdated($event)"
-  ></app-reservation-edit-modal>
+<app-reservation-edit-modal
+  [reservation]="selectedReservation"
+  (close)="closeEditModal()"
+  (updated)="onReservationUpdated($event)"
+></app-reservation-edit-modal>
 }
+
+<app-user-profile-modal
+  [open]="isProfileOpen"
+  (closed)="closeProfile()"
+  (saved)="closeProfile()"
+></app-user-profile-modal>
 
 <app-footer [year]="today.getFullYear()"></app-footer>

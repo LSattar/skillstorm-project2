@@ -1,0 +1,146 @@
+<app-header
+  [isNavOpen]="isNavOpen"
+  [isAuthenticated]="isAuthenticated()"
+  [roleLabel]="roleLabel()"
+  [userLabel]="userLabel()"
+  [userEmail]="userEmail()"
+  [showSystemSettings]="auth.isAdmin()"
+  (toggleNav)="toggleNav()"
+  (closeNav)="closeNav()"
+  (openBooking)="openBooking()"
+  (openSignIn)="openSignIn()"
+  (logout)="signOut()"
+  (openProfile)="openProfile()"
+  (openSystemSettings)="goToSystemSettings()"
+></app-header>
+
+<div class="system-settings-page">
+  <div class="header">
+    <h2 id="sysTitle">System settings</h2>
+    <p class="subtitle">Admin: manage users and roles.</p>
+  </div>
+  <div class="body">
+    @if (error) {
+    <p class="error">{{ error }}</p>
+    }
+
+    <section class="card">
+      <h3>User search</h3>
+      <div class="row">
+        <input
+          class="input"
+          type="text"
+          placeholder="Search by email, first name, last name…"
+          [(ngModel)]="query"
+          (keydown.enter)="search()"
+        />
+        <button class="btn btn-primary" type="button" (click)="search()" [disabled]="loading">
+          Search
+        </button>
+      </div>
+
+      <div class="grid">
+        <div class="list">
+          @for (u of users; track u.userId) {
+          <button
+            class="list-item"
+            type="button"
+            (click)="selectUser(u)"
+            [class.active]="selected?.userId === u.userId"
+          >
+            <div class="li-title">{{ (u.firstName || '') + ' ' + (u.lastName || '') }}</div>
+            <div class="li-sub">{{ u.email || '—' }}</div>
+          </button>
+          } @if (!loading && users.length === 0) {
+          <p class="muted">No results.</p>
+          }
+        </div>
+
+        <div class="detail">
+          @if (selected) {
+          <h4>Selected user</h4>
+          <p><strong>ID:</strong> {{ selected.userId }}</p>
+          <p><strong>Email:</strong> {{ selected.email || '—' }}</p>
+
+          <div class="roles">
+            <h4>Roles</h4>
+            <div class="chips">
+              @for (r of selectedRoles; track r) {
+              <span class="chip">
+                {{ r }}
+                <button type="button" class="chip-x" (click)="removeRole(r)" [disabled]="loading">
+                  ×
+                </button>
+              </span>
+              } @if (selectedRoles.length === 0) {
+              <span class="muted">No roles.</span>
+              }
+            </div>
+
+            <div class="row">
+              <select class="input" [(ngModel)]="roleToAdd">
+                <option value="">Add role…</option>
+                @for (r of availableRoleNames; track r) {
+                <option [value]="r">{{ r }}</option>
+                }
+              </select>
+              <button
+                class="btn btn-primary"
+                type="button"
+                (click)="addRole()"
+                [disabled]="loading || !roleToAdd"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div class="danger">
+            <button
+              class="btn btn-danger"
+              type="button"
+              (click)="deleteSelected()"
+              [disabled]="loading"
+            >
+              Delete user
+            </button>
+          </div>
+          } @else {
+          <p class="muted">Select a user to manage roles.</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Add user</h3>
+      <div class="row">
+        <input
+          class="input"
+          type="text"
+          placeholder="First name"
+          [(ngModel)]="createForm.firstName"
+        />
+        <input
+          class="input"
+          type="text"
+          placeholder="Last name"
+          [(ngModel)]="createForm.lastName"
+        />
+        <input class="input" type="email" placeholder="Email" [(ngModel)]="createForm.email" />
+        <button class="btn btn-primary" type="button" (click)="createUser()" [disabled]="creating">
+          Create
+        </button>
+      </div>
+      <p class="muted">
+        Note: if backend requires additional user fields, update this form to match.
+      </p>
+    </section>
+  </div>
+
+  <app-user-profile-modal
+    [open]="isProfileOpen"
+    (closed)="closeProfile()"
+    (saved)="closeProfile()"
+  ></app-user-profile-modal>
+</div>

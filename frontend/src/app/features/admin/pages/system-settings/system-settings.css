@@ -1,44 +1,24 @@
-.modal {
-  position: fixed;
-  inset: 0;
-  display: none;
-  z-index: 2000;
-}
-.modal.open {
-  display: block;
-}
-.modal-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(52, 78, 65, 0.6);
-  backdrop-filter: blur(3px);
-}
-.modal-panel {
-  position: relative;
-  width: min(980px, calc(100% - 32px));
-  margin: 88px auto;
+/* System settings page styles */
+.system-settings-page {
+  max-width: 980px;
+  margin: 48px auto;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
   box-shadow: var(--shadow);
+  padding: 32px 24px;
 }
-.modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--border);
+.system-settings-page .header {
+  margin-bottom: 24px;
 }
-.modal-title {
+.system-settings-page h2 {
   margin: 0;
   color: var(--primary-2);
   font-weight: 900;
 }
-.modal-subtitle {
+.system-settings-page .subtitle {
   margin: 6px 0 0;
-  color: var(--muted);
+  color: var(--primary-3);
   font-weight: 650;
 }
 .icon-btn {

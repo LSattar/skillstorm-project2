@@ -4,17 +4,26 @@ import { FormsModule } from '@angular/forms';
 import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
-import { SystemSettingsModal } from '../../../admin/components/system-settings-modal/system-settings-modal';
 import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
 import { RoomSearchModal } from '../../components/room-search-modal/room-search-modal';
-import { RoomSearchResults, SearchResultsData } from '../../components/room-search-results/room-search-results';
+import {
+  RoomSearchResults,
+  SearchResultsData,
+} from '../../components/room-search-results/room-search-results';
 import { RoomResponse, RoomSearchParams } from '../../services/room-search.service';
-import { HotelResponse } from '../../services/hotel.service';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer, UserProfileModal, SystemSettingsModal, RoomSearchModal, RoomSearchResults],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Header,
+    Footer,
+    UserProfileModal,
+    RoomSearchModal,
+    RoomSearchResults,
+  ],
   templateUrl: './landing-page.html',
   styleUrls: ['./landing-page.css'],
 })
