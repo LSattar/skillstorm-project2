@@ -42,7 +42,9 @@ public class SecurityConfig {
          * - Local: defaults to http://localhost:4200
          * - Prod (EB): set env var FRONTEND_URL=https://your-frontend-domain
          */
-        @Value("${FRONTEND_URL:http://localhost:4200}")
+        // @Value("${FRONTEND_URL:http://localhost:4200}")
+
+        @Value("${FRONTEND_URL:https://dnyc0q77vtas5.cloudfront.net}")
         private String frontendUrl;
 
         @Bean

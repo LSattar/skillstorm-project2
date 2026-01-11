@@ -18,7 +18,7 @@ spring:
     # - Explicit app env vars
     # - Elastic Beanstalk RDS env vars (when an RDS is attached)
     # - Local dev fallback
-    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://${RDS_HOSTNAME:localhost}:${RDS_PORT:5432}/${RDS_DB_NAME:reserveone_db}}}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://${RDS_HOSTNAME}:${RDS_PORT}/${RDS_DB_NAME}}}
     driver-class-name: org.postgresql.Driver
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${RDS_USERNAME:postgres}}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${RDS_PASSWORD:}}}
@@ -52,7 +52,7 @@ spring:
               - email
             # Force OAuth callback to CloudFront (no guessing)
             # IMPORTANT: /api is now part of the public callback path
-            redirect-uri: "${APP_BASE_URL}/api/login/oauth2/code/{registrationId}"
+            redirect-uri: "https://dnyc0q77vtas5.cloudfront.net/api/login/oauth2/code/{registrationId}"
         provider:
           google:
             issuer-uri: https://accounts.google.com
