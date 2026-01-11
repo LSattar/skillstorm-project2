@@ -59,7 +59,8 @@ spring:
 
 server:
   # Elastic Beanstalk commonly sets PORT. Support that first.
-  port: ${PORT:${SERVER_PORT:5000}}
+  # For AWS/prod, use 5000. For local testing, use 8080.
+  port: ${PORT:${SERVER_PORT:8080}}
 
   # REQUIRED behind CloudFront + ALB
   forward-headers-strategy: framework
@@ -70,8 +71,11 @@ server:
     session:
       persistent: false
       cookie:
-        same-site: none
-        secure: true
+        same-site: lax
+        secure: false
+        # For production, use:
+        # same-site: none
+        # secure: true
 
 logging:
   group:

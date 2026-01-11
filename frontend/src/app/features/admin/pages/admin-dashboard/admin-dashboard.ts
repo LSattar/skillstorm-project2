@@ -1,10 +1,11 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { MonthlyRevenue, Alert, Reservation } from '../../services/admin-metrics.service';
-import { Header } from '../../../../shared/header/header';
 import { Footer } from '../../../../shared/footer/footer';
+import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
+import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
+import { Alert, MonthlyRevenue, Reservation } from '../../services/admin-metrics.service';
 
 export type OperationalMetrics = {
   totalRooms: number;
@@ -19,13 +20,17 @@ export type OperationalMetrics = {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, Header, Footer],
+  imports: [CommonModule, RouterModule, Header, Footer, UserProfileModal],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.css',
 })
 export class AdminDashboard implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly router = inject(Router);
+
+  goToSystemSettings() {
+    this.router.navigate(['/admin/system-settings']);
+  }
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
@@ -331,7 +336,7 @@ export class AdminDashboard implements OnInit {
     const max = this.getMaxRevenue();
     if (max === 0) return 0;
     const safeRevenue = Number.isFinite(revenue) ? revenue : 0;
-    return Math.max((safeRevenue / max) * 100, 2); 
+    return Math.max((safeRevenue / max) * 100, 2);
   }
 
   toggleNav() {
@@ -342,11 +347,9 @@ export class AdminDashboard implements OnInit {
     this.isNavOpen = false;
   }
 
-  openBooking() {
-  }
+  openBooking() {}
 
-  openSignIn() {
-  }
+  openSignIn() {}
 
   signOut() {
     this.auth.logout().subscribe({
@@ -355,7 +358,15 @@ export class AdminDashboard implements OnInit {
     });
   }
 
+  isProfileOpen = false;
+
   openProfile() {
+    this.isProfileOpen = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeProfile() {
+    this.isProfileOpen = false;
+    document.body.style.overflow = '';
   }
 }
-

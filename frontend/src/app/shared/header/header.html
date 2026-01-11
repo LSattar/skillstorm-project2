@@ -1,7 +1,16 @@
 <header class="site-header">
   <div class="container header-inner">
     <!-- Brand -->
-    <a class="brand" routerLink="/" aria-label="ReserveOne home" (click)="closeNav.emit()">
+    <a
+      class="brand"
+      [routerLink]="isAdmin ? '/admin-dashboard' : '/'"
+      aria-label="ReserveOne home"
+      (click)="closeNav.emit()"
+      [class.disabled]="isAdmin"
+      [attr.tabindex]="isAdmin ? -1 : 0"
+      [attr.aria-disabled]="isAdmin ? 'true' : null"
+      (click)="isAdmin ? $event.preventDefault() : null"
+    >
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">
         <span class="brand-name">ReserveOne</span>
@@ -32,7 +41,12 @@
 
         @if (userMenuOpen) {
         <div class="menu-backdrop" (click)="closeUserMenu()"></div>
-        <div class="menu-panel" role="menu" aria-label="User menu">
+        <div
+          class="menu-panel"
+          role="menu"
+          aria-label="User menu"
+          (click)="$event.stopPropagation()"
+        >
           @if (roleLabel) {
           <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
           } @if (isAdmin) {

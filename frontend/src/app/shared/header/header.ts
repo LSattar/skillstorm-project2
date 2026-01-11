@@ -1,4 +1,13 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  inject,
+  Input,
+  NgZone,
+  OnDestroy,
+  Output,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Nav } from '../nav/nav';
 
@@ -9,8 +18,10 @@ import { Nav } from '../nav/nav';
   templateUrl: './header.html',
   styleUrls: ['./header.css'],
 })
-export class Header {
+export class Header implements OnDestroy {
   private readonly router = inject(Router);
+  private readonly el = inject(ElementRef<HTMLElement>);
+  private readonly zone = inject(NgZone);
 
   @Input() isNavOpen = false;
   @Input() isAuthenticated = false;
@@ -28,6 +39,7 @@ export class Header {
   @Output() openSystemSettings = new EventEmitter<void>();
 
   userMenuOpen = false;
+  private globalClickListener?: (event: MouseEvent) => void;
 
   get avatarText(): string {
     const email = (this.userEmail || '').trim();
@@ -45,10 +57,35 @@ export class Header {
 
   toggleUserMenu() {
     this.userMenuOpen = !this.userMenuOpen;
+    if (this.userMenuOpen) {
+      this.addGlobalClickListener();
+    } else {
+      this.removeGlobalClickListener();
+    }
   }
 
   closeUserMenu() {
     this.userMenuOpen = false;
+    this.removeGlobalClickListener();
+  }
+
+  private addGlobalClickListener() {
+    this.removeGlobalClickListener();
+    this.globalClickListener = (event: MouseEvent) => {
+      // Only close if click is outside the header element
+      if (!this.el.nativeElement.contains(event.target as Node)) {
+        // Run inside Angular zone to trigger change detection
+        this.zone.run(() => this.closeUserMenu());
+      }
+    };
+    document.addEventListener('click', this.globalClickListener, true);
+  }
+
+  private removeGlobalClickListener() {
+    if (this.globalClickListener) {
+      document.removeEventListener('click', this.globalClickListener, true);
+      this.globalClickListener = undefined;
+    }
   }
 
   onLogout() {
@@ -73,5 +110,8 @@ export class Header {
     this.openSystemSettings.emit();
     this.closeUserMenu();
     this.closeNav.emit();
+  }
+  ngOnDestroy() {
+    this.removeGlobalClickListener();
   }
 }

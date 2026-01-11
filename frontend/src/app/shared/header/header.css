@@ -98,7 +98,10 @@
 
 .menu-backdrop {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: transparent;
   z-index: 40;
 }
@@ -107,7 +110,9 @@
   position: absolute;
   right: 0;
   top: calc(100% + 10px);
-  min-width: 190px;
+  min-width: 170px;
+  max-width: 240px;
+  width: 200px;
   padding: 8px;
   border-radius: 12px;
   border: 1px solid var(--border);

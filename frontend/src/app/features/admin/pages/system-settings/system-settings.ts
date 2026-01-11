@@ -1,14 +1,10 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  SimpleChanges,
-  inject,
-} from '@angular/core';
+import { ChangeDetectorRef, Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+
+import { Header } from '../../../../shared/header/header';
+import { AuthService } from '../../../auth/services/auth.service';
+import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
 import {
   RoleResponse,
   SystemSettingsService,
@@ -16,18 +12,48 @@ import {
 } from '../../services/system-settings.service';
 
 @Component({
-  selector: 'app-system-settings-modal',
+  selector: 'app-system-settings-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './system-settings-modal.html',
-  styleUrls: ['./system-settings-modal.css'],
+  imports: [CommonModule, FormsModule, Header, UserProfileModal],
+  templateUrl: './system-settings.html',
+  styleUrls: ['./system-settings.css'],
 })
-export class SystemSettingsModal {
+export class SystemSettingsPage {
   private readonly api = inject(SystemSettingsService);
   private readonly cdr = inject(ChangeDetectorRef);
+  protected readonly auth = inject(AuthService);
 
-  @Input() open = false;
-  @Output() closed = new EventEmitter<void>();
+  // Header bindings for <app-header>
+  isNavOpen = false;
+  toggleNav() {}
+  closeNav() {}
+  openBooking() {}
+  openSignIn() {}
+  signOut() {}
+  isProfileOpen = false;
+
+  openProfile() {
+    this.isProfileOpen = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeProfile() {
+    this.isProfileOpen = false;
+    document.body.style.overflow = '';
+  }
+  goToSystemSettings() {}
+  // Use real user info from AuthService
+  isAuthenticated = this.auth.isAuthenticated;
+  roleLabel = this.auth.primaryRoleLabel;
+  userLabel = computed(() => {
+    const me = this.auth.meSignal();
+    if (!me) return '';
+    const first = me.firstName?.trim();
+    if (first) return first;
+    return me.email || '';
+  });
+  userEmail = computed(() => this.auth.meSignal()?.email ?? '');
+  showSystemSettings = this.auth.isAdmin;
 
   loading = false;
   error = '';
@@ -45,14 +71,8 @@ export class SystemSettingsModal {
   creating = false;
   createForm = { firstName: '', lastName: '', email: '' };
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['open']?.currentValue === true) {
-      this.bootstrap();
-    }
-  }
-
-  close(): void {
-    this.closed.emit();
+  ngOnInit(): void {
+    this.bootstrap();
   }
 
   bootstrap(): void {
