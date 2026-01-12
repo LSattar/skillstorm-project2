@@ -37,256 +37,269 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    /**
-     * IMPORTANT:
-     * Your app runs with server.servlet.context-path=/api.
-     * Spring Security matchers see paths WITHOUT the context path.
-     *
-     * Example:
-     * External request: /api/actuator/health/liveness
-     * Security matcher sees: /actuator/health/liveness
-     *
-     * Therefore, do NOT include "/api" in requestMatchers() here.
-     */
-    @Value("${FRONTEND_URL:https://dnyc0q77vtas5.cloudfront.net}")
-    private String frontendUrl;
+        /**
+         * IMPORTANT:
+         * Your app runs with server.servlet.context-path=/api.
+         * Spring Security matchers see paths WITHOUT the context path.
+         *
+         * Example:
+         * External request: /api/actuator/health/liveness
+         * Security matcher sees: /actuator/health/liveness
+         *
+         * Therefore, do NOT include "/api" in requestMatchers() here.
+         */
+        @Value("${FRONTEND_URL:https://dnyc0q77vtas5.cloudfront.net}")
+        private String frontendUrl;
 
-    @Bean
-    public SecurityFilterChain filterChain(
-            HttpSecurity http,
-            CustomOAuth2UserService oAuth2UserService,
-            CustomOidcUserService oidcUserService,
-            ClientRegistrationRepository clientRegistrationRepository) throws Exception {
+        @Bean
+        public SecurityFilterChain filterChain(
+                        HttpSecurity http,
+                        CustomOAuth2UserService oAuth2UserService,
+                        CustomOidcUserService oidcUserService,
+                        ClientRegistrationRepository clientRegistrationRepository) throws Exception {
 
-        // Treat XHR/SPA JSON calls differently: return 401 instead of redirecting to Google
-        RequestMatcher apiRequest = request -> {
-            String xrw = request.getHeader("X-Requested-With");
-            if (xrw != null && "xmlhttprequest".equalsIgnoreCase(xrw)) {
-                return true;
-            }
-            String accept = request.getHeader("Accept");
-            return accept != null && accept.toLowerCase().contains("application/json");
-        };
-
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> {
-                CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository.withHttpOnlyFalse();
-                csrfRepo.setCookieCustomizer(builder -> builder
-                        .path("/")         // cookie available across the whole site
-                        .sameSite("None")  // required for cross-site (CloudFront -> API) cookies
-                        .secure(true));    // required when SameSite=None
-
-                csrf.csrfTokenRepository(csrfRepo);
-
-                // Never require CSRF for health/actuator (EB/ALB probes, uptime monitors)
-                csrf.ignoringRequestMatchers(
-                        "/health",
-                        "/health/**",
-                        "/actuator/**"
-                );
-
-                // If you want logout to work without CSRF header, uncomment:
-                // csrf.ignoringRequestMatchers("/logout");
-            })
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-            .exceptionHandling(ex -> ex
-                .defaultAuthenticationEntryPointFor(
-                    new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                    apiRequest
-                )
-            )
-            .authorizeHttpRequests(auth -> auth
-                // Preflight should always succeed
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                .requestMatchers("/error").permitAll()
-
-                // === Health checks (EB/ALB) ===
-                .requestMatchers("/health", "/health/**").permitAll()
-                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                // (Optional) if you ever expose other actuator endpoints:
-                // .requestMatchers("/actuator/**").hasRole("ADMIN")
-
-                // OAuth2 handshake endpoints
-                // With context-path=/api, these are reachable at:
-                //   /api/oauth2/authorization/google
-                //   /api/login/oauth2/code/google
-                // but matchers must be WITHOUT /api:
-                .requestMatchers("/oauth2/**", "/login/**").permitAll()
-
-                // CSRF bootstrap for SPA (reachable at /api/csrf)
-                .requestMatchers(HttpMethod.GET, "/csrf").permitAll()
-
-                // Session check for SPA (reachable at /api/auth/me)
-                .requestMatchers(HttpMethod.GET, "/auth/me").permitAll()
-
-                // Public endpoints (reachable at /api/...)
-                .requestMatchers(HttpMethod.GET, "/rooms/available").permitAll()
-                .requestMatchers(HttpMethod.GET, "/rooms/*").permitAll()
-                .requestMatchers(HttpMethod.GET, "/rooms/hotel/*").permitAll()
-                .requestMatchers(HttpMethod.GET, "/hotels").permitAll()
-                .requestMatchers(HttpMethod.GET, "/hotels/*").permitAll()
-
-                // Users
-                .requestMatchers(HttpMethod.GET, "/users/*")
-                    .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/users/*")
-                    .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/users/*")
-                    .hasAnyRole("ADMIN", "BUSINESS_OWNER")
-                .requestMatchers(HttpMethod.PATCH, "/users/*/status")
-                    .hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/users/search")
-                    .hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/users/*/roles")
-                    .hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/users")
-                    .hasRole("ADMIN")
-
-                // Bookings
-                .requestMatchers(HttpMethod.POST, "/bookings")
-                    .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.GET, "/bookings/*")
-                    .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.GET, "/bookings/user/*")
-                    .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/bookings/*")
-                    .hasAnyRole("EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/bookings/*")
-                    .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.GET, "/bookings")
-                    .hasAnyRole("EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
-
-                // Rooms
-                .requestMatchers(HttpMethod.POST, "/rooms")
-                    .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/rooms/*")
-                    .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/rooms/*")
-                    .hasAnyRole("BUSINESS_OWNER", "ADMIN")
-
-                // Hotels
-                .requestMatchers(HttpMethod.POST, "/hotels")
-                    .hasAnyRole("BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/hotels/*")
-                    .hasAnyRole("BUSINESS_OWNER", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/hotels/*")
-                    .hasRole("ADMIN")
-
-                // Roles / Reports / Analytics
-                .requestMatchers("/roles/**").hasRole("ADMIN")
-                .requestMatchers("/reports/**").hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
-                .requestMatchers("/analytics/**").hasAnyRole("BUSINESS_OWNER", "ADMIN")
-
-                .anyRequest().authenticated()
-            )
-            .oauth2Login(oauth -> oauth
-                .authorizationEndpoint(authorization -> {
-                    DefaultOAuth2AuthorizationRequestResolver defaultResolver =
-                        new DefaultOAuth2AuthorizationRequestResolver(
-                            clientRegistrationRepository,
-                            "/oauth2/authorization"
-                        );
-
-                    OAuth2AuthorizationRequestResolver resolver = new OAuth2AuthorizationRequestResolver() {
-                        @Override
-                        public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
-                            OAuth2AuthorizationRequest req = defaultResolver.resolve(request);
-                            if (req == null) return null;
-                            String registrationId = extractRegistrationId(request);
-                            return customizePrompt(registrationId, req);
+                // Treat XHR/SPA JSON calls differently: return 401 instead of redirecting to
+                // Google
+                RequestMatcher apiRequest = request -> {
+                        String xrw = request.getHeader("X-Requested-With");
+                        if (xrw != null && "xmlhttprequest".equalsIgnoreCase(xrw)) {
+                                return true;
                         }
+                        String accept = request.getHeader("Accept");
+                        return accept != null && accept.toLowerCase().contains("application/json");
+                };
 
-                        @Override
-                        public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
-                            OAuth2AuthorizationRequest req = defaultResolver.resolve(request, clientRegistrationId);
-                            if (req == null) return null;
-                            return customizePrompt(clientRegistrationId, req);
-                        }
+                http
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .csrf(csrf -> {
+                                        CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository
+                                                        .withHttpOnlyFalse();
 
-                        private String extractRegistrationId(HttpServletRequest request) {
-                            String uri = request.getRequestURI();
-                            int lastSlash = uri.lastIndexOf('/');
-                            return (lastSlash >= 0) ? uri.substring(lastSlash + 1) : uri;
-                        }
+                                        // IMPORTANT with context-path=/api: force cookie to be usable from /admin/*
+                                        csrfRepo.setCookiePath("/");
+                                        csrfRepo.setCookieName("XSRF-TOKEN");
+                                        csrfRepo.setHeaderName("X-XSRF-TOKEN");
 
-                        private OAuth2AuthorizationRequest customizePrompt(String registrationId, OAuth2AuthorizationRequest req) {
-                            if (!"google".equalsIgnoreCase(registrationId)) return req;
+                                        csrfRepo.setCookieCustomizer(builder -> builder
+                                                        .path("/") // reinforce
+                                                        .sameSite("None")
+                                                        .secure(true));
 
-                            LinkedHashMap<String, Object> additional =
-                                new LinkedHashMap<>(req.getAdditionalParameters());
-                            additional.put("prompt", "select_account");
+                                        csrf.csrfTokenRepository(csrfRepo);
 
-                            return OAuth2AuthorizationRequest.from(req)
-                                .additionalParameters(additional)
-                                .build();
-                        }
-                    };
+                                        csrf.ignoringRequestMatchers(
+                                                        "/health",
+                                                        "/health/**",
+                                                        "/actuator/**");
+                                })
 
-                    authorization.authorizationRequestResolver(resolver);
-                })
-                .userInfoEndpoint(userInfo -> userInfo
-                    .oidcUserService(oidcUserService)
-                    .userService(oAuth2UserService)
-                )
-                .successHandler(this::oauth2SuccessRedirect)
-            )
-            .logout(logout -> logout
-                // Reachable at /api/logout, matcher should be without /api
-                .logoutUrl("/logout")
-                .invalidateHttpSession(true)
-                .clearAuthentication(true)
-                .deleteCookies("JSESSIONID", "XSRF-TOKEN")
-                .logoutSuccessHandler((req, res, auth) -> res.setStatus(200))
-            );
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                                .exceptionHandling(ex -> ex
+                                                .defaultAuthenticationEntryPointFor(
+                                                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                                                                apiRequest))
+                                .authorizeHttpRequests(auth -> auth
+                                                // Preflight should always succeed
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-        return http.build();
-    }
+                                                .requestMatchers("/error").permitAll()
 
-    private void oauth2SuccessRedirect(
-            HttpServletRequest req,
-            HttpServletResponse res,
-            org.springframework.security.core.Authentication auth)
-            throws IOException, ServletException {
+                                                // === Health checks (EB/ALB) ===
+                                                .requestMatchers("/health", "/health/**").permitAll()
+                                                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                                                // (Optional) if you ever expose other actuator endpoints:
+                                                // .requestMatchers("/actuator/**").hasRole("ADMIN")
 
-        String target = (frontendUrl == null || frontendUrl.isBlank())
-                ? "http://localhost:4200/"
-                : (frontendUrl.endsWith("/") ? frontendUrl : frontendUrl + "/");
+                                                // OAuth2 handshake endpoints
+                                                // With context-path=/api, these are reachable at:
+                                                // /api/oauth2/authorization/google
+                                                // /api/login/oauth2/code/google
+                                                // but matchers must be WITHOUT /api:
+                                                .requestMatchers("/oauth2/**", "/login/**").permitAll()
 
-        res.setStatus(302);
-        res.setHeader("Location", target);
-    }
+                                                // CSRF bootstrap for SPA (reachable at /api/csrf)
+                                                .requestMatchers(HttpMethod.GET, "/csrf").permitAll()
 
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
+                                                // Session check for SPA (reachable at /api/auth/me)
+                                                .requestMatchers(HttpMethod.GET, "/auth/me").permitAll()
 
-        // If FRONTEND_URL is like https://dnyc0q77vtas5.cloudfront.net, allow it.
-        // AllowedOriginPatterns supports wildcards if you ever need them later.
-        config.setAllowedOriginPatterns(List.of(
-                frontendUrl,
-                "http://localhost:4200",
-                "http://127.0.0.1:4200"
-        ));
+                                                // Public endpoints (reachable at /api/...)
+                                                .requestMatchers(HttpMethod.GET, "/rooms/available").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/rooms/*").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/rooms/hotel/*").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/hotels").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/hotels/*").permitAll()
 
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                                                // Users
+                                                .requestMatchers(HttpMethod.GET, "/users/*")
+                                                .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/users/*")
+                                                .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/users/*")
+                                                .hasAnyRole("ADMIN", "BUSINESS_OWNER")
+                                                .requestMatchers(HttpMethod.PATCH, "/users/*/status")
+                                                .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/users/search")
+                                                .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/users/*/roles")
+                                                .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/users")
+                                                .hasRole("ADMIN")
 
-        config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "X-XSRF-TOKEN",
-                "X-Requested-With",
-                "Accept",
-                "Origin",
-                "Referer"
-        ));
+                                                // Bookings
+                                                .requestMatchers(HttpMethod.POST, "/bookings")
+                                                .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/bookings/*")
+                                                .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/bookings/user/*")
+                                                .hasAnyRole("GUEST", "EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/bookings/*")
+                                                .hasAnyRole("EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/bookings/*")
+                                                .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/bookings")
+                                                .hasAnyRole("EMPLOYEE", "MANAGER", "BUSINESS_OWNER", "ADMIN")
 
-        config.setExposedHeaders(List.of("Set-Cookie", "XSRF-TOKEN"));
-        config.setAllowCredentials(true);
+                                                // Rooms
+                                                .requestMatchers(HttpMethod.POST, "/rooms")
+                                                .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/rooms/*")
+                                                .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/rooms/*")
+                                                .hasAnyRole("BUSINESS_OWNER", "ADMIN")
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+                                                // Hotels
+                                                .requestMatchers(HttpMethod.POST, "/hotels")
+                                                .hasAnyRole("BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.PATCH, "/hotels/*")
+                                                .hasAnyRole("BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/hotels/*")
+                                                .hasRole("ADMIN")
+
+                                                // Roles / Reports / Analytics
+                                                .requestMatchers("/roles/**").hasRole("ADMIN")
+                                                .requestMatchers("/reports/**")
+                                                .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
+                                                .requestMatchers("/analytics/**").hasAnyRole("BUSINESS_OWNER", "ADMIN")
+
+                                                .anyRequest().authenticated())
+                                .oauth2Login(oauth -> oauth
+                                                .authorizationEndpoint(authorization -> {
+                                                        DefaultOAuth2AuthorizationRequestResolver defaultResolver = new DefaultOAuth2AuthorizationRequestResolver(
+                                                                        clientRegistrationRepository,
+                                                                        "/oauth2/authorization");
+
+                                                        OAuth2AuthorizationRequestResolver resolver = new OAuth2AuthorizationRequestResolver() {
+                                                                @Override
+                                                                public OAuth2AuthorizationRequest resolve(
+                                                                                HttpServletRequest request) {
+                                                                        OAuth2AuthorizationRequest req = defaultResolver
+                                                                                        .resolve(request);
+                                                                        if (req == null)
+                                                                                return null;
+                                                                        String registrationId = extractRegistrationId(
+                                                                                        request);
+                                                                        return customizePrompt(registrationId, req);
+                                                                }
+
+                                                                @Override
+                                                                public OAuth2AuthorizationRequest resolve(
+                                                                                HttpServletRequest request,
+                                                                                String clientRegistrationId) {
+                                                                        OAuth2AuthorizationRequest req = defaultResolver
+                                                                                        .resolve(request,
+                                                                                                        clientRegistrationId);
+                                                                        if (req == null)
+                                                                                return null;
+                                                                        return customizePrompt(clientRegistrationId,
+                                                                                        req);
+                                                                }
+
+                                                                private String extractRegistrationId(
+                                                                                HttpServletRequest request) {
+                                                                        String uri = request.getRequestURI();
+                                                                        int lastSlash = uri.lastIndexOf('/');
+                                                                        return (lastSlash >= 0)
+                                                                                        ? uri.substring(lastSlash + 1)
+                                                                                        : uri;
+                                                                }
+
+                                                                private OAuth2AuthorizationRequest customizePrompt(
+                                                                                String registrationId,
+                                                                                OAuth2AuthorizationRequest req) {
+                                                                        if (!"google".equalsIgnoreCase(registrationId))
+                                                                                return req;
+
+                                                                        LinkedHashMap<String, Object> additional = new LinkedHashMap<>(
+                                                                                        req.getAdditionalParameters());
+                                                                        additional.put("prompt", "select_account");
+
+                                                                        return OAuth2AuthorizationRequest.from(req)
+                                                                                        .additionalParameters(
+                                                                                                        additional)
+                                                                                        .build();
+                                                                }
+                                                        };
+
+                                                        authorization.authorizationRequestResolver(resolver);
+                                                })
+                                                .userInfoEndpoint(userInfo -> userInfo
+                                                                .oidcUserService(oidcUserService)
+                                                                .userService(oAuth2UserService))
+                                                .successHandler(this::oauth2SuccessRedirect))
+                                .logout(logout -> logout
+                                                // Reachable at /api/logout, matcher should be without /api
+                                                .logoutUrl("/logout")
+                                                .invalidateHttpSession(true)
+                                                .clearAuthentication(true)
+                                                .deleteCookies("JSESSIONID", "XSRF-TOKEN")
+                                                .logoutSuccessHandler((req, res, auth) -> res.setStatus(200)));
+
+                return http.build();
+        }
+
+        private void oauth2SuccessRedirect(
+                        HttpServletRequest req,
+                        HttpServletResponse res,
+                        org.springframework.security.core.Authentication auth)
+                        throws IOException, ServletException {
+
+                String target = (frontendUrl == null || frontendUrl.isBlank())
+                                ? "http://localhost:4200/"
+                                : (frontendUrl.endsWith("/") ? frontendUrl : frontendUrl + "/");
+
+                res.setStatus(302);
+                res.setHeader("Location", target);
+        }
+
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration config = new CorsConfiguration();
+
+                // If FRONTEND_URL is like https://dnyc0q77vtas5.cloudfront.net, allow it.
+                // AllowedOriginPatterns supports wildcards if you ever need them later.
+                config.setAllowedOriginPatterns(List.of(
+                                frontendUrl,
+                                "http://localhost:4200",
+                                "http://127.0.0.1:4200"));
+
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
+                config.setAllowedHeaders(List.of(
+                                "Authorization",
+                                "Content-Type",
+                                "X-XSRF-TOKEN",
+                                "X-Requested-With",
+                                "Accept",
+                                "Origin",
+                                "Referer"));
+
+                config.setExposedHeaders(List.of("Set-Cookie", "XSRF-TOKEN"));
+                config.setAllowCredentials(true);
+
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", config);
+                return source;
+        }
 }
