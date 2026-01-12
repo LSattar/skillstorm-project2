@@ -3,6 +3,10 @@ package com.skillstorm.reserveone.config;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import com.skillstorm.reserveone.services.CustomOAuth2UserService;
+import com.skillstorm.reserveone.services.CustomOidcUserService;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +17,8 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
@@ -28,13 +34,11 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.skillstorm.reserveone.services.CustomOAuth2UserService;
-import com.skillstorm.reserveone.services.CustomOidcUserService;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 @Configuration
 @EnableWebSecurity
@@ -54,6 +58,12 @@ public class SecurityConfig {
          */
         @Value("${FRONTEND_URL:https://dnyc0q77vtas5.cloudfront.net}")
         private String frontendUrl;
+
+        private static String safe(String s) {
+                if (s == null)
+                        return "null";
+                return s.replace("\\", "\\\\").replace("\"", "\\\"");
+        }
 
         @Bean
         public SecurityFilterChain filterChain(
@@ -120,7 +130,64 @@ public class SecurityConfig {
                                 .exceptionHandling(ex -> ex
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                                                apiRequest))
+                                                                apiRequest)
+                                                .accessDeniedHandler((req, res, e) -> {
+                                                        // TEMP DEBUG: surface why it's 403
+                                                        HttpSession s = req.getSession(false);
+                                                        String sessionId = (s == null) ? "null" : s.getId();
+
+                                                        String xsrfCookie = null;
+                                                        if (req.getCookies() != null) {
+                                                                for (var c : req.getCookies()) {
+                                                                        if ("XSRF-TOKEN".equals(c.getName()))
+                                                                                xsrfCookie = c.getValue();
+                                                                }
+                                                        }
+                                                        String xsrfHeader = req.getHeader("X-XSRF-TOKEN");
+
+                                                        Object csrfAttr = req.getAttribute(CsrfToken.class.getName());
+                                                        String csrfExpected = null;
+                                                        if (csrfAttr instanceof CsrfToken t)
+                                                                csrfExpected = t.getToken();
+
+                                                        Authentication a = SecurityContextHolder.getContext()
+                                                                        .getAuthentication();
+                                                        String user = (a == null) ? "null" : a.getName();
+                                                        String auths = (a == null) ? "null"
+                                                                        : a.getAuthorities().stream()
+                                                                                        .map(ga -> ga.getAuthority())
+                                                                                        .collect(Collectors
+                                                                                                        .joining(","));
+
+                                                        res.setStatus(HttpStatus.FORBIDDEN.value());
+                                                        res.setContentType("application/json");
+
+                                                        String body = """
+                                                                        {
+                                                                          "error": "FORBIDDEN",
+                                                                          "path": "%s",
+                                                                          "method": "%s",
+                                                                          "sessionId": "%s",
+                                                                          "xsrfCookie": "%s",
+                                                                          "xsrfHeader": "%s",
+                                                                          "csrfExpected": "%s",
+                                                                          "principal": "%s",
+                                                                          "authorities": "%s",
+                                                                          "exception": "%s"
+                                                                        }
+                                                                        """.formatted(
+                                                                        req.getRequestURI(),
+                                                                        req.getMethod(),
+                                                                        sessionId,
+                                                                        safe(xsrfCookie),
+                                                                        safe(xsrfHeader),
+                                                                        safe(csrfExpected),
+                                                                        safe(user),
+                                                                        safe(auths),
+                                                                        safe(e.getClass().getSimpleName()));
+
+                                                        res.getWriter().write(body);
+                                                }))
                                 .authorizeHttpRequests(auth -> auth
                                                 // Preflight should always succeed
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
