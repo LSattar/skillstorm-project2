@@ -3,9 +3,6 @@ spring:
     name: reserveone
 
   config:
-    # Support running from either:
-    # - backend/reserveone (then .env is at ./ .env)
-    # - repo root (then .env is at ./backend/reserveone/.env)
     import: "optional:file:.env[.properties],optional:file:backend/reserveone/.env[.properties]"
 
   devtools:
@@ -13,15 +10,16 @@ spring:
       enabled: false
 
   datasource:
-    # Prefer (in order):
-    # - Spring-standard env var overrides
-    # - Explicit app env vars
-    # - Elastic Beanstalk RDS env vars (when an RDS is attached)
-    # - Local dev fallback
     url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://${RDS_HOSTNAME}:${RDS_PORT}/${RDS_DB_NAME}}}
     driver-class-name: org.postgresql.Driver
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${RDS_USERNAME:postgres}}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${RDS_PASSWORD:}}}
+
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: ${SESSION_INIT_SCHEMA:never}
+      schema: classpath:org/springframework/session/jdbc/schema-postgresql.sql
 
   sql:
     init:
@@ -46,59 +44,33 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope:
-              - openid
-              - profile
-              - email
-            # Force OAuth callback to CloudFront (no guessing)
-            # IMPORTANT: /api is now part of the public callback path
+            scope: [openid, profile, email]
             redirect-uri: "https://dnyc0q77vtas5.cloudfront.net/api/login/oauth2/code/{registrationId}"
         provider:
           google:
             issuer-uri: https://accounts.google.com
 
 server:
-  # Elastic Beanstalk commonly sets PORT. Support that first.
-  # For AWS/prod, use 5000. For local testing, use 8080.
   port: ${PORT:${SERVER_PORT:8080}}
-
-  # REQUIRED behind CloudFront + ALB
   forward-headers-strategy: framework
-
   servlet:
     context-path: /api
-
     session:
       persistent: false
       cookie:
-        # same-site: lax
-        # secure: false
-
-        # For production, use:
         same-site: none
         secure: true
+        http-only: true
+        # domain: .reserveone.uk
 
 logging:
   group:
-    sql-init:
-      - org.springframework.jdbc.datasource.init.ScriptUtils
-      - org.springframework.boot.sql.init
-    hibernate-sql:
-      - org.hibernate.SQL
-
+    sql-init: org.springframework.jdbc.datasource.init.ScriptUtils,org.springframework.boot.sql.init
+    hibernate-sql: org.hibernate.SQL
   level:
     root: INFO
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.security.web: DEBUG
-    org.springframework.security.oauth2: DEBUG
-    org.springframework.boot.autoconfigure.security: DEBUG
-    com.skillstorm.reserveone: DEBUG
     sql-init: DEBUG
     hibernate-sql: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
-    org.springframework.jdbc.core.JdbcTemplate: DEBUG
-    org.springframework.transaction: DEBUG
 
 management:
   endpoints:
