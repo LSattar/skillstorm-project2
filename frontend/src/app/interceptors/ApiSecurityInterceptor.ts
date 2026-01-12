@@ -2,6 +2,15 @@ import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/c
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
+function getCookie(name: string): string | null {
+  const cookies = document.cookie ? document.cookie.split('; ') : [];
+  for (const c of cookies) {
+    const [k, ...rest] = c.split('=');
+    if (k === name) return decodeURIComponent(rest.join('='));
+  }
+  return null;
+}
+
 function isApiRequest(url: string): boolean {
   try {
     const u = new URL(url, window.location.origin);
@@ -16,10 +25,12 @@ export class ApiSecurityInterceptor implements HttpInterceptor {
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     if (!isApiRequest(req.url)) return next.handle(req);
 
-    return next.handle(
-      req.clone({
-        withCredentials: true,
-      })
-    );
+    const xsrf = getCookie('XSRF-TOKEN');
+    const updated = req.clone({
+      withCredentials: true,
+      ...(xsrf ? { setHeaders: { 'X-XSRF-TOKEN': xsrf } } : {}),
+    });
+
+    return next.handle(updated);
   }
 }
