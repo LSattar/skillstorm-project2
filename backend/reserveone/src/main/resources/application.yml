@@ -71,11 +71,12 @@ server:
     session:
       persistent: false
       cookie:
-        same-site: lax
-        secure: false
+        # same-site: lax
+        # secure: false
+
         # For production, use:
-        # same-site: none
-        # secure: true
+        same-site: none
+        secure: true
 
 logging:
   group:
