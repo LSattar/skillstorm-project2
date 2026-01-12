@@ -21,7 +21,6 @@ env:
   EB_APPLICATION_NAME: reserveone
   EB_ENVIRONMENT_NAME: Reserveone-env
   BACKEND_DIR: backend/reserveone
-  # EB is happiest when the bundle contains a root-level "application.jar"
   EB_JAR_NAME: application.jar
 
 jobs:
@@ -39,7 +38,6 @@ jobs:
           java-version: "17"
           cache: maven
 
-      # jq is usually present on ubuntu-latest, but installing it makes the workflow resilient.
       - name: Install jq
         run: |
           set -euo pipefail
@@ -59,8 +57,6 @@ jobs:
         run: |
           set -euo pipefail
           aws sts get-caller-identity --output json
-          ARN="$(aws sts get-caller-identity --query Arn --output text)"
-          echo "Assumed role/session: $(echo "$ARN" | awk -F'/' '{print $(NF-1) "/" $NF}')"
 
       - name: Build JAR (Maven)
         working-directory: ${{ env.BACKEND_DIR }}
@@ -73,54 +69,58 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Built artifacts:"
-          ls -lh target || true
-          echo
-
-          # Pick the newest runnable jar (exclude *original*, sources, javadoc, tests)
-          JAR_PATH="$(ls -1t target/*.jar | grep -vE '(original|sources|javadoc|tests)' | head -n 1 || true)"
-          if [ -z "${JAR_PATH}" ]; then
-            echo "No deployable JAR found in target/." >&2
-            exit 1
-          fi
-
+          JAR_PATH="$(ls -1t target/*.jar | grep -vE '(original|sources|javadoc|tests)' | head -n 1)"
           echo "Using jar: ${JAR_PATH}"
-          sha256sum "${JAR_PATH}" || true
-
-          # EB needs config dirs shipped inside the source bundle
-          for required_dir in .ebextensions .platform; do
-            if [ ! -d "${required_dir}" ]; then
-              echo "Missing required directory '${required_dir}' in ${PWD}." >&2
-              exit 1
-            fi
-          done
 
           rm -rf eb-bundle bundle.zip
           mkdir -p eb-bundle
 
-          # EB expects the runnable jar at bundle root.
-          # Name it application.jar so Procfile is stable.
-          cp "${JAR_PATH}" "eb-bundle/application.jar"
-
+          cp "${JAR_PATH}" eb-bundle/application.jar
           cp -R .platform eb-bundle/.platform
           cp -R .ebextensions eb-bundle/.ebextensions
 
-          # Ensure Procfile exists (no heredoc)
-          if [ -f "Procfile" ]; then
+          if [ -f Procfile ]; then
             cp Procfile eb-bundle/Procfile
           else
-            printf "%s\n" "web: java -jar application.jar" > eb-bundle/Procfile
+            echo "web: java -jar application.jar" > eb-bundle/Procfile
           fi
 
           (cd eb-bundle && zip -qr ../bundle.zip .)
 
-          echo
-          echo "Bundle contents (first 120 lines):"
-          unzip -l bundle.zip | head -n 120
+          unzip -l bundle.zip | grep -E 'application.jar|Procfile'
 
-          echo
-          echo "Sanity check: application.jar and Procfile are at bundle root"
-          unzip -l bundle.zip | awk '{print $4}' | grep -qx "application.jar" \
-            || { echo "ERROR: application.jar missing at bundle root"; exit 1; }
-          unzip -l bundle.zip | awk '{print $4}' | grep -qx "Procfile" \
-            || { echo "ERROR: Procfile missing at bundle root"; exit 1; }
+      - name: Resolve Elastic Beanstalk S3 bucket
+        run: |
+          set -euo pipefail
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          EB_BUCKET="elasticbeanstalk-${AWS_REGION}-${ACCOUNT_ID}"
+          echo "EB_BUCKET=${EB_BUCKET}" >> $GITHUB_ENV
+          echo "Using EB bucket: ${EB_BUCKET}"
+
+      - name: Upload bundle to S3
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          set -euo pipefail
+          VERSION_LABEL="github-${GITHUB_SHA}-${GITHUB_RUN_ID}"
+          S3_KEY="reserveone/${VERSION_LABEL}.zip"
+
+          aws s3 cp bundle.zip "s3://${EB_BUCKET}/${S3_KEY}"
+
+          echo "VERSION_LABEL=${VERSION_LABEL}" >> $GITHUB_ENV
+          echo "S3_KEY=${S3_KEY}" >> $GITHUB_ENV
+
+      - name: Create Elastic Beanstalk application version
+        run: |
+          set -euo pipefail
+          aws elasticbeanstalk create-application-version \
+            --application-name "${EB_APPLICATION_NAME}" \
+            --version-label "${VERSION_LABEL}" \
+            --source-bundle S3Bucket="${EB_BUCKET}",S3Key="${S3_KEY}" \
+            --process
+
+      - name: Deploy application version to environment
+        run: |
+          set -euo pipefail
+          aws elasticbeanstalk update-environment \
+            --environment-name "${EB_ENVIRONMENT_NAME}" \
+            --version-label "${VERSION_LABEL}"
