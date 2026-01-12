@@ -26,6 +26,7 @@ export class ApiSecurityInterceptor implements HttpInterceptor {
     if (!isApiRequest(req.url)) return next.handle(req);
 
     const xsrf = getCookie('XSRF-TOKEN');
+
     const updated = req.clone({
       withCredentials: true,
       ...(xsrf ? { setHeaders: { 'X-XSRF-TOKEN': xsrf } } : {}),
