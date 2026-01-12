@@ -1,5 +1,6 @@
 package com.skillstorm.reserveone.services;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -17,6 +18,8 @@ import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -66,8 +69,7 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         OAuthProvider provider = mapProvider(registrationId);
 
-        // Merge ID token claims + userInfo attributes (Google often uses ID token for
-        // email/profile)
+        // Merge ID token claims + userInfo attributes
         Map<String, Object> attrs = mergedClaims(oidcUser);
 
         // Provider user id: prefer "sub" then fallback to "id"
@@ -77,17 +79,17 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         }
         providerUserId = providerUserId.trim();
 
-        log.info("OIDC login: provider={}, sub={}, email={}", registrationId, providerUserId, attrs.get(ATTR_EMAIL));
-
-        OAuthIdentity identity = oauthRepo
-                .findByProviderAndProviderUserId(Objects.requireNonNull(provider), providerUserId)
-                .orElse(null);
-
-        // Pull profile fields once from merged attrs
+        // Pull profile fields
         Boolean emailVerified = asBoolean(attrs.get(ATTR_EMAIL_VERIFIED));
         String email = normalizeEmailOptional(asString(attrs.get(ATTR_EMAIL)));
         String givenName = asString(attrs.get(ATTR_GIVEN_NAME));
         String familyName = asString(attrs.get(ATTR_FAMILY_NAME));
+
+        log.info("OIDC login: provider={}, sub={}, email={}", registrationId, providerUserId, email);
+
+        OAuthIdentity identity = oauthRepo
+                .findByProviderAndProviderUserId(Objects.requireNonNull(provider), providerUserId)
+                .orElse(null);
 
         User user;
         if (identity != null) {
@@ -100,17 +102,15 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         } else {
             user = null;
 
-            // If provider email is verified, try to link to an existing local user by email
+            // Link to an existing local user by verified email
             if (email != null && Boolean.TRUE.equals(emailVerified)) {
                 user = userRepo.findWithRolesByEmail(email).orElse(null);
             }
 
-            // Create a brand new local user if none exists
+            // Create new local user
             if (user == null) {
                 user = new User(null, null, null);
 
-                // Prefer verified email, but if email_verified is missing, still store email if
-                // present
                 if (email != null && (emailVerified == null || Boolean.TRUE.equals(emailVerified))) {
                     user.setEmail(email);
                 }
@@ -124,35 +124,29 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
 
                 user = userRepo.saveAndFlush(user);
 
-                final UUID savedUserId = user.getUserId();
-                user = userRepo.findWithRolesByUserId(Objects.requireNonNull(savedUserId))
+                final UUID savedUserId = Objects.requireNonNull(user.getUserId(), "userId must not be null");
+                user = userRepo.findWithRolesByUserId(savedUserId)
                         .orElseThrow(() -> new IllegalStateException(
                                 "User saved but could not be reloaded with roles: " + savedUserId));
             }
 
-            // Avoid violating uq_user_provider (unique per user+provider)
+            // Enforce unique user+provider mapping
             UUID userId = Objects.requireNonNull(user.getUserId(), "userId must not be null");
             var existingByUserAndProvider = oauthRepo.findByUser_UserIdAndProvider(userId, provider);
             if (existingByUserAndProvider.isPresent()) {
                 OAuthIdentity existing = existingByUserAndProvider.get();
                 if (!providerUserId.equals(existing.getProviderUserId())) {
-                    log.warn(
-                            "Replacing existing OAuthIdentity for userId={} provider={} (old sub={}, new sub={})",
-                            userId,
-                            provider,
-                            existing.getProviderUserId(),
-                            providerUserId);
+                    log.warn("Replacing OAuthIdentity for userId={} provider={} (old sub={}, new sub={})",
+                            userId, provider, existing.getProviderUserId(), providerUserId);
                     oauthRepo.delete(existing);
                     oauthRepo.flush();
                 }
             }
 
-            // Ensure the (provider, providerUserId) mapping exists
-            OAuthIdentity newIdentity = new OAuthIdentity(user, provider, providerUserId);
-            oauthRepo.save(newIdentity);
+            oauthRepo.save(new OAuthIdentity(user, provider, providerUserId));
         }
 
-        // Upsert profile info into the local user record
+        // Upsert profile info
         boolean changed = false;
 
         if (email != null && (emailVerified == null || Boolean.TRUE.equals(emailVerified))) {
@@ -179,27 +173,50 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
             user = userRepo.saveAndFlush(user);
         }
 
-        // Build authorities: keep OIDC + add DB roles
+        // --------------------------
+        // SESSION-SAFE PRINCIPAL:
+        // only store Strings/booleans/numbers in attributes
+        // and rebuild token/userInfo from that safe map.
+        // --------------------------
+        Map<String, Object> safeClaims = new LinkedHashMap<>();
+
+        // Required for DefaultOidcUser(nameAttributeKey="sub")
+        safeClaims.put(ATTR_SUB, providerUserId);
+
+        // Useful profile fields (keep serializable)
+        if (email != null)
+            safeClaims.put(ATTR_EMAIL, email);
+        if (emailVerified != null)
+            safeClaims.put(ATTR_EMAIL_VERIFIED, emailVerified);
+        if (givenName != null && !givenName.isBlank())
+            safeClaims.put(ATTR_GIVEN_NAME, givenName);
+        if (familyName != null && !familyName.isBlank())
+            safeClaims.put(ATTR_FAMILY_NAME, familyName);
+
+        // Your local user id as String (do NOT put UUID object)
+        UUID localUserId = Objects.requireNonNull(user.getUserId(), "userId must not be null");
+        safeClaims.put(ATTR_LOCAL_USER_ID, localUserId.toString());
+
+        // Authorities ONLY from DB roles (keeps it simple + serializable)
         Set<GrantedAuthority> authorities = new HashSet<>();
-        authorities.addAll(oidcUser.getAuthorities());
         for (Role r : user.getRoles()) {
             authorities.add(new SimpleGrantedAuthority("ROLE_" + r.getName()));
         }
+        // Optional: ensure at least one authority exists
+        if (authorities.isEmpty()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_GUEST"));
+        }
 
-        // ===== FIX: Guarantee "sub" exists for DefaultOidcUser(nameAttributeKey="sub")
-        // =====
-        Map<String, Object> enrichedAttrsMutable = new HashMap<>(attrs);
-        enrichedAttrsMutable.put(ATTR_SUB, providerUserId); // normalize fallback "id" into "sub"
-        enrichedAttrsMutable.put(ATTR_LOCAL_USER_ID, user.getUserId().toString());
-        Map<String, Object> enrichedAttrs = Map.copyOf(enrichedAttrsMutable);
-        // ================================================================================
+        // Rebuild a clean idToken using safe claims
+        OidcIdToken original = oidcUser.getIdToken();
+        String tokenValue = (original != null ? original.getTokenValue() : "n/a");
+        Instant issuedAt = (original != null ? original.getIssuedAt() : Instant.now());
+        Instant expiresAt = (original != null ? original.getExpiresAt() : issuedAt.plusSeconds(3600));
 
-        return new DefaultOidcUser(authorities, oidcUser.getIdToken(), oidcUser.getUserInfo(), ATTR_SUB) {
-            @Override
-            public Map<String, Object> getAttributes() {
-                return enrichedAttrs;
-            }
-        };
+        OidcIdToken rebuiltIdToken = new OidcIdToken(tokenValue, issuedAt, expiresAt, new HashMap<>(safeClaims));
+        OidcUserInfo rebuiltUserInfo = new OidcUserInfo(new HashMap<>(safeClaims));
+
+        return new DefaultOidcUser(authorities, rebuiltIdToken, rebuiltUserInfo, ATTR_SUB);
     }
 
     private static Map<String, Object> mergedClaims(OidcUser oidcUser) {
@@ -207,7 +224,6 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         if (oidcUser.getIdToken() != null && oidcUser.getIdToken().getClaims() != null) {
             out.putAll(oidcUser.getIdToken().getClaims());
         }
-        // Let UserInfo attrs win if present
         if (oidcUser.getAttributes() != null) {
             out.putAll(oidcUser.getAttributes());
         }
@@ -230,40 +246,32 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
     }
 
     private static Boolean asBoolean(Object v) {
-        if (v instanceof Boolean b) {
+        if (v instanceof Boolean b)
             return b;
-        }
-        if (v == null) {
+        if (v == null)
             return null;
-        }
         String s = String.valueOf(v).trim().toLowerCase(Locale.ROOT);
-        if ("true".equals(s)) {
+        if ("true".equals(s))
             return Boolean.TRUE;
-        }
-        if ("false".equals(s)) {
+        if ("false".equals(s))
             return Boolean.FALSE;
-        }
         return null;
     }
 
     private static String firstNonBlank(String a, String b) {
-        if (a != null && !a.isBlank()) {
+        if (a != null && !a.isBlank())
             return a.trim();
-        }
-        if (b != null && !b.isBlank()) {
+        if (b != null && !b.isBlank())
             return b.trim();
-        }
         return null;
     }
 
     private static String normalizeEmailOptional(String value) {
-        if (value == null) {
+        if (value == null)
             return null;
-        }
         String trimmed = value.trim();
-        if (trimmed.isBlank()) {
+        if (trimmed.isBlank())
             return null;
-        }
         return trimmed.toLowerCase(Locale.ROOT);
     }
 }
