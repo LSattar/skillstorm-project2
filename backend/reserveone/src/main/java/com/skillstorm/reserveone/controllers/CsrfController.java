@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @RestController
 public class CsrfController {
 
-     @GetMapping("/csrf")
+    @GetMapping("/csrf")
     public ResponseEntity<Map<String, String>> csrf(HttpServletRequest req) {
 
         // Force token to be resolved for this request.
@@ -22,20 +22,10 @@ public class CsrfController {
         CsrfToken token = (CsrfToken) req.getAttribute(CsrfToken.class.getName());
         // CSRF tokens are per-client and must never be cached.
 
-          String value = (token == null) ? "" : token.getToken();
-          return ResponseEntity.ok()
+        String value = (token == null) ? "" : token.getToken();
+        return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .header(HttpHeaders.PRAGMA, "no-cache")
                 .body(Map.of("token", value));
     }
-}
-
-
-
-   
-        
-
-      
-
-     
 }
