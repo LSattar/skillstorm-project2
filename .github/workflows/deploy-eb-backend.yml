@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 17
@@ -53,31 +53,32 @@ jobs:
           mask-aws-account-id: true
           unset-current-credentials: true
 
-      - name: Debug AWS identity
+      - name: Verify AWS identity
         run: |
           set -euo pipefail
           aws sts get-caller-identity --output json
 
-      - name: Build JAR (Maven)
+      - name: Build Spring Boot JAR (Maven)
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           set -euo pipefail
           mvn -B -DskipTests package
 
-      - name: Prepare Elastic Beanstalk source bundle (zip)
+      - name: Prepare Elastic Beanstalk source bundle
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           set -euo pipefail
 
           JAR_PATH="$(ls -1t target/*.jar | grep -vE '(original|sources|javadoc|tests)' | head -n 1)"
-          echo "Using jar: ${JAR_PATH}"
+          echo "Using JAR: ${JAR_PATH}"
 
           rm -rf eb-bundle bundle.zip
           mkdir -p eb-bundle
 
           cp "${JAR_PATH}" eb-bundle/application.jar
-          cp -R .platform eb-bundle/.platform
-          cp -R .ebextensions eb-bundle/.ebextensions
+
+          [ -d .platform ] && cp -R .platform eb-bundle/.platform
+          [ -d .ebextensions ] && cp -R .ebextensions eb-bundle/.ebextensions
 
           if [ -f Procfile ]; then
             cp Procfile eb-bundle/Procfile
@@ -87,7 +88,10 @@ jobs:
 
           (cd eb-bundle && zip -qr ../bundle.zip .)
 
+          echo "Validating bundle contents:"
           unzip -l bundle.zip | grep -E 'application.jar|Procfile'
+          unzip -l bundle.zip | awk '{print $4}' | grep -qx 'application.jar'
+          unzip -l bundle.zip | awk '{print $4}' | grep -qx 'Procfile'
 
       - name: Resolve Elastic Beanstalk S3 bucket
         run: |
@@ -101,7 +105,9 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           set -euo pipefail
-          VERSION_LABEL="github-${GITHUB_SHA}-$(date +%s)"
+
+          SHORT_SHA="${GITHUB_SHA:0:12}"
+          VERSION_LABEL="github-${SHORT_SHA}-$(date +%s)"
           S3_KEY="reserveone/${VERSION_LABEL}.zip"
 
           aws s3 cp bundle.zip "s3://${EB_BUCKET}/${S3_KEY}"
@@ -118,9 +124,15 @@ jobs:
             --source-bundle S3Bucket="${EB_BUCKET}",S3Key="${S3_KEY}" \
             --process
 
-      - name: Deploy application version to environment
+      - name: Deploy application version
         run: |
           set -euo pipefail
           aws elasticbeanstalk update-environment \
             --environment-name "${EB_ENVIRONMENT_NAME}" \
             --version-label "${VERSION_LABEL}"
+
+      - name: Wait for environment to finish updating
+        run: |
+          set -euo pipefail
+          aws elasticbeanstalk wait environment-updated \
+            --environment-name "${EB_ENVIRONMENT_NAME}"
