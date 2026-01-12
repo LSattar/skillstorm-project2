@@ -5,9 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.skillstorm.reserveone.services.CustomOAuth2UserService;
-import com.skillstorm.reserveone.services.CustomOidcUserService;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,11 +25,15 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.skillstorm.reserveone.services.CustomOAuth2UserService;
+import com.skillstorm.reserveone.services.CustomOidcUserService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -89,7 +90,6 @@ public class SecurityConfig {
                                         CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository
                                                         .withHttpOnlyFalse();
 
-                                        // IMPORTANT with context-path=/api: force cookie to be usable from /admin/*
                                         csrfRepo.setCookiePath("/");
                                         csrfRepo.setCookieName("XSRF-TOKEN");
                                         csrfRepo.setHeaderName("X-XSRF-TOKEN");
@@ -101,13 +101,17 @@ public class SecurityConfig {
 
                                         csrf.csrfTokenRepository(csrfRepo);
 
+                                        // KEY FIX: disable XOR masking so header token can equal cookie token
+                                        // (Angular-friendly)
+                                        csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
+
                                         csrf.ignoringRequestMatchers(
                                                         "/health",
                                                         "/health/**",
                                                         "/actuator/**");
                                 })
 
-                                // ✅ CRITICAL FIX: ensure CSRF token is always generated and written as a cookie
+                                // CRITICAL FIX: ensure CSRF token is always generated and written as a cookie
                                 // This prevents "Invalid CSRF token found" after OAuth session migration /
                                 // behind proxies.
                                 // Put this after your csrf(...) config:
