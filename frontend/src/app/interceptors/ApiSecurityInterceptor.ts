@@ -3,12 +3,8 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 function getCookie(name: string): string | null {
-  const cookies = document.cookie ? document.cookie.split('; ') : [];
-  for (const c of cookies) {
-    const [k, ...rest] = c.split('=');
-    if (k === name) return decodeURIComponent(rest.join('='));
-  }
-  return null;
+  const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
+  return match ? match[2] : null; // do not decode
 }
 
 function isApiRequest(url: string): boolean {
@@ -27,11 +23,11 @@ export class ApiSecurityInterceptor implements HttpInterceptor {
 
     const xsrf = getCookie('XSRF-TOKEN');
 
-    const updated = req.clone({
-      withCredentials: true,
-      ...(xsrf ? { setHeaders: { 'X-XSRF-TOKEN': xsrf } } : {}),
-    });
-
-    return next.handle(updated);
+    return next.handle(
+      req.clone({
+        withCredentials: true,
+        ...(xsrf ? { setHeaders: { 'X-XSRF-TOKEN': xsrf } } : {}),
+      })
+    );
   }
 }
