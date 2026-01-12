@@ -1,49 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LOG_FILE="/var/log/eb-hooks.log"
+URL_APP="http://127.0.0.1:5000/api/actuator/health/liveness"
+URL_NGINX="http://127.0.0.1/api/actuator/health/liveness"
 
-log() {
-  local msg="$1"
-  echo "[postdeploy-healthcheck] $(date -u +'%Y-%m-%dT%H:%M:%SZ') ${msg}" | tee -a "$LOG_FILE" | logger -t postdeploy-healthcheck || true
-}
+MAX_SECONDS=180
+SLEEP_SECONDS=2
 
-curl_one() {
-  local url="$1"
-  local name="$2"
+echo "[postdeploy-healthcheck] Waiting for app liveness: $URL_APP (max ${MAX_SECONDS}s)"
 
-  log "Probing ${name}: ${url}"
+start=$(date +%s)
+while true; do
+  # Try app direct first (most important signal)
+  code=$(curl -sS -o /tmp/hc_body.txt -w "%{http_code}" "$URL_APP" || true)
 
-  local metrics
-  metrics="$(curl -sS -m 5 -o /tmp/eb-healthcheck-body.txt -w 'status=%{http_code} time=%{time_total}s\n' "$url" 2>&1 || true)"
+  if [[ "$code" == "200" ]]; then
+    echo "[postdeploy-healthcheck] app-direct OK (200)"
+    break
+  fi
 
-  local body_preview
-  body_preview="$(head -c 200 /tmp/eb-healthcheck-body.txt | tr '\n' ' ' | tr -s ' ' || true)"
+  now=$(date +%s)
+  elapsed=$((now - start))
+  if (( elapsed >= MAX_SECONDS )); then
+    echo "[postdeploy-healthcheck] FAILED after ${elapsed}s. Last status=$code body:"
+    cat /tmp/hc_body.txt || true
+    exit 1
+  fi
 
-  log "${name} result: ${metrics//$'\n'/ } body='${body_preview}'"
-}
+  echo "[postdeploy-healthcheck] Not ready yet (status=$code). Retrying in ${SLEEP_SECONDS}s..."
+  sleep "$SLEEP_SECONDS"
+done
 
-retry() {
-  local tries="$1"
-  local sleep_s="$2"
-  shift 2
-  local i=1
-  while [ "$i" -le "$tries" ]; do
-    "$@" && return 0
-    log "Attempt ${i}/${tries} failed; sleeping ${sleep_s}s"
-    sleep "$sleep_s"
-    i=$((i+1))
-  done
-  return 0  # never fail the hook
-}
+# Optional: also confirm nginx proxy path works once app is up
+code_nginx=$(curl -sS -o /tmp/hc_nginx_body.txt -w "%{http_code}" "$URL_NGINX" || true)
+echo "[postdeploy-healthcheck] nginx status=$code_nginx"
+if [[ "$code_nginx" != "200" ]]; then
+  echo "[postdeploy-healthcheck] nginx body:"
+  cat /tmp/hc_nginx_body.txt || true
+  exit 1
+fi
 
-# Prefer EB-provided PORT, fallback to 5000
-APP_PORT="${PORT:-5000}"
-
-# Give the app/proxy a moment to settle after flip + reload.
-sleep 2
-
-retry 6 5 curl_one "http://127.0.0.1/api/actuator/health/liveness" "nginx:/api/actuator/health/liveness"
-retry 6 5 curl_one "http://127.0.0.1:${APP_PORT}/api/actuator/health/liveness" "app-direct:${APP_PORT}/api/actuator/health/liveness"
-
-log "Postdeploy health probes complete."
+echo "[postdeploy-healthcheck] OK"

@@ -93,6 +93,10 @@ jobs:
           unzip -l bundle.zip | awk '{print $4}' | grep -qx 'application.jar'
           unzip -l bundle.zip | awk '{print $4}' | grep -qx 'Procfile'
 
+          # Optional visibility checks (won't fail build)
+          unzip -l bundle.zip | awk '{print $4}' | grep -q '^\.platform/' || echo "Note: no .platform directory in bundle"
+          unzip -l bundle.zip | awk '{print $4}' | grep -q '^\.ebextensions/' || echo "Note: no .ebextensions directory in bundle"
+
       - name: Resolve Elastic Beanstalk S3 bucket
         run: |
           set -euo pipefail
@@ -107,7 +111,7 @@ jobs:
           set -euo pipefail
 
           SHORT_SHA="${GITHUB_SHA:0:12}"
-          VERSION_LABEL="github-${SHORT_SHA}-$(date +%s)"
+          VERSION_LABEL="github-${SHORT_SHA}-${GITHUB_RUN_NUMBER}"
           S3_KEY="reserveone/${VERSION_LABEL}.zip"
 
           aws s3 cp bundle.zip "s3://${EB_BUCKET}/${S3_KEY}"
@@ -136,3 +140,44 @@ jobs:
           set -euo pipefail
           aws elasticbeanstalk wait environment-updated \
             --environment-name "${EB_ENVIRONMENT_NAME}"
+
+      - name: Wait for environment health to be OK/Green
+        run: |
+          set -euo pipefail
+
+          ENV="${EB_ENVIRONMENT_NAME}"
+          echo "Waiting for EB env health to be OK/Green..."
+
+          deadline=$((SECONDS + 600))  # 10 min
+          while (( SECONDS < deadline )); do
+            out="$(aws elasticbeanstalk describe-environments \
+              --environment-names "$ENV" \
+              --query 'Environments[0].{Status:Status,Health:Health,HealthStatus:HealthStatus}' \
+              --output json)"
+
+            status="$(echo "$out" | jq -r .Status)"
+            health="$(echo "$out" | jq -r .Health)"
+            healthStatus="$(echo "$out" | jq -r .HealthStatus)"
+
+            echo "Status=$status Health=$health HealthStatus=$healthStatus"
+
+            if [[ "$status" == "Ready" && ( "$health" == "Green" || "$healthStatus" == "Ok" ) ]]; then
+              echo "Environment is healthy."
+              exit 0
+            fi
+
+            sleep 15
+          done
+
+          echo "Timed out waiting for healthy environment."
+          exit 1
+
+      - name: Dump recent EB events (on failure)
+        if: failure()
+        run: |
+          set -euo pipefail
+          aws elasticbeanstalk describe-events \
+            --environment-name "${EB_ENVIRONMENT_NAME}" \
+            --max-items 50 \
+            --query 'Events[].{Time:EventDate,Severity:Severity,Message:Message}' \
+            --output table
