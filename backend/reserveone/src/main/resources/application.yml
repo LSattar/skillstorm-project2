@@ -15,6 +15,10 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:${RDS_USERNAME:postgres}}}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${RDS_PASSWORD:}}}
 
+  # Persist Spring Security sessions across EB instances (Aurora Postgres)
+  # Set SESSION_INIT_SCHEMA=always for one deploy to create tables, then switch back to never
+  # NOTE: 'spring.session.store-type' is valid for Spring Boot with Spring Session JDBC.
+  # If your IDE shows a warning, it is a false positive and can be ignored.
   session:
     store-type: jdbc
     jdbc:
