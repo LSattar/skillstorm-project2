@@ -20,14 +20,18 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.skillstorm.reserveone.services.CustomOAuth2UserService;
 import com.skillstorm.reserveone.services.CustomOidcUserService;
 
+import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -81,7 +85,7 @@ public class SecurityConfig {
                                         csrfRepo.setHeaderName("X-XSRF-TOKEN");
 
                                         csrfRepo.setCookieCustomizer(builder -> builder
-                                                        .path("/") // reinforce
+                                                        .path("/")
                                                         .sameSite("None")
                                                         .secure(true));
 
@@ -92,6 +96,24 @@ public class SecurityConfig {
                                                         "/health/**",
                                                         "/actuator/**");
                                 })
+
+                                // ✅ CRITICAL FIX: ensure CSRF token is always generated and written as a cookie
+                                // This prevents "Invalid CSRF token found" after OAuth session migration /
+                                // behind proxies.
+                                .addFilterAfter(new OncePerRequestFilter() {
+                                        @Override
+                                        protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                                        FilterChain chain)
+                                                        throws ServletException, IOException {
+                                                CsrfToken token = (CsrfToken) req
+                                                                .getAttribute(CsrfToken.class.getName());
+                                                if (token != null) {
+                                                        token.getToken(); // touching it forces
+                                                                          // CookieCsrfTokenRepository to save cookie
+                                                }
+                                                chain.doFilter(req, res);
+                                        }
+                                }, CsrfFilter.class)
 
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
@@ -108,14 +130,8 @@ public class SecurityConfig {
                                                 // === Health checks (EB/ALB) ===
                                                 .requestMatchers("/health", "/health/**").permitAll()
                                                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                                                // (Optional) if you ever expose other actuator endpoints:
-                                                // .requestMatchers("/actuator/**").hasRole("ADMIN")
 
                                                 // OAuth2 handshake endpoints
-                                                // With context-path=/api, these are reachable at:
-                                                // /api/oauth2/authorization/google
-                                                // /api/login/oauth2/code/google
-                                                // but matchers must be WITHOUT /api:
                                                 .requestMatchers("/oauth2/**", "/login/**").permitAll()
 
                                                 // CSRF bootstrap for SPA (reachable at /api/csrf)
@@ -124,7 +140,7 @@ public class SecurityConfig {
                                                 // Session check for SPA (reachable at /api/auth/me)
                                                 .requestMatchers(HttpMethod.GET, "/auth/me").permitAll()
 
-                                                // Public endpoints (reachable at /api/...)
+                                                // Public endpoints
                                                 .requestMatchers(HttpMethod.GET, "/rooms/available").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/rooms/*").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/rooms/hotel/*").permitAll()
@@ -184,6 +200,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/analytics/**").hasAnyRole("BUSINESS_OWNER", "ADMIN")
 
                                                 .anyRequest().authenticated())
+
                                 .oauth2Login(oauth -> oauth
                                                 .authorizationEndpoint(authorization -> {
                                                         DefaultOAuth2AuthorizationRequestResolver defaultResolver = new DefaultOAuth2AuthorizationRequestResolver(
@@ -248,13 +265,15 @@ public class SecurityConfig {
                                                                 .oidcUserService(oidcUserService)
                                                                 .userService(oAuth2UserService))
                                                 .successHandler(this::oauth2SuccessRedirect))
+
                                 .logout(logout -> logout
                                                 // Reachable at /api/logout, matcher should be without /api
                                                 .logoutUrl("/logout")
                                                 .invalidateHttpSession(true)
                                                 .clearAuthentication(true)
-                                                .deleteCookies("JSESSIONID", "XSRF-TOKEN")
-                                                .logoutSuccessHandler((req, res, auth) -> res.setStatus(200)));
+                                                // ✅ FIX: Spring Session uses SESSION, not JSESSIONID
+                                                .deleteCookies("SESSION", "XSRF-TOKEN")
+                                                .logoutSuccessHandler((req, res, auth2) -> res.setStatus(200)));
 
                 return http.build();
         }
@@ -277,8 +296,6 @@ public class SecurityConfig {
         CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
 
-                // If FRONTEND_URL is like https://dnyc0q77vtas5.cloudfront.net, allow it.
-                // AllowedOriginPatterns supports wildcards if you ever need them later.
                 config.setAllowedOriginPatterns(List.of(
                                 frontendUrl,
                                 "http://localhost:4200",
