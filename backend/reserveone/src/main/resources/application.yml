@@ -22,7 +22,7 @@ spring:
   session:
     store-type: jdbc
     jdbc:
-      initialize-schema: ${SESSION_INIT_SCHEMA:never}
+      initialize-schema: ${SESSION_INIT_SCHEMA:always}
       schema: classpath:org/springframework/session/jdbc/schema-postgresql.sql
 
   sql:
