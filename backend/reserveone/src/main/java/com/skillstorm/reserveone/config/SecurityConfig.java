@@ -110,6 +110,7 @@ public class SecurityConfig {
                                 // ✅ CRITICAL FIX: ensure CSRF token is always generated and written as a cookie
                                 // This prevents "Invalid CSRF token found" after OAuth session migration /
                                 // behind proxies.
+                                // Put this after your csrf(...) config:
                                 .addFilterAfter(new OncePerRequestFilter() {
                                         @Override
                                         protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
@@ -117,10 +118,8 @@ public class SecurityConfig {
                                                         throws ServletException, IOException {
                                                 CsrfToken token = (CsrfToken) req
                                                                 .getAttribute(CsrfToken.class.getName());
-                                                if (token != null) {
-                                                        token.getToken(); // touching it forces
-                                                                          // CookieCsrfTokenRepository to save cookie
-                                                }
+                                                if (token != null)
+                                                        token.getToken();
                                                 chain.doFilter(req, res);
                                         }
                                 }, CsrfFilter.class)
