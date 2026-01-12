@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -63,10 +62,10 @@ public class SecurityConfig {
                                 .csrf(csrf -> {
                                         CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository
                                                         .withHttpOnlyFalse();
-                                        csrfRepo.setCookieCustomizer(
-                                                        (ResponseCookie.ResponseCookieBuilder builder) -> builder
-                                                                        .sameSite("None")
-                                                                        .secure(true));
+                                        csrfRepo.setCookieCustomizer(builder -> builder
+                                                        .path("/")
+                                                        .sameSite("None")
+                                                        .secure(true));
                                         csrf.csrfTokenRepository(csrfRepo);
 
                                         // Health/actuator must never require CSRF (ALB probes, uptime monitors)
