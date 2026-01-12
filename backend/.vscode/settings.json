@@ -1,0 +1,10 @@
+{
+  "yaml.validate": true,
+  "yaml.customTags": ["!ignore", "!include"],
+  "yaml.schemas": {},
+  "spring-boot.ls.java.config": {
+    "userSettings": {
+      "yaml.unknownProperties": "ignore"
+    }
+  }
+}
