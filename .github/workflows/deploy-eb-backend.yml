@@ -101,7 +101,7 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           set -euo pipefail
-          VERSION_LABEL="github-${GITHUB_SHA}-${GITHUB_RUN_ID}"
+          VERSION_LABEL="github-${GITHUB_SHA}-$(date +%s)"
           S3_KEY="reserveone/${VERSION_LABEL}.zip"
 
           aws s3 cp bundle.zip "s3://${EB_BUCKET}/${S3_KEY}"
