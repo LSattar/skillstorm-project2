@@ -28,14 +28,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   boolean existsByUserId(@NonNull UUID userId);
 
   @Query("""
-      select distinct u
-      from User u
-      left join fetch u.roles r
-      where (:q is null or :q = ''
-         or lower(u.email) like lower(concat('%', :q, '%'))
-         or lower(u.firstName) like lower(concat('%', :q, '%'))
-         or lower(u.lastName) like lower(concat('%', :q, '%'))
-      )
+      select u from User u
+      where (:status = 'ALL' or u.status = :status)
+        and (
+          :q is null or :q = '' or
+          lower(u.email) like lower(concat('%', :q, '%')) or
+          lower(u.firstName) like lower(concat('%', :q, '%')) or
+          lower(u.lastName) like lower(concat('%', :q, '%'))
+        )
       """)
-  Page<User> searchWithRoles(@Param("q") String q, Pageable pageable);
+  Page<User> searchAdminUsers(@Param("q") String q, @Param("status") String status, Pageable pageable);
 }

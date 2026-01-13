@@ -77,6 +77,7 @@ export class SystemSettingsPage {
 
   // Search
   query = '';
+  statusFilter: 'ACTIVE' | 'INACTIVE' | 'ALL' = 'ACTIVE';
   users: UserAdminView[] = [];
   selected: UserAdminView | null = null;
 
@@ -118,9 +119,9 @@ export class SystemSettingsPage {
     this.loading = true;
     this.cdr.markForCheck();
 
-    this.api.searchUsers(this.query, 25).subscribe({
-      next: (users) => {
-        this.users = Array.isArray(users) ? users : [];
+    this.api.searchAdminUsers(this.query, this.statusFilter, 0, 25).subscribe({
+      next: (result) => {
+        this.users = Array.isArray(result?.content) ? result.content : [];
         this.selected = this.users[0] ?? null;
         this.loading = false;
         this.cdr.markForCheck();
@@ -175,21 +176,48 @@ export class SystemSettingsPage {
     });
   }
 
-  deleteSelected(): void {
+  deactivateSelected(): void {
     if (!this.selected?.userId) return;
-    if (!confirm('Delete this user? This cannot be undone.')) return;
+    if (this.selected.userId === this.auth.meSignal()?.localUserId) {
+      this.error = 'You cannot deactivate your own account.';
+      return;
+    }
+    if (!confirm('Deactivate this user?')) return;
 
     this.loading = true;
-    this.api.deleteUser(this.selected.userId).subscribe({
+    this.api.deactivateUser(this.selected.userId).subscribe({
       next: () => {
-        const id = this.selected?.userId;
-        this.users = this.users.filter((u) => u.userId !== id);
-        this.selected = this.users[0] ?? null;
+        this.selected = { ...this.selected!, status: 'INACTIVE' };
+        this.users = this.users.map((u) =>
+          u.userId === this.selected?.userId ? { ...u, status: 'INACTIVE' } : u
+        );
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: () => {
-        this.error = 'Failed to delete user.';
+        this.error = 'Failed to deactivate user.';
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  activateSelected(): void {
+    if (!this.selected?.userId) return;
+    if (!confirm('Activate this user?')) return;
+
+    this.loading = true;
+    this.api.activateUser(this.selected.userId).subscribe({
+      next: () => {
+        this.selected = { ...this.selected!, status: 'ACTIVE' };
+        this.users = this.users.map((u) =>
+          u.userId === this.selected?.userId ? { ...u, status: 'ACTIVE' } : u
+        );
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.error = 'Failed to activate user.';
         this.loading = false;
         this.cdr.detectChanges();
       },

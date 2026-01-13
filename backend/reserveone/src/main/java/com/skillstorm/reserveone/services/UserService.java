@@ -27,6 +27,32 @@ import com.skillstorm.reserveone.repositories.UserRepository;
 
 @Service
 public class UserService {
+    @Transactional
+    public void deactivateUser(UUID userId, UUID actingAdminId) {
+        if (userId.equals(actingAdminId)) {
+            throw new ResourceConflictException("You cannot deactivate your own account.");
+        }
+        User user = repo.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        user.setStatus(User.Status.INACTIVE);
+        repo.save(user);
+    }
+
+    @Transactional
+    public void activateUser(UUID userId, UUID actingAdminId) {
+        User user = repo.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        user.setStatus(User.Status.ACTIVE);
+        repo.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<com.skillstorm.reserveone.dto.users.UserSearchResponse> searchAdminUsers(
+            String q, String status, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<User> users = repo.searchAdminUsers(q, status, pageable);
+        return users.map(u -> new com.skillstorm.reserveone.dto.users.UserSearchResponse(
+                u.getUserId(), u.getFirstName(), u.getLastName(), u.getEmail(), u.getStatus()));
+    }
 
     private final UserRepository repo;
     private final UserMapper mapper;

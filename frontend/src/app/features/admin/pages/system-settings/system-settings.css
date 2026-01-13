@@ -1,3 +1,13 @@
+/* Inactive badge style */
+.badge.badge-inactive {
+  background: #e0a800;
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.85em;
+  margin-left: 8px;
+  vertical-align: middle;
+}
 /* System settings page styles */
 .system-settings-page {
   max-width: 980px;
