@@ -24,8 +24,48 @@
     <!-- Actions -->
     <div class="header-actions">
       <button class="btn btn-ghost" type="button" (click)="openBooking.emit()">Search</button>
-      <!-- ...existing code for user menu and actions... -->
-      <!-- ...existing code for user menu and actions... -->
+
+      <!-- Avatar/User Menu Button -->
+      <div class="user-menu-wrapper" [class.open]="userMenuOpen">
+        <button
+          class="avatar-btn"
+          type="button"
+          aria-label="Open user menu"
+          (click)="toggleUserMenu()"
+        >
+          <span class="avatar-circle">{{ avatarText }}</span>
+        </button>
+        <div class="user-menu" *ngIf="userMenuOpen">
+          <div class="user-menu-header">
+            <span class="user-label">{{ userLabel }}</span>
+            <span class="user-email">{{ userEmail }}</span>
+          </div>
+          <ul class="user-menu-list">
+            <li>
+              <button class="btn btn-link" type="button" (click)="onOpenProfile()">
+                Profile & Settings
+              </button>
+            </li>
+            <li *ngIf="isAdmin">
+              <a routerLink="/admin-dashboard" class="btn btn-link">Admin Dashboard</a>
+            </li>
+            <li *ngIf="isAdmin">
+              <a routerLink="/admin/reservations" class="btn btn-link">Reservations</a>
+            </li>
+            <li *ngIf="isAdmin">
+              <a routerLink="/admin/payment-transactions" class="btn btn-link"
+                >Payment Transactions</a
+              >
+            </li>
+            <li *ngIf="showSystemSettings">
+              <a routerLink="/admin/system-settings" class="btn btn-link">System Settings</a>
+            </li>
+            <li>
+              <button class="btn btn-link" type="button" (click)="logout.emit()">Sign out</button>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
 </header>
