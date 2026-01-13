@@ -26,44 +26,34 @@
       <button class="btn btn-ghost" type="button" (click)="openBooking.emit()">Search</button>
 
       <!-- Avatar/User Menu Button -->
-      <div class="user-menu-wrapper" [class.open]="userMenuOpen">
+      <div class="user-menu">
         <button
           class="avatar-btn"
           type="button"
           aria-label="Open user menu"
           (click)="toggleUserMenu()"
         >
-          <span class="avatar-circle">{{ avatarText }}</span>
+          <span class="avatar">{{ avatarText }}</span>
         </button>
-        <div class="user-menu" *ngIf="userMenuOpen">
+        <div class="menu-backdrop" *ngIf="userMenuOpen" (click)="closeUserMenu()"></div>
+        <div class="menu-panel" *ngIf="userMenuOpen">
           <div class="user-menu-header">
             <span class="user-label">{{ userLabel }}</span>
             <span class="user-email">{{ userEmail }}</span>
+            <span class="menu-role" *ngIf="roleLabel">{{ roleLabel }}</span>
           </div>
-          <ul class="user-menu-list">
-            <li>
-              <button class="btn btn-link" type="button" (click)="onOpenProfile()">
-                Profile & Settings
-              </button>
-            </li>
-            <li *ngIf="isAdmin">
-              <a routerLink="/admin-dashboard" class="btn btn-link">Admin Dashboard</a>
-            </li>
-            <li *ngIf="isAdmin">
-              <a routerLink="/admin/reservations" class="btn btn-link">Reservations</a>
-            </li>
-            <li *ngIf="isAdmin">
-              <a routerLink="/admin/payment-transactions" class="btn btn-link"
-                >Payment Transactions</a
-              >
-            </li>
-            <li *ngIf="showSystemSettings">
-              <a routerLink="/admin/system-settings" class="btn btn-link">System Settings</a>
-            </li>
-            <li>
-              <button class="btn btn-link" type="button" (click)="logout.emit()">Sign out</button>
-            </li>
-          </ul>
+          <button class="menu-item" type="button" (click)="onOpenProfile()">
+            Profile & Settings
+          </button>
+          <a *ngIf="isAdmin" routerLink="/admin-dashboard" class="menu-item">Admin Dashboard</a>
+          <a *ngIf="isAdmin" routerLink="/admin/reservations" class="menu-item">Reservations</a>
+          <a *ngIf="isAdmin" routerLink="/admin/payment-transactions" class="menu-item"
+            >Payment Transactions</a
+          >
+          <a *ngIf="showSystemSettings" routerLink="/admin/system-settings" class="menu-item"
+            >System Settings</a
+          >
+          <button class="menu-item danger" type="button" (click)="logout.emit()">Sign out</button>
         </div>
       </div>
     </div>
