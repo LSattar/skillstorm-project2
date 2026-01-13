@@ -119,7 +119,7 @@ export class SystemSettingsPage {
     this.loading = true;
     this.cdr.markForCheck();
 
-    this.api.searchAdminUsers(this.query, this.statusFilter, 0, 25).subscribe({
+    this.api.searchUsers(this.query, this.statusFilter, 0, 25).subscribe({
       next: (result) => {
         this.users = Array.isArray(result?.content) ? result.content : [];
         this.selected = this.users[0] ?? null;
