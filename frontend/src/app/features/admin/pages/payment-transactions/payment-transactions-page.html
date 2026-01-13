@@ -199,13 +199,20 @@
     </div>
   </div>
 
+  <!-- Profile Modal -->
+  <app-user-profile-modal
+    *ngIf="isProfileOpen"
+    [open]="isProfileOpen"
+    (closed)="closeProfile()"
+    (saved)="closeProfile()"
+  ></app-user-profile-modal>
+
   <!-- Details Modal -->
   <app-user-profile-modal
     *ngIf="showDetailsModal && selected"
     [open]="showDetailsModal"
     (closed)="closeDetailsModal()"
   >
-    <!-- You can replace this with a custom modal if needed -->
     <div class="modal-content">
       <h2>Transaction Details</h2>
       <p><strong>Guest:</strong> {{ selected.guestName }} ({{ selected.guestEmail }})</p>
