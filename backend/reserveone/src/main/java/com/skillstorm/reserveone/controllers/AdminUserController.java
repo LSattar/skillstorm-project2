@@ -31,7 +31,16 @@ public class AdminUserController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "ACTIVE") String status,
             Pageable pageable) {
-        return ResponseEntity.ok(service.searchAdminUsers(q, status, pageable));
+        // Use the new search method and map UserResponse to UserSearchResponse for
+        // admin listing
+        var users = service.search(q == null ? "" : q, pageable.getPageSize(), status)
+                .stream()
+                .map(u -> new UserSearchResponse(u.userId(), u.firstName(), u.lastName(), u.email(), u.status()))
+                .toList();
+        // Manually create a Page since the new search returns a List
+        org.springframework.data.domain.Page<UserSearchResponse> page = new org.springframework.data.domain.PageImpl<>(
+                users, pageable, users.size());
+        return ResponseEntity.ok(page);
     }
 
     @PatchMapping("/{id}/deactivate")
