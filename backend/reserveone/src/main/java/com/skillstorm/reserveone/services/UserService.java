@@ -6,8 +6,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,26 @@ import com.skillstorm.reserveone.repositories.UserRepository;
 
 @Service
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
+    @Transactional
+    public void deactivateUser(UUID userId, UUID actingAdminId) {
+        if (userId.equals(actingAdminId)) {
+            throw new ResourceConflictException("You cannot deactivate your own account.");
+        }
+        User user = repo.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        user.setStatus(User.Status.INACTIVE);
+        repo.save(user);
+    }
+
+    @Transactional
+    public void activateUser(UUID userId, UUID actingAdminId) {
+        User user = repo.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        user.setStatus(User.Status.ACTIVE);
+        repo.save(user);
+    }
 
     private final UserRepository repo;
     private final UserMapper mapper;
@@ -188,15 +209,29 @@ public class UserService {
         return trimmed.toLowerCase();
     }
 
+    /**
+     * Search users by name or email, filtered by status.
+     * 
+     * @param q      search query (name or email)
+     * @param limit  max results
+     * @param status "ACTIVE", "INACTIVE", or "ALL"
+     */
     @Transactional(readOnly = true)
-    public List<UserResponse> search(@NonNull String q, int limit) {
-        final String query = q.trim();
-        final int size = Math.min(Math.max(limit, 1), 50);
-
-        return repo.searchWithRoles(query, PageRequest.of(0, size))
-                .stream()
+    public List<UserResponse> searchPage(String q, String status, int page, int size) {
+        String query = (q == null) ? "" : q.trim();
+        String safeStatus = (status == null || status.isBlank()) ? "ACTIVE" : status.toUpperCase(Locale.ROOT);
+        com.skillstorm.reserveone.models.User.Status enumStatus = null;
+        if (!"ALL".equals(safeStatus)) {
+            try {
+                enumStatus = com.skillstorm.reserveone.models.User.Status.valueOf(safeStatus);
+            } catch (IllegalArgumentException e) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid status");
+            }
+        }
+        return repo.searchUsers(query, enumStatus, org.springframework.data.domain.PageRequest.of(page, size))
                 .map(mapper::toResponse)
-                .toList();
+                .getContent();
     }
 
     @Transactional

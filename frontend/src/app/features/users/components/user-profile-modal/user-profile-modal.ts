@@ -24,7 +24,7 @@ import { UserProfileService, UserProfileUpdate } from './../../../users/user-pro
 })
 export class UserProfileModal implements OnChanges {
   private readonly userProfile = inject(UserProfileService);
-  private readonly auth = inject(AuthService);
+  public readonly auth = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() open = false;

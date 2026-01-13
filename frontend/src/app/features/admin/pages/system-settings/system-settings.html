@@ -34,6 +34,11 @@
           [(ngModel)]="query"
           (keydown.enter)="search()"
         />
+        <select class="input" [(ngModel)]="statusFilter">
+          <option value="ACTIVE">Active only</option>
+          <option value="ALL">Include inactive</option>
+          <option value="INACTIVE">Inactive only</option>
+        </select>
         <button class="btn btn-primary" type="button" (click)="search()" [disabled]="loading">
           Search
         </button>
@@ -49,7 +54,10 @@
             [class.active]="selected?.userId === u.userId"
           >
             <div class="li-title">{{ (u.firstName || '') + ' ' + (u.lastName || '') }}</div>
-            <div class="li-sub">{{ u.email || '—' }}</div>
+            <div class="li-sub">
+              {{ u.email || '—' }}
+              <span *ngIf="u.status === 'INACTIVE'" class="badge badge-inactive">Inactive</span>
+            </div>
           </button>
           } @if (!loading && users.length === 0) {
           <p class="muted">No results.</p>
@@ -60,7 +68,12 @@
           @if (selected) {
           <h4>Selected user</h4>
           <p><strong>ID:</strong> {{ selected.userId }}</p>
-          <p><strong>Email:</strong> {{ selected.email || '—' }}</p>
+          <p>
+            <strong>Email:</strong> {{ selected.email || '—' }}
+            <span *ngIf="selected.status === 'INACTIVE'" class="badge badge-inactive"
+              >Inactive</span
+            >
+          </p>
 
           <div class="roles">
             <h4>Roles</h4>
@@ -97,12 +110,24 @@
 
           <div class="danger">
             <button
-              class="btn btn-danger"
+              class="btn btn-warning"
               type="button"
-              (click)="deleteSelected()"
-              [disabled]="loading"
+              (click)="deactivateSelected()"
+              [disabled]="
+                loading ||
+                selected.status === 'INACTIVE' ||
+                selected.userId === auth.meSignal()?.localUserId
+              "
             >
-              Delete user
+              Deactivate user
+            </button>
+            <button
+              class="btn btn-success"
+              type="button"
+              (click)="activateSelected()"
+              [disabled]="loading || selected.status === 'ACTIVE'"
+            >
+              Activate user
             </button>
           </div>
           } @else {

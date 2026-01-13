@@ -24,11 +24,8 @@
     <!-- Actions -->
     <div class="header-actions">
       <button class="btn btn-ghost" type="button" (click)="openBooking.emit()">Search</button>
-      @if (!isAuthenticated) {
-      <button class="btn btn-primary" type="button" (click)="openSignIn.emit(); closeNav.emit()">
-        Sign in
-      </button>
-      } @else {
+
+      <!-- Avatar/User Menu Button -->
       <div class="user-menu">
         <button
           class="avatar-btn"
@@ -71,11 +68,27 @@
 
           <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
             Log out
+        <div class="menu-backdrop" *ngIf="userMenuOpen" (click)="closeUserMenu()"></div>
+        <div class="menu-panel" *ngIf="userMenuOpen">
+          <div class="user-menu-header">
+            <span class="user-label">{{ userLabel }}</span>
+            <span class="user-email">{{ userEmail }}</span>
+            <span class="menu-role" *ngIf="roleLabel">{{ roleLabel }}</span>
+          </div>
+          <button class="menu-item" type="button" (click)="onOpenProfile()">
+            Profile & Settings
           </button>
+          <a *ngIf="isAdmin" routerLink="/admin-dashboard" class="menu-item">Admin Dashboard</a>
+          <a *ngIf="isAdmin" routerLink="/admin/reservations" class="menu-item">Reservations</a>
+          <a *ngIf="isAdmin" routerLink="/admin/payment-transactions" class="menu-item"
+            >Payment Transactions</a
+          >
+          <a *ngIf="showSystemSettings" routerLink="/admin/system-settings" class="menu-item"
+            >System Settings</a
+          >
+          <button class="menu-item danger" type="button" (click)="logout.emit()">Sign out</button>
         </div>
-        }
       </div>
-      }
     </div>
   </div>
 </header>
