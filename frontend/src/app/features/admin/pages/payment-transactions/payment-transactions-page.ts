@@ -20,6 +20,7 @@ import {
   styleUrls: ['./payment-transactions-page.css'],
 })
 export class PaymentTransactionsPage implements OnInit {
+  isProfileOpen = false;
   protected readonly auth = inject(AuthService);
 
   // Header bindings
@@ -66,7 +67,13 @@ export class PaymentTransactionsPage implements OnInit {
     });
   }
   openProfile() {
+    this.isProfileOpen = true;
     document.body.style.overflow = 'hidden';
+  }
+
+  closeProfile() {
+    this.isProfileOpen = false;
+    document.body.style.overflow = '';
   }
   private readonly api = inject(PaymentTransactionsService);
   private readonly router = inject(Router);

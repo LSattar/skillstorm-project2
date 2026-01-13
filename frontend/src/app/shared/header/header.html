@@ -19,76 +19,86 @@
     </a>
 
     <!-- Navigation (now a component) -->
-    <app-nav [isOpen]="isNavOpen" (toggle)="toggleNav.emit()" (close)="closeNav.emit()"></app-nav>
+    <app-nav
+      [isOpen]="isNavOpen"
+      (toggle)="toggleNav.emit()"
+      (close)="closeNav.emit()"
+    ></app-nav>
 
     <!-- Actions -->
     <div class="header-actions">
       <button class="btn btn-ghost" type="button" (click)="openBooking.emit()">Search</button>
 
-      <!-- Avatar/User Menu Button -->
-      <div class="user-menu">
-        <button
-          class="avatar-btn"
-          type="button"
-          aria-label="Open user menu"
-          (click)="toggleUserMenu()"
-        >
-          <span class="avatar">{{ avatarText }}</span>
+      @if (!isAuthenticated) {
+        <button class="btn btn-primary" type="button" (click)="openSignIn.emit(); closeNav.emit()">
+          Sign in
         </button>
-
-        @if (userMenuOpen) {
-        <div class="menu-backdrop" (click)="closeUserMenu()"></div>
-        <div
-          class="menu-panel"
-          role="menu"
-          aria-label="User menu"
-          (click)="$event.stopPropagation()"
-        >
-          @if (roleLabel) {
-          <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
-          }
-          @if (isAdmin) {
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenAdminDashboard()">
-            Admin Dashboard
-          </button>
-          } @else {
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenMyBookings()">
-            My Bookings
-          </button>
-          }
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
-            Profile settings
-          </button>
-
-          @if (showSystemSettings) {
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenSystemSettings()">
-            System settings
-          </button>
-          }
-
-          <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
-            Log out
-        <div class="menu-backdrop" *ngIf="userMenuOpen" (click)="closeUserMenu()"></div>
-        <div class="menu-panel" *ngIf="userMenuOpen">
-          <div class="user-menu-header">
-            <span class="user-label">{{ userLabel }}</span>
-            <span class="user-email">{{ userEmail }}</span>
-            <span class="menu-role" *ngIf="roleLabel">{{ roleLabel }}</span>
-          </div>
-          <button class="menu-item" type="button" (click)="onOpenProfile()">
-            Profile & Settings
-          </button>
-          <a *ngIf="isAdmin" routerLink="/admin-dashboard" class="menu-item">Admin Dashboard</a>
-          <a *ngIf="isAdmin" routerLink="/admin/reservations" class="menu-item">Reservations</a>
-          <a *ngIf="isAdmin" routerLink="/admin/payment-transactions" class="menu-item"
-            >Payment Transactions</a
+      } @else {
+        <div class="user-menu">
+          <button
+            class="avatar-btn"
+            type="button"
+            aria-label="Open user menu"
+            (click)="toggleUserMenu()"
           >
-          <a *ngIf="showSystemSettings" routerLink="/admin/system-settings" class="menu-item"
-            >System Settings</a
-          >
-          <button class="menu-item danger" type="button" (click)="logout.emit()">Sign out</button>
+            <span class="avatar">{{ avatarText }}</span>
+          </button>
+
+          @if (userMenuOpen) {
+            <div class="menu-backdrop" (click)="closeUserMenu()"></div>
+
+            <div
+              class="menu-panel"
+              role="menu"
+              aria-label="User menu"
+              (click)="$event.stopPropagation()"
+            >
+              @if (roleLabel) {
+                <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
+              }
+
+              @if (isAdmin) {
+                <button
+                  class="menu-item"
+                  type="button"
+                  role="menuitem"
+                  (click)="onOpenAdminDashboard()"
+                >
+                  Admin Dashboard
+                </button>
+              } @else {
+                <button
+                  class="menu-item"
+                  type="button"
+                  role="menuitem"
+                  (click)="onOpenMyBookings()"
+                >
+                  My Bookings
+                </button>
+              }
+
+              <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
+                Profile settings
+              </button>
+
+              @if (showSystemSettings) {
+                <button
+                  class="menu-item"
+                  type="button"
+                  role="menuitem"
+                  (click)="onOpenSystemSettings()"
+                >
+                  System settings
+                </button>
+              }
+
+              <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
+                Log out
+              </button>
+            </div>
+          }
         </div>
-      </div>
+      }
     </div>
   </div>
 </header>
