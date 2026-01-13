@@ -1,0 +1,150 @@
+<app-header
+  [isNavOpen]="isNavOpen"
+  [isAuthenticated]="isAuthenticated()"
+  [roleLabel]="roleLabel()"
+  [userLabel]="userLabel()"
+  [userEmail]="auth.meSignal()?.email ?? ''"
+  [showSystemSettings]="auth.isAdmin()"
+  (toggleNav)="toggleNav()"
+  (closeNav)="closeNav()"
+  (openBooking)="openBooking()"
+  (openSignIn)="openSignIn()"
+  (logout)="signOut()"
+  (openProfile)="openProfile()"
+  (openSystemSettings)="openSystemSettings()"
+></app-header>
+
+<div class="payment-page">
+  <div class="container">
+    @if (loading) {
+    <div class="loading-state">
+      <p>Loading reservation details...</p>
+    </div>
+    } @else if (error && !reservation) {
+    <div class="error-state">
+      <p>{{ error }}</p>
+      <button class="btn btn-primary" (click)="goBack()">Back to My Bookings</button>
+    </div>
+    } @else if (reservation) {
+    <div class="payment-container">
+      <div class="payment-header">
+        <button class="btn-back" (click)="goBack()" type="button">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Back
+        </button>
+        <h1>Complete Payment</h1>
+        <p class="subtitle">Review your reservation and complete payment</p>
+      </div>
+
+      <div class="payment-content">
+        <!-- Reservation Summary -->
+        <div class="reservation-summary-card">
+          <h2>Reservation Summary</h2>
+          <div class="summary-details">
+            <div class="summary-row">
+              <span class="summary-label">Reservation ID:</span>
+              <span class="summary-value reservation-id">{{ reservation.reservationId }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Check-in:</span>
+              <span class="summary-value">{{ formatDate(reservation.startDate) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Check-out:</span>
+              <span class="summary-value">{{ formatDate(reservation.endDate) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Guests:</span>
+              <span class="summary-value">{{ reservation.guestCount }}</span>
+            </div>
+            <div class="summary-row total-row">
+              <span class="summary-label">Total Amount:</span>
+              <span class="summary-value total-amount">{{ formatCurrency(reservation.totalAmount, reservation.currency) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="payment-form-card">
+          <h2>Payment Information</h2>
+          <p class="form-subtitle">Enter your payment details to complete the reservation</p>
+
+          @if (error) {
+          <div class="error-message">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ error }}</span>
+          </div>
+          }
+
+          <form [formGroup]="paymentForm" class="payment-form" (ngSubmit)="processPayment()">
+            <div class="form-group">
+              <label for="name">Cardholder Name</label>
+              <input
+                id="name"
+                type="text"
+                formControlName="name"
+                placeholder="John Doe"
+                [class.error]="paymentForm.get('name')?.invalid && paymentForm.get('name')?.touched"
+              />
+              @if (paymentForm.get('name')?.invalid && paymentForm.get('name')?.touched) {
+              <div class="field-error">Cardholder name is required</div>
+              }
+            </div>
+
+            <div class="form-group">
+              <label>Card Details</label>
+              <ngx-stripe-card
+                #card
+                [options]="cardOptions"
+                [elementsOptions]="elementsOptions"
+              ></ngx-stripe-card>
+            </div>
+
+            <div class="payment-security">
+              <span class="material-symbols-outlined">lock</span>
+              <span>Your payment information is secure and encrypted</span>
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="goBack()"
+                [disabled]="paymentProcessing"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="paymentProcessing || !reservation || paymentForm.invalid"
+              >
+                @if (paymentProcessing) {
+                <span class="spinner"></span>
+                Processing...
+                } @else {
+                Pay {{ formatCurrency(reservation.totalAmount, reservation.currency) }}
+                }
+              </button>
+            </div>
+          </form>
+
+          <div class="payment-note">
+            <p>
+              <strong>Note:</strong> Payment will be processed securely through Stripe. You will receive a confirmation email once payment is complete.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+</div>
+
+<app-footer></app-footer>
+
+<app-user-profile-modal
+  [open]="showProfileModal"
+  (closed)="closeProfile()"
+  (saved)="closeProfile()"
+></app-user-profile-modal>
