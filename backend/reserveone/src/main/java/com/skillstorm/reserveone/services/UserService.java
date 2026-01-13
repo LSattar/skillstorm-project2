@@ -50,23 +50,6 @@ public class UserService {
         repo.save(user);
     }
 
-    @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<com.skillstorm.reserveone.dto.users.UserSearchResponse> searchAdminUsers(
-            String q, String status, org.springframework.data.domain.Pageable pageable) {
-        try {
-            String safeStatus = status;
-            if (status == null || status.isBlank()) {
-                safeStatus = "ACTIVE";
-            }
-            org.springframework.data.domain.Page<User> users = repo.searchAdminUsers(q, safeStatus, pageable);
-            return users.map(u -> new com.skillstorm.reserveone.dto.users.UserSearchResponse(
-                    u.getUserId(), u.getFirstName(), u.getLastName(), u.getEmail(), u.getStatus()));
-        } catch (Exception e) {
-            log.error("Error in searchAdminUsers: q={}, status={}, page={}, size={}", q, status, pageable, e);
-            throw e;
-        }
-    }
-
     private final UserRepository repo;
     private final UserMapper mapper;
     private final RoleRepository roleRepo;
