@@ -228,11 +228,19 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponse> search(@NonNull String q, int limit) {
+    /**
+     * Search users by name or email, filtered by status.
+     * 
+     * @param q      search query (name or email)
+     * @param limit  max results
+     * @param status "ACTIVE", "INACTIVE", or "ALL"
+     */
+    public List<UserResponse> search(@NonNull String q, int limit, @NonNull String status) {
         final String query = q.trim();
         final int size = Math.min(Math.max(limit, 1), 50);
+        final String safeStatus = (status == null || status.isBlank()) ? "ACTIVE" : status.toUpperCase(Locale.ROOT);
 
-        return repo.searchAdminUsers(query, "ACTIVE", PageRequest.of(0, size))
+        return repo.searchUsers(query, safeStatus, PageRequest.of(0, size))
                 .stream()
                 .map(mapper::toResponse)
                 .toList();

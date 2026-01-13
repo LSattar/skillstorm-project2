@@ -143,8 +143,9 @@ public class UserController {
     @GetMapping("/search")
     public ResponseEntity<List<UserResponse>> search(
             @RequestParam(name = "q", defaultValue = "") String q,
-            @RequestParam(name = "limit", defaultValue = "20") int limit) {
-        return ResponseEntity.ok(service.search(q, limit));
+            @RequestParam(name = "limit", defaultValue = "20") int limit,
+            @RequestParam(name = "status", defaultValue = "ACTIVE") String status) {
+        return ResponseEntity.ok(service.search(q, limit, status));
     }
 
     @PatchMapping("/{userId}/roles")

@@ -29,7 +29,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
   @Query("""
       select u from User u
-      where (:status = 'ALL' or u.status = :status)
+      where ((:status = 'ALL') or u.status = :status)
         and (
           :q is null or :q = '' or
           lower(u.email) like lower(concat('%', :q, '%')) or
@@ -37,5 +37,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
           lower(u.lastName) like lower(concat('%', :q, '%'))
         )
       """)
-  Page<User> searchAdminUsers(@Param("q") String q, @Param("status") String status, Pageable pageable);
+  Page<User> searchUsers(@Param("q") String q, @Param("status") String status, Pageable pageable);
 }
