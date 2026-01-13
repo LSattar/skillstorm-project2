@@ -219,7 +219,7 @@ public class UserService {
         final String query = q.trim();
         final int size = Math.min(Math.max(limit, 1), 50);
 
-        return repo.searchWithRoles(query, PageRequest.of(0, size))
+        return repo.searchAdminUsers(query, "ACTIVE", PageRequest.of(0, size))
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
