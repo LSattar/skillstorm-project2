@@ -206,10 +206,12 @@ export class SystemSettingsPage {
         this.selected = created;
         this.createForm = { firstName: '', lastName: '', email: '' };
         this.creating = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.error = 'Failed to create user.';
         this.creating = false;
+        this.cdr.detectChanges();
       },
     });
   }
