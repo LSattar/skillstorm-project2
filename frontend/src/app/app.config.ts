@@ -7,8 +7,10 @@ import {
   withInterceptorsFromDi,
   withXsrfConfiguration,
 } from '@angular/common/http';
+import { provideNgxStripe } from 'ngx-stripe';
 import { routes } from './app.routes';
 import { ApiSecurityInterceptor } from './interceptors/ApiSecurityInterceptor';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -22,5 +24,6 @@ export const appConfig: ApplicationConfig = {
     ),
     { provide: HTTP_INTERCEPTORS, useClass: ApiSecurityInterceptor, multi: true },
     provideRouter(routes),
+    provideNgxStripe(environment.stripePublishableKey),
   ],
 };
