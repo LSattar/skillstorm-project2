@@ -121,7 +121,14 @@ export class SystemSettingsPage {
 
     this.api.searchUsers(this.query, this.statusFilter, 0, 25).subscribe({
       next: (result) => {
-        this.users = Array.isArray(result?.content) ? result.content : [];
+        // Support both array and object response formats
+        if (Array.isArray(result)) {
+          this.users = result;
+        } else if (Array.isArray(result?.content)) {
+          this.users = result.content;
+        } else {
+          this.users = [];
+        }
         this.selected = this.users[0] ?? null;
         this.loading = false;
         this.cdr.markForCheck();
