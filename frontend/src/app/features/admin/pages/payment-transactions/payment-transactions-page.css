@@ -1,0 +1,210 @@
+.payment-transactions-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+.page-header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--primary-2);
+  margin: 0 0 0.5rem 0;
+}
+.page-header .subtitle {
+  color: var(--muted);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.summary-section {
+  margin-bottom: 2rem;
+}
+.summary-section .summary-grid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.summary-section .summary-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem 2rem;
+  min-width: 180px;
+}
+.summary-section .summary-card h3 {
+  font-size: 1.1rem;
+  color: var(--primary-2);
+  margin-bottom: 0.5rem;
+}
+.summary-section .summary-card .summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.search-section {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.search-section .search-form {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search-section .search-form .input {
+  min-width: 180px;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--bg);
+}
+.search-section .search-form .btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.results-section {
+  margin-bottom: 2rem;
+}
+.results-section .results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.results-section .results-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-2);
+  margin: 0;
+}
+.results-section .results-header .result-count {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.loading-state,
+.error-state,
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--muted);
+}
+
+.error-state {
+  color: var(--primary-2);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.empty-state .material-symbols-outlined {
+  font-size: 3rem;
+  color: var(--border);
+}
+
+.transactions-table {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.transactions-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.transactions-table thead {
+  background: linear-gradient(135deg, rgba(163, 177, 138, 0.25), rgba(221, 190, 169, 0.18));
+}
+.transactions-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: var(--primary-2);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.transactions-table td {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: top;
+}
+.transactions-table td .status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.transactions-table td .status-confirmed {
+  background: rgba(163, 177, 138, 0.35);
+  color: var(--primary-2);
+}
+.transactions-table td .status-pending {
+  background: rgba(221, 190, 169, 0.45);
+  color: var(--primary-2);
+}
+.transactions-table td .status-cancelled {
+  background: rgba(52, 78, 65, 0.12);
+  color: var(--muted);
+}
+.transactions-table td .status-checked-out {
+  background: rgba(47, 93, 80, 0.22);
+  color: var(--bg);
+}
+.transactions-table td .status-default {
+  background: var(--border);
+  color: var(--text);
+}
+.transactions-table .reservation-id {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.transactions-table .guest-name {
+  font-weight: 500;
+}
+.transactions-table .room-type {
+  font-size: 0.95rem;
+  color: var(--primary-2);
+}
+
+.pagination {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .payment-transactions-page {
+    padding: 1rem;
+  }
+  .summary-grid {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .transactions-table table {
+    min-width: 900px;
+  }
+}

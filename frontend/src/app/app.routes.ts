@@ -8,11 +8,18 @@ import { NotFoundPage } from './features/landing/pages/not-found/not-found';
 import { SystemSettingsPage } from './features/admin/pages/system-settings/system-settings';
 import { adminGuard } from './features/auth/guards/admin.guard';
 
+import { PaymentTransactionsPage } from './features/admin/pages/payment-transactions/payment-transactions-page';
+
 export const routes: Routes = [
   { path: '', component: LandingPage },
   { path: 'admin-dashboard', component: AdminDashboard, canActivate: [adminGuard] },
   { path: 'admin/system-settings', component: SystemSettingsPage, canActivate: [adminGuard] },
-  { path: 'admin/reservations', component: ReservationLookup },
+  { path: 'admin/reservations', component: ReservationLookup, canActivate: [adminGuard] },
+  {
+    path: 'admin/payment-transactions',
+    component: PaymentTransactionsPage,
+    canActivate: [adminGuard],
+  },
   { path: 'forbidden', component: ForbiddenPage },
   { path: 'error', component: NotFoundPage },
   { path: '**', component: NotFoundPage },
