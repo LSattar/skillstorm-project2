@@ -1,11 +1,11 @@
-package com.skillstorm.reserveone.services;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
@@ -27,6 +27,8 @@ import com.skillstorm.reserveone.repositories.UserRepository;
 
 @Service
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
     @Transactional
     public void deactivateUser(UUID userId, UUID actingAdminId) {
         if (userId.equals(actingAdminId)) {
@@ -49,16 +51,18 @@ public class UserService {
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<com.skillstorm.reserveone.dto.users.UserSearchResponse> searchAdminUsers(
             String q, String status, org.springframework.data.domain.Pageable pageable) {
-        // Defensive: only pass valid enum values to the entity, never convert 'ALL' to
-        // enum
-        String safeStatus = status;
-        if (status == null || status.isBlank()) {
-            safeStatus = "ACTIVE";
+        try {
+            String safeStatus = status;
+            if (status == null || status.isBlank()) {
+                safeStatus = "ACTIVE";
+            }
+            org.springframework.data.domain.Page<User> users = repo.searchAdminUsers(q, safeStatus, pageable);
+            return users.map(u -> new com.skillstorm.reserveone.dto.users.UserSearchResponse(
+                    u.getUserId(), u.getFirstName(), u.getLastName(), u.getEmail(), u.getStatus()));
+        } catch (Exception e) {
+            log.error("Error in searchAdminUsers: q={}, status={}, page={}, size={}", q, status, pageable, e);
+            throw e;
         }
-        // Pass 'ALL' as string, never as enum
-        org.springframework.data.domain.Page<User> users = repo.searchAdminUsers(q, safeStatus, pageable);
-        return users.map(u -> new com.skillstorm.reserveone.dto.users.UserSearchResponse(
-                u.getUserId(), u.getFirstName(), u.getLastName(), u.getEmail(), u.getStatus()));
     }
 
     private final UserRepository repo;
