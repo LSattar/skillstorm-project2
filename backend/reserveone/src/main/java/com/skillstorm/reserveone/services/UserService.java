@@ -49,7 +49,14 @@ public class UserService {
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<com.skillstorm.reserveone.dto.users.UserSearchResponse> searchAdminUsers(
             String q, String status, org.springframework.data.domain.Pageable pageable) {
-        org.springframework.data.domain.Page<User> users = repo.searchAdminUsers(q, status, pageable);
+        // Defensive: only pass valid enum values to the entity, never convert 'ALL' to
+        // enum
+        String safeStatus = status;
+        if (status == null || status.isBlank()) {
+            safeStatus = "ACTIVE";
+        }
+        // Pass 'ALL' as string, never as enum
+        org.springframework.data.domain.Page<User> users = repo.searchAdminUsers(q, safeStatus, pageable);
         return users.map(u -> new com.skillstorm.reserveone.dto.users.UserSearchResponse(
                 u.getUserId(), u.getFirstName(), u.getLastName(), u.getEmail(), u.getStatus()));
     }
