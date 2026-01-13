@@ -31,8 +31,8 @@ export class SystemSettingsService {
 
   constructor(private http: HttpClient) {}
 
-  searchAdminUsers(q: string, status: string = 'ACTIVE', page = 0, size = 20): Observable<any> {
-    return this.http.get<any>(`${this.api}/admin/users`, {
+  searchUsers(q: string, status: string = 'ACTIVE', page = 0, size = 20): Observable<any> {
+    return this.http.get<any>(`${this.api}/users/search`, {
       params: { q, status, page: String(page), size: String(size) },
       withCredentials: true,
     });
@@ -50,16 +50,16 @@ export class SystemSettingsService {
 
   deactivateUser(userId: string): Observable<void> {
     return this.http.patch<void>(
-      `${this.api}/admin/users/${userId}/deactivate`,
-      {},
+      `${this.api}/users/${userId}/status`,
+      { status: 'INACTIVE' },
       { withCredentials: true }
     );
   }
 
   activateUser(userId: string): Observable<void> {
     return this.http.patch<void>(
-      `${this.api}/admin/users/${userId}/activate`,
-      {},
+      `${this.api}/users/${userId}/status`,
+      { status: 'ACTIVE' },
       { withCredentials: true }
     );
   }
