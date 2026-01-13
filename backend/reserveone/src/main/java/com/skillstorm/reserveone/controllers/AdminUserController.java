@@ -17,7 +17,7 @@ import com.skillstorm.reserveone.dto.users.UserSearchResponse;
 import com.skillstorm.reserveone.services.UserService;
 
 @RestController
-@RequestMapping("/api/admin/users")
+@RequestMapping("/admin/users")
 public class AdminUserController {
 
     private final UserService service;
