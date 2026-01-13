@@ -32,6 +32,16 @@ export class AdminDashboard implements OnInit {
     this.router.navigate(['/admin/system-settings']);
   }
 
+  // Show Payment Transactions in header if admin
+  get showPaymentTransactions(): boolean {
+    return this.auth.isAdmin();
+  }
+
+  // Navigate to payment transactions page
+  goToPaymentTransactions(): void {
+    this.router.navigate(['/admin/payment-transactions']);
+  }
+
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
   protected readonly userLabel = computed(() => {

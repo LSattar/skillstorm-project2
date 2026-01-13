@@ -5,6 +5,7 @@
   [userLabel]="userLabel()"
   [userEmail]="userEmail()"
   [showSystemSettings]="auth.isAdmin()"
+  [showPaymentTransactions]="auth.isAdmin()"
   (toggleNav)="toggleNav()"
   (closeNav)="closeNav()"
   (openBooking)="openBooking()"
@@ -12,6 +13,7 @@
   (logout)="signOut()"
   (openProfile)="openProfile()"
   (openSystemSettings)="goToSystemSettings()"
+  (openPaymentTransactions)="goToPaymentTransactions()"
 ></app-header>
 
 <main>

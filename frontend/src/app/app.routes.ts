@@ -16,7 +16,7 @@ export const routes: Routes = [
   { path: 'admin/system-settings', component: SystemSettingsPage, canActivate: [adminGuard] },
   { path: 'admin/reservations', component: ReservationLookup, canActivate: [adminGuard] },
   {
-    path: 'admin/payment-transactions',
+    path: 'payment-transactions',
     component: PaymentTransactionsPage,
     canActivate: [adminGuard],
   },

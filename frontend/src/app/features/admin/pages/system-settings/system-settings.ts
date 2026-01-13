@@ -20,6 +20,9 @@ import {
   styleUrls: ['./system-settings.css'],
 })
 export class SystemSettingsPage {
+goToPaymentTransactions() {
+throw new Error('Method not implemented.');
+}
   private readonly api = inject(SystemSettingsService);
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly auth = inject(AuthService);
