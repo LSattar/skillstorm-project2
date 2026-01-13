@@ -209,7 +209,6 @@ public class UserService {
         return trimmed.toLowerCase();
     }
 
-    @Transactional(readOnly = true)
     /**
      * Search users by name or email, filtered by status.
      * 
@@ -217,7 +216,6 @@ public class UserService {
      * @param limit  max results
      * @param status "ACTIVE", "INACTIVE", or "ALL"
      */
-
     @Transactional(readOnly = true)
     public List<UserResponse> searchPage(String q, String status, int page, int size) {
         String query = (q == null) ? "" : q.trim();
