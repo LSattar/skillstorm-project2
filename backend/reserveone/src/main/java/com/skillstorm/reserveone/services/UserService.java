@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -218,15 +217,23 @@ public class UserService {
      * @param limit  max results
      * @param status "ACTIVE", "INACTIVE", or "ALL"
      */
-    public List<UserResponse> search(@NonNull String q, int limit, @NonNull String status) {
-        final String query = q.trim();
-        final int size = Math.min(Math.max(limit, 1), 50);
-        final String safeStatus = (status == null || status.isBlank()) ? "ACTIVE" : status.toUpperCase(Locale.ROOT);
 
-        return repo.searchUsers(query, safeStatus, PageRequest.of(0, size))
-                .stream()
+    @Transactional(readOnly = true)
+    public List<UserResponse> searchPage(String q, String status, int page, int size) {
+        String query = (q == null) ? "" : q.trim();
+        String safeStatus = (status == null || status.isBlank()) ? "ACTIVE" : status.toUpperCase(Locale.ROOT);
+        com.skillstorm.reserveone.models.User.Status enumStatus = null;
+        if (!"ALL".equals(safeStatus)) {
+            try {
+                enumStatus = com.skillstorm.reserveone.models.User.Status.valueOf(safeStatus);
+            } catch (IllegalArgumentException e) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid status");
+            }
+        }
+        return repo.searchUsers(query, enumStatus, org.springframework.data.domain.PageRequest.of(page, size))
                 .map(mapper::toResponse)
-                .toList();
+                .getContent();
     }
 
     @Transactional

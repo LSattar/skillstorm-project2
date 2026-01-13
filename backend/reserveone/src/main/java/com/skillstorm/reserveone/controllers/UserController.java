@@ -143,9 +143,12 @@ public class UserController {
     @GetMapping("/search")
     public ResponseEntity<List<UserResponse>> search(
             @RequestParam(name = "q", defaultValue = "") String q,
-            @RequestParam(name = "limit", defaultValue = "20") int limit,
-            @RequestParam(name = "status", defaultValue = "ACTIVE") String status) {
-        return ResponseEntity.ok(service.search(q, limit, status));
+            @RequestParam(name = "status", defaultValue = "ACTIVE") String status,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "25") int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        return ResponseEntity.ok(service.searchPage(q, status, safePage, safeSize));
     }
 
     @PatchMapping("/{userId}/roles")
