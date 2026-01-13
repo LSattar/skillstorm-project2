@@ -30,21 +30,6 @@
       <p class="auth-error" role="alert">{{ error }}</p>
       }
 
-      <!-- Admin Navigation Links -->
-      <div *ngIf="auth.isAdmin()" class="admin-nav-links">
-        <h3 class="modal-subtitle">Admin Navigation</h3>
-        <ul class="admin-nav-list">
-          <li><a routerLink="/admin-dashboard" class="btn btn-link">Dashboard</a></li>
-          <li><a routerLink="/admin/reservations" class="btn btn-link">Reservations</a></li>
-          <li>
-            <a routerLink="/admin/payment-transactions" class="btn btn-link"
-              >Payment Transactions</a
-            >
-          </li>
-          <li><a routerLink="/admin/system-settings" class="btn btn-link">System Settings</a></li>
-        </ul>
-      </div>
-
       <div class="field-row">
         <div class="field">
           <label for="pfFirst">First name</label>
