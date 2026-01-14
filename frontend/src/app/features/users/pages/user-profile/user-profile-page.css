@@ -1,0 +1,39 @@
+.user-profile-page {
+  padding: 1em;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.user-profile-page h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--primary-2);
+  font-weight: 600;
+}
+
+.booking-form {
+  padding: 0;
+}
+
+.field-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.field {
+  flex: 1 1 0%;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-error {
+  color: var(--danger, #b00020);
+  margin-bottom: 1rem;
+}
+
+.btn.btn-primary {
+  margin-top: 1rem;
+  width: 100%;
+}

@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   EventEmitter,
@@ -18,9 +19,16 @@ import { Nav } from '../nav/nav';
   templateUrl: './header.html',
   styleUrls: ['./header.css'],
 })
-export class Header implements OnDestroy {
+export class Header implements OnDestroy, AfterViewInit {
   get currentRoute(): string {
     return this.router.url;
+  }
+
+  ngAfterViewInit(): void {
+    // Close user menu if on profile settings page to prevent modal whitespace
+    if (this.router.url === '/profile-settings' && this.userMenuOpen) {
+      this.closeUserMenu();
+    }
   }
   onOpenPaymentTransactions() {
     this.router.navigate(['/payment-transactions']);

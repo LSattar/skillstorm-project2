@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
-import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
+
 import { RoomSearchModal } from '../../components/room-search-modal/room-search-modal';
 import {
   RoomSearchResults,
@@ -15,15 +15,7 @@ import { RoomResponse, RoomSearchParams } from '../../services/room-search.servi
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    Header,
-    Footer,
-    UserProfileModal,
-    RoomSearchModal,
-    RoomSearchResults,
-  ],
+  imports: [CommonModule, FormsModule, Header, Footer, RoomSearchModal, RoomSearchResults],
   templateUrl: './landing-page.html',
   styleUrls: ['./landing-page.css'],
 })

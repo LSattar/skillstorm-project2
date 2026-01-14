@@ -71,10 +71,11 @@
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenMyBookings()">
             My Bookings
           </button>
-          }
+          } @if (currentRoute !== '/profile-settings') {
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
-            @if (currentRoute !== '/profile-settings') { Profile settings }
+            Profile settings
           </button>
+          }
           <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
             Log out
           </button>

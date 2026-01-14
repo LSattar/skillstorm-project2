@@ -16,11 +16,7 @@
       <div>
         <h2 id="resultsTitle" class="modal-title">Search Results</h2>
         <p class="modal-subtitle">
-          @if (hasAvailableRooms) {
-          Rooms available for your dates
-          } @else {
-          No rooms available
-          }
+          @if (hasAvailableRooms) { Rooms available for your dates } @else { No rooms available }
         </p>
       </div>
 
@@ -30,9 +26,7 @@
     <div class="modal-body">
       @if (error) {
       <p class="auth-error" role="alert">{{ error }}</p>
-      }
-
-      @if (hasAvailableRooms && resultsData) {
+      } @if (hasAvailableRooms && resultsData) {
       <div class="results-content">
         <div class="availability-success">
           <p class="success-message">
