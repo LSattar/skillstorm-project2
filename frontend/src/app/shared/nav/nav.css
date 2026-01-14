@@ -2,6 +2,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .nav-toggle {
@@ -20,6 +22,9 @@
   gap: 14px;
   margin: 0;
   padding: 0;
+  flex: 1 1 auto;
+  justify-content: center;
+  width: 100%;
 }
 
 .nav-list a {
@@ -28,6 +33,7 @@
   font-weight: 650;
   padding: 8px 10px;
   border-radius: 12px;
+  margin: 0 1.5em 0 1.5em;
 }
 
 .nav-list a:hover {

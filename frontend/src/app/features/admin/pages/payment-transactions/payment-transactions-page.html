@@ -14,268 +14,277 @@
 ></app-header>
 
 <main>
-  <div class="payment-transactions-page">
-    <div class="page-header">
-      <h1>Payment Transactions</h1>
-      <p class="subtitle">View and manage hotel booking payments.</p>
-    </div>
-
-    <!-- Summary Cards -->
-    <section class="summary-section" aria-label="KPI Filters">
-      <div class="summary-grid">
-        <button
-          type="button"
-          class="summary-card kpi-card"
-          [class.active]="activeKpi === 'ALL'"
-          aria-pressed="{{ activeKpi === 'ALL' }}"
-          (click)="onKpiClick('ALL')"
-          tabindex="0"
-        >
-          <h3>Total Revenue</h3>
-          <p class="summary-value">{{ formatCurrency(summaryRevenue) }}</p>
-        </button>
-        <button
-          type="button"
-          class="summary-card kpi-card"
-          [class.active]="activeKpi === 'PAID'"
-          aria-pressed="{{ activeKpi === 'PAID' }}"
-          (click)="onKpiClick('PAID')"
-          tabindex="0"
-        >
-          <h3>Paid</h3>
-          <p class="summary-value">{{ paidCount }}</p>
-        </button>
-        <button
-          type="button"
-          class="summary-card kpi-card"
-          [class.active]="activeKpi === 'PENDING'"
-          aria-pressed="{{ activeKpi === 'PENDING' }}"
-          (click)="onKpiClick('PENDING')"
-          tabindex="0"
-        >
-          <h3>Pending</h3>
-          <p class="summary-value">{{ pendingCount }}</p>
-        </button>
-        <button
-          type="button"
-          class="summary-card kpi-card"
-          [class.active]="activeKpi === 'FAILED'"
-          aria-pressed="{{ activeKpi === 'FAILED' }}"
-          (click)="onKpiClick('FAILED')"
-          tabindex="0"
-        >
-          <h3>Failed</h3>
-          <p class="summary-value">{{ failedCount }}</p>
-        </button>
+  <div class="container">
+    <div class="page-content payment-transactions-page">
+      <div class="page-header">
+        <h1>Payment Transactions</h1>
+        <p class="subtitle">View and manage hotel booking payments.</p>
       </div>
-    </section>
 
-    <!-- Filters/Search -->
-    <section class="search-section">
-      <form class="search-form" (ngSubmit)="onSearch()">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="searchQuery">Search</label>
-            <input
-              class="input"
-              type="text"
-              id="searchQuery"
-              [(ngModel)]="query"
-              name="query"
-              placeholder="Search by guest, reservation, transaction…"
-            />
-          </div>
-          <div class="form-group">
-            <label for="searchStatus">Status</label>
-            <select id="searchStatus" [(ngModel)]="status" name="status" class="input">
-              <option value="">All Statuses</option>
-              <option value="PAID">Paid</option>
-              <option value="PENDING">Pending</option>
-              <option value="FAILED">Failed</option>
-              <option value="REFUNDED">Refunded</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="fromDate">From</label>
-            <input class="input" type="date" id="fromDate" [(ngModel)]="fromDate" name="fromDate" />
-          </div>
-          <div class="form-group">
-            <label for="toDate">To</label>
-            <input class="input" type="date" id="toDate" [(ngModel)]="toDate" name="toDate" />
-          </div>
-        </div>
-        <div class="date-presets" role="group" aria-label="Quick date presets">
+      <!-- Summary Cards -->
+      <section class="summary-section" aria-label="KPI Filters">
+        <div class="summary-grid">
           <button
             type="button"
-            class="btn btn-link date-preset"
-            (click)="setDatePreset('today')"
-            aria-label="Today"
+            class="summary-card kpi-card"
+            [class.active]="activeKpi === 'ALL'"
+            aria-pressed="{{ activeKpi === 'ALL' }}"
+            (click)="onKpiClick('ALL')"
+            tabindex="0"
           >
-            Today
+            <h3>Total Revenue</h3>
+            <p class="summary-value">{{ formatCurrency(summaryRevenue) }}</p>
           </button>
           <button
             type="button"
-            class="btn btn-link date-preset"
-            (click)="setDatePreset('last7')"
-            aria-label="Last 7 days"
+            class="summary-card kpi-card"
+            [class.active]="activeKpi === 'PAID'"
+            aria-pressed="{{ activeKpi === 'PAID' }}"
+            (click)="onKpiClick('PAID')"
+            tabindex="0"
           >
-            Last 7 days
+            <h3>Paid</h3>
+            <p class="summary-value">{{ paidCount }}</p>
           </button>
           <button
             type="button"
-            class="btn btn-link date-preset"
-            (click)="setDatePreset('last30')"
-            aria-label="Last 30 days"
+            class="summary-card kpi-card"
+            [class.active]="activeKpi === 'PENDING'"
+            aria-pressed="{{ activeKpi === 'PENDING' }}"
+            (click)="onKpiClick('PENDING')"
+            tabindex="0"
           >
-            Last 30 days
+            <h3>Pending</h3>
+            <p class="summary-value">{{ pendingCount }}</p>
           </button>
           <button
             type="button"
-            class="btn btn-link date-preset"
-            (click)="setDatePreset('month')"
-            aria-label="This month"
+            class="summary-card kpi-card"
+            [class.active]="activeKpi === 'FAILED'"
+            aria-pressed="{{ activeKpi === 'FAILED' }}"
+            (click)="onKpiClick('FAILED')"
+            tabindex="0"
           >
-            This month
-          </button>
-          <button
-            type="button"
-            class="btn btn-link date-preset"
-            (click)="onClearFilters()"
-            aria-label="Clear all filters"
-          >
-            Clear
+            <h3>Failed</h3>
+            <p class="summary-value">{{ failedCount }}</p>
           </button>
         </div>
-        <div class="form-actions search-actions">
-          <button type="submit" class="btn btn-primary">
-            <span class="material-symbols-outlined">search</span>
-            Search
-          </button>
-          <button type="button" class="btn btn-secondary" (click)="onClearFilters()">
-            <span class="material-symbols-outlined">clear</span>
-            Clear
-          </button>
-        </div>
-      </form>
-    </section>
+      </section>
 
-    <!-- Table -->
-    <section class="results-section">
-      <div class="results-header">
-        <h2>Transactions</h2>
-        <span class="result-count">{{ transactions.length }} found</span>
-      </div>
-      <div class="transactions-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Guest</th>
-              <th>Reservation</th>
-              <th>Nights</th>
-              <th>Subtotal</th>
-              <th>Tax</th>
-              <th>Discounts/Rewards</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Payment Method</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Skeleton loading rows -->
-            <ng-container *ngIf="loading">
-              <tr *ngFor="let i of skeletonRows">
+      <!-- Filters/Search -->
+      <section class="search-section">
+        <form class="search-form" (ngSubmit)="onSearch()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="searchQuery">Search</label>
+              <input
+                class="input"
+                type="text"
+                id="searchQuery"
+                [(ngModel)]="query"
+                name="query"
+                placeholder="Search by guest, reservation, transaction…"
+              />
+            </div>
+            <div class="form-group">
+              <label for="searchStatus">Status</label>
+              <select id="searchStatus" [(ngModel)]="status" name="status" class="input">
+                <option value="">All Statuses</option>
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Pending</option>
+                <option value="FAILED">Failed</option>
+                <option value="REFUNDED">Refunded</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="fromDate">From</label>
+              <input
+                class="input"
+                type="date"
+                id="fromDate"
+                [(ngModel)]="fromDate"
+                name="fromDate"
+              />
+            </div>
+            <div class="form-group">
+              <label for="toDate">To</label>
+              <input class="input" type="date" id="toDate" [(ngModel)]="toDate" name="toDate" />
+            </div>
+          </div>
+          <div class="date-presets" role="group" aria-label="Quick date presets">
+            <button
+              type="button"
+              class="btn btn-link date-preset"
+              (click)="setDatePreset('today')"
+              aria-label="Today"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              class="btn btn-link date-preset"
+              (click)="setDatePreset('last7')"
+              aria-label="Last 7 days"
+            >
+              Last 7 days
+            </button>
+            <button
+              type="button"
+              class="btn btn-link date-preset"
+              (click)="setDatePreset('last30')"
+              aria-label="Last 30 days"
+            >
+              Last 30 days
+            </button>
+            <button
+              type="button"
+              class="btn btn-link date-preset"
+              (click)="setDatePreset('month')"
+              aria-label="This month"
+            >
+              This month
+            </button>
+            <button
+              type="button"
+              class="btn btn-link date-preset"
+              (click)="onClearFilters()"
+              aria-label="Clear all filters"
+            >
+              Clear
+            </button>
+          </div>
+          <div class="form-actions search-actions">
+            <button type="submit" class="btn btn-primary">
+              <span class="material-symbols-outlined">search</span>
+              Search
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="onClearFilters()">
+              <span class="material-symbols-outlined">clear</span>
+              Clear
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Table -->
+      <section class="results-section">
+        <div class="results-header">
+          <h2>Transactions</h2>
+          <span class="result-count">{{ transactions.length }} found</span>
+        </div>
+        <div class="transactions-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Guest</th>
+                <th>Reservation</th>
+                <th>Nights</th>
+                <th>Subtotal</th>
+                <th>Tax</th>
+                <th>Discounts/Rewards</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Payment Method</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Skeleton loading rows -->
+              <ng-container *ngIf="loading">
+                <tr *ngFor="let i of skeletonRows">
+                  <td colspan="11">
+                    <div class="skeleton-row" [class.stopped]="skeletonStopped"></div>
+                  </td>
+                </tr>
+              </ng-container>
+              <!-- Data rows -->
+              <tr *ngIf="!loading && transactions.length === 0 && !error">
                 <td colspan="11">
-                  <div class="skeleton-row" [class.stopped]="skeletonStopped"></div>
+                  <div class="empty-state">
+                    <span class="material-symbols-outlined">search_off</span>
+                    <p *ngIf="!fromDate && !toDate && !query && !status">
+                      No payment transactions yet. Payments will appear here after guests complete
+                      bookings.
+                    </p>
+                    <ng-container *ngIf="fromDate || toDate || query || status">
+                      No transactions match your filters.
+                      <button class="btn btn-link" (click)="onClearFilters()">Clear filters</button>
+                    </ng-container>
+                  </div>
                 </td>
               </tr>
-            </ng-container>
-            <!-- Data rows -->
-            <tr *ngIf="!loading && transactions.length === 0 && !error">
-              <td colspan="11">
-                <div class="empty-state">
-                  <span class="material-symbols-outlined">search_off</span>
-                  <p *ngIf="!fromDate && !toDate && !query && !status">
-                    No payment transactions yet. Payments will appear here after guests complete
-                    bookings.
-                  </p>
-                  <ng-container *ngIf="fromDate || toDate || query || status">
-                    No transactions match your filters.
-                    <button class="btn btn-link" (click)="onClearFilters()">Clear filters</button>
-                  </ng-container>
-                </div>
-              </td>
-            </tr>
-            <tr *ngFor="let tx of transactions; trackBy: trackById" [attr.tabindex]="0">
-              <td>{{ formatDate(tx.createdAt) || '—' }}</td>
-              <td>
-                <span class="guest-name">{{ tx.guestName || '—' }}</span>
-                <br />
-                <span class="guest-email">{{ tx.guestEmail || '—' }}</span>
-              </td>
-              <td>
-                <span class="reservation-id">{{ tx.reservationId || '—' }}</span>
-                <br />
-                <span
-                  >{{ formatDate(tx.checkIn) || '—' }} - {{ formatDate(tx.checkOut) || '—' }}</span
-                >
-              </td>
-              <td>{{ computeNights(tx.checkIn, tx.checkOut) || '—' }}</td>
-              <td>{{ formatCurrency(tx.subtotal, tx.currency) || '—' }}</td>
-              <td>{{ formatCurrency(tx.taxTotal, tx.currency) || '—' }}</td>
-              <td>
-                <span *ngIf="tx.discountTotal">{{
-                  formatCurrency(tx.discountTotal, tx.currency)
-                }}</span>
-                <span *ngIf="tx.rewardsEarned"
-                  >+{{ formatCurrency(tx.rewardsEarned, tx.currency) }}</span
-                >
-                <span *ngIf="!tx.discountTotal && !tx.rewardsEarned">—</span>
-              </td>
-              <td>{{ formatCurrency(tx.total, tx.currency) || '—' }}</td>
-              <td>
-                <span class="status-badge" [ngClass]="getStatusClass(tx.status)">
-                  {{ tx.status || '—' }}
-                </span>
-              </td>
-              <td>
-                <span>{{ tx.paymentProvider || '—' }}</span>
-                <span *ngIf="tx.paymentMethodLast4">•••• {{ tx.paymentMethodLast4 }}</span>
-              </td>
-              <td>
-                <button
-                  class="btn btn-sm btn-primary"
-                  (click)="openDetailsModal(tx)"
-                  aria-label="View details for transaction {{ tx.transactionId }}"
-                >
-                  <span class="material-symbols-outlined">visibility</span>
-                  View details
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div *ngIf="error" class="error-state">
-        <p>{{ error }}</p>
-        <button class="btn btn-primary" (click)="retryLoadTransactions()">Retry</button>
-      </div>
-    </section>
+              <tr *ngFor="let tx of transactions; trackBy: trackById" [attr.tabindex]="0">
+                <td>{{ formatDate(tx.createdAt) || '—' }}</td>
+                <td>
+                  <span class="guest-name">{{ tx.guestName || '—' }}</span>
+                  <br />
+                  <span class="guest-email">{{ tx.guestEmail || '—' }}</span>
+                </td>
+                <td>
+                  <span class="reservation-id">{{ tx.reservationId || '—' }}</span>
+                  <br />
+                  <span
+                    >{{ formatDate(tx.checkIn) || '—' }} -
+                    {{ formatDate(tx.checkOut) || '—' }}</span
+                  >
+                </td>
+                <td>{{ computeNights(tx.checkIn, tx.checkOut) || '—' }}</td>
+                <td>{{ formatCurrency(tx.subtotal, tx.currency) || '—' }}</td>
+                <td>{{ formatCurrency(tx.taxTotal, tx.currency) || '—' }}</td>
+                <td>
+                  <span *ngIf="tx.discountTotal">{{
+                    formatCurrency(tx.discountTotal, tx.currency)
+                  }}</span>
+                  <span *ngIf="tx.rewardsEarned"
+                    >+{{ formatCurrency(tx.rewardsEarned, tx.currency) }}</span
+                  >
+                  <span *ngIf="!tx.discountTotal && !tx.rewardsEarned">—</span>
+                </td>
+                <td>{{ formatCurrency(tx.total, tx.currency) || '—' }}</td>
+                <td>
+                  <span class="status-badge" [ngClass]="getStatusClass(tx.status)">
+                    {{ tx.status || '—' }}
+                  </span>
+                </td>
+                <td>
+                  <span>{{ tx.paymentProvider || '—' }}</span>
+                  <span *ngIf="tx.paymentMethodLast4">•••• {{ tx.paymentMethodLast4 }}</span>
+                </td>
+                <td>
+                  <button
+                    class="btn btn-sm btn-primary"
+                    (click)="openDetailsModal(tx)"
+                    aria-label="View details for transaction {{ tx.transactionId }}"
+                  >
+                    <span class="material-symbols-outlined">visibility</span>
+                    View details
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div *ngIf="error" class="error-state">
+          <p>{{ error }}</p>
+          <button class="btn btn-primary" (click)="retryLoadTransactions()">Retry</button>
+        </div>
+      </section>
 
-    <!-- Pagination (simple) -->
-    <div class="pagination" *ngIf="total > size">
-      <button class="btn btn-link" [disabled]="page === 0" (click)="onPageChange(page - 1)">
-        Prev
-      </button>
-      <span>Page {{ page + 1 }}</span>
-      <button
-        class="btn btn-link"
-        [disabled]="(page + 1) * size >= total"
-        (click)="onPageChange(page + 1)"
-      >
-        Next
-      </button>
+      <!-- Pagination (simple) -->
+      <div class="pagination" *ngIf="total > size">
+        <button class="btn btn-link" [disabled]="page === 0" (click)="onPageChange(page - 1)">
+          Prev
+        </button>
+        <span>Page {{ page + 1 }}</span>
+        <button
+          class="btn btn-link"
+          [disabled]="(page + 1) * size >= total"
+          (click)="onPageChange(page + 1)"
+        >
+          Next
+        </button>
+      </div>
     </div>
   </div>
 </main>

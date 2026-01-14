@@ -6,20 +6,48 @@
   background: rgba(250, 249, 246, 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
+  padding: 0 1rem;
 }
 
 .header-inner {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 0;
+  gap: 2rem;
+  padding: 1em 0;
+  position: relative;
+  width:56%;
+}
+
+.brand {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.header-actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.header-inner app-nav {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+.header-actions {
+  flex-shrink: 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 20px;
   text-decoration: none;
   color: inherit;
 }

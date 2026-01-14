@@ -19,7 +19,13 @@
     </a>
 
     <!-- Navigation (now a component) -->
-    <app-nav [isOpen]="isNavOpen" (toggle)="toggleNav.emit()" (close)="closeNav.emit()"></app-nav>
+    <app-nav
+      [isOpen]="isNavOpen"
+      [isAuthenticated]="isAuthenticated"
+      [isAdmin]="isAdmin"
+      (toggle)="toggleNav.emit()"
+      (close)="closeNav.emit()"
+    ></app-nav>
 
     <!-- Actions -->
     <div class="header-actions">

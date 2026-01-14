@@ -10,11 +10,27 @@
   </button>
 
   <ul class="nav-list" [class.open]="isOpen">
-    <li><a href="#rooms" (click)="close.emit()">Rooms</a></li>
-    <li><a href="#amenities" (click)="close.emit()">Amenities</a></li>
-    <li><a href="#rewards" (click)="close.emit()">Rewards</a></li>
-    <li><a href="#offers" (click)="close.emit()">Offers</a></li>
-    <li><a href="#faq" (click)="close.emit()">FAQ</a></li>
-    <li><a href="#contact" (click)="close.emit()">Contact</a></li>
+    <!-- Landing/Guest navigation -->
+    <ng-container *ngIf="!isAuthenticated && !isAdmin">
+      <li><a href="#rooms" (click)="close.emit()">Rooms</a></li>
+      <li><a href="#amenities" (click)="close.emit()">Amenities</a></li>
+      <li><a href="#rewards" (click)="close.emit()">Rewards</a></li>
+      <li><a href="#offers" (click)="close.emit()">Offers</a></li>
+      <li><a href="#faq" (click)="close.emit()">FAQ</a></li>
+      <li><a href="#contact" (click)="close.emit()">Contact</a></li>
+    </ng-container>
+    <!-- Authenticated user navigation -->
+    <ng-container *ngIf="isAuthenticated && !isAdmin">
+      <li><a routerLink="/my-bookings" (click)="close.emit()">My Bookings</a></li>
+      <li><a routerLink="/profile-settings" (click)="close.emit()">Profile</a></li>
+      <li><a routerLink="/rewards" (click)="close.emit()">Rewards</a></li>
+      <li><a routerLink="/support" (click)="close.emit()">Support</a></li>
+    </ng-container>
+    <!-- Admin navigation -->
+    <ng-container *ngIf="isAdmin">
+      <li><a href="#reservations" (click)="close.emit()">Reservations</a></li>
+      <li><a href="#revenue" (click)="close.emit()">Revenue</a></li>
+      <li><a href="#reports" (click)="close.emit()">Reports</a></li>
+    </ng-container>
   </ul>
 </nav>

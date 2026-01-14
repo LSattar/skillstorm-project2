@@ -56,11 +56,13 @@ export class UserProfilePage {
     this.userProfile.updateMe(this.profile).subscribe({
       next: () => {
         this.saving = false;
+        this.loading = false;
         this.router.navigate(['/']);
       },
       error: (err: unknown) => {
         this.error = this.formatHttpError('Could not save your profile', err);
         this.saving = false;
+        this.loading = false;
       },
     });
   }
