@@ -1,7 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnDestroy,
+  OnInit,
+  Output,
+} from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter, Subject, takeUntil } from 'rxjs';
+import { Subject, filter, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-nav',
@@ -11,67 +20,32 @@ import { filter, Subject, takeUntil } from 'rxjs';
   styleUrls: ['./nav.css'],
 })
 export class NavComponent implements OnInit, OnDestroy {
-  scrollToSection(sectionId: string) {
-    setTimeout(() => {
-      const el = document.getElementById(sectionId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 50);
-  }
   @Input() isOpen = false;
   @Input() isAdmin = false;
+  @Input() hideAllNavItems = false;
+
+  // matches your header binding so NG8002 never happens
   @Input() isAuthenticated = false;
 
   @Output() toggle = new EventEmitter<void>();
   @Output() close = new EventEmitter<void>();
 
-  moreOpen = false;
-
-  // Computed locally (do NOT take as input)
   isOnAdminDashboard = false;
-
-  // If true => render no <li> items anywhere
-  hideAllNavItems = false;
+  moreOpen = false;
 
   private destroy$ = new Subject<void>();
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private host: ElementRef<HTMLElement>) {}
 
   ngOnInit(): void {
-    this.updateRouteFlags(this.router.url);
+    this.setRouteFlags(this.router.url);
 
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntil(this.destroy$)
       )
-      .subscribe((e) => {
-        this.updateRouteFlags(e.urlAfterRedirects);
-        this.moreOpen = false;
-      });
-  }
-
-  private updateRouteFlags(url: string): void {
-    // Normalize (strip query + fragment)
-    const path = url.split('?')[0].split('#')[0];
-
-    this.isOnAdminDashboard = path.startsWith('/admin-dashboard');
-
-    // Pages where you want NO nav items at all (regardless of auth)
-    const hideOnTheseRoutes =
-      path.startsWith('/payment-transactions') ||
-      path.startsWith('/profile-settings') ||
-      path.startsWith('/system-admin');
-
-    // Your rule:
-    // - nav items only show on admin-dashboard
-    // - so admins should have no items anywhere else
-    const adminOffDashboard = this.isAdmin && !this.isOnAdminDashboard;
-
-    // If you ALSO want to hide for non-admins on those specific pages, keep hideOnTheseRoutes.
-    // If you truly want "ONLY admin-dashboard shows items for everyone", then set hideAllNavItems = !isOnAdminDashboard.
-    this.hideAllNavItems = hideOnTheseRoutes || adminOffDashboard;
+      .subscribe((e) => this.setRouteFlags(e.urlAfterRedirects));
   }
 
   ngOnDestroy(): void {
@@ -79,15 +53,42 @@ export class NavComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  private setRouteFlags(url: string): void {
+    const clean = url.split('?')[0].split('#')[0];
+    this.isOnAdminDashboard = clean === '/admin-dashboard';
+    this.moreOpen = false;
+  }
+
   toggleMore(): void {
     this.moreOpen = !this.moreOpen;
   }
 
-  onMoreKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') this.moreOpen = false;
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      this.toggleMore();
+  closeAllMenus(): void {
+    this.moreOpen = false;
+    this.close.emit();
+  }
+
+  scrollToSection(sectionId: string): void {
+    const el = document.getElementById(sectionId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.moreOpen) this.closeAllMenus();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocClick(event: MouseEvent): void {
+    if (!this.moreOpen) return;
+
+    const target = event.target as Node | null;
+    if (!target) return;
+
+    // close More menu when clicking outside the nav
+    if (!this.host.nativeElement.contains(target)) {
+      this.closeAllMenus();
     }
   }
 }
