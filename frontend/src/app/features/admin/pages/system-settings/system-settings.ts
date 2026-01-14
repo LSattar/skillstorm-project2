@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, computed, inject } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -19,10 +19,14 @@ import {
   templateUrl: './system-settings.html',
   styleUrls: ['./system-settings.css'],
 })
-export class SystemSettingsPage {
-  goToPaymentTransactions() {
-    throw new Error('Method not implemented.');
-  }
+export class SystemSettingsPage implements OnInit, OnDestroy {
+  private readonly document = inject(DOCUMENT);
+
+  // Scroll lock listeners
+  private removeWheel?: () => void;
+  private removeTouch?: () => void;
+  private removeKeydown?: () => void;
+
   private readonly api = inject(SystemSettingsService);
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly auth = inject(AuthService);
@@ -34,13 +38,14 @@ export class SystemSettingsPage {
   closeNav() {}
   openBooking() {}
   openSignIn() {}
+  goToPaymentTransactions() {
+    throw new Error('Method not implemented.');
+  }
   signOut() {
     this.auth.logout().subscribe({
       next: () => {
-        // Clear any local/session storage if used
         localStorage.clear();
         sessionStorage.clear();
-        // Redirect to landing page
         this.router.navigate(['/']);
       },
       error: () => {
@@ -50,18 +55,11 @@ export class SystemSettingsPage {
       },
     });
   }
-  isProfileOpen = false;
-
   openProfile() {
     this.router.navigate(['/profile-settings']);
   }
-
-  closeProfile() {
-    this.isProfileOpen = false;
-    document.body.style.overflow = '';
-  }
   goToSystemSettings() {}
-  // Use real user info from AuthService
+
   isAuthenticated = this.auth.isAuthenticated;
   roleLabel = this.auth.primaryRoleLabel;
   userLabel = computed(() => {
@@ -77,22 +75,76 @@ export class SystemSettingsPage {
   loading = false;
   error = '';
 
-  // Search
   query = '';
   statusFilter: 'ACTIVE' | 'INACTIVE' | 'ALL' = 'ACTIVE';
   users: UserAdminView[] = [];
   selected: UserAdminView | null = null;
 
-  // Roles
   roles: RoleResponse[] = [];
   roleToAdd = '';
 
-  // Create user
   creating = false;
   createForm = { firstName: '', lastName: '', email: '' };
 
   ngOnInit(): void {
+    // 1) CSS lock
+    this.document.body.classList.add('page-lock');
+
+    // 2) Hard block scroll input (macOS bounce killer)
+    this.installHardScrollBlock();
+
     this.bootstrap();
+  }
+
+  ngOnDestroy(): void {
+    this.uninstallHardScrollBlock();
+    this.document.body.classList.remove('page-lock');
+  }
+
+  private installHardScrollBlock(): void {
+    const doc = this.document;
+
+    const block = (e: Event) => {
+      if (doc.body.classList.contains('page-lock')) {
+        e.preventDefault();
+      }
+    };
+
+    const blockKeys = (e: KeyboardEvent) => {
+      if (!doc.body.classList.contains('page-lock')) return;
+
+      const scrollKeys = new Set([
+        'ArrowUp',
+        'ArrowDown',
+        'PageUp',
+        'PageDown',
+        'Home',
+        'End',
+        ' ',
+        'Spacebar',
+      ]);
+
+      if (scrollKeys.has(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    doc.addEventListener('wheel', block, { passive: false });
+    doc.addEventListener('touchmove', block, { passive: false });
+    doc.addEventListener('keydown', blockKeys, { passive: false });
+
+    this.removeWheel = () => doc.removeEventListener('wheel', block as any);
+    this.removeTouch = () => doc.removeEventListener('touchmove', block as any);
+    this.removeKeydown = () => doc.removeEventListener('keydown', blockKeys as any);
+  }
+
+  private uninstallHardScrollBlock(): void {
+    this.removeWheel?.();
+    this.removeTouch?.();
+    this.removeKeydown?.();
+    this.removeWheel = undefined;
+    this.removeTouch = undefined;
+    this.removeKeydown = undefined;
   }
 
   bootstrap(): void {
@@ -123,11 +175,10 @@ export class SystemSettingsPage {
 
     this.api.searchUsers(this.query, this.statusFilter, 0, 25).subscribe({
       next: (result) => {
-        // Support both array and object response formats
         if (Array.isArray(result)) {
           this.users = result;
-        } else if (Array.isArray(result?.content)) {
-          this.users = result.content;
+        } else if (Array.isArray((result as any)?.content)) {
+          this.users = (result as any).content;
         } else {
           this.users = [];
         }

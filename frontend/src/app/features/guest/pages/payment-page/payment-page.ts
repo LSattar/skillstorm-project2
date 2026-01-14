@@ -10,7 +10,6 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { StripeCardElementOptions, StripeElementsOptions } from '@stripe/stripe-js';
 import { StripeCardComponent, StripeService } from 'ngx-stripe';
-import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import {
   ReservationResponse,
@@ -22,7 +21,7 @@ import { PaymentService } from '../../services/payment.service';
 @Component({
   selector: 'app-payment-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, Header, Footer, StripeCardComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, Header, StripeCardComponent],
   templateUrl: './payment-page.html',
   styleUrl: './payment-page.css',
 })

@@ -14,9 +14,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding:1.5em;
+  padding: 1.5em;
   width: 55%;
   margin: 2.5em auto;
+  overflow-y: hidden !important;
 }
 .system-settings-page .header {
   margin-bottom: 1em;
