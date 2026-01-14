@@ -19,6 +19,14 @@ import { Nav } from '../nav/nav';
   styleUrls: ['./header.css'],
 })
 export class Header implements OnDestroy {
+  get currentRoute(): string {
+    return this.router.url;
+  }
+  onOpenPaymentTransactions() {
+    this.router.navigate(['/payment-transactions']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
   private readonly router = inject(Router);
   private readonly el = inject(ElementRef<HTMLElement>);
   private readonly zone = inject(NgZone);
@@ -114,13 +122,7 @@ export class Header implements OnDestroy {
   }
 
   onOpenSystemSettings() {
-    this.openSystemSettings.emit();
-    this.closeUserMenu();
-    this.closeNav.emit();
-  }
-
-  onOpenPaymentTransactions() {
-    this.router.navigate(['/payment-transactions']);
+    this.router.navigate(['/admin/system-settings']);
     this.closeUserMenu();
     this.closeNav.emit();
   }
