@@ -1,5 +1,5 @@
-import { CommonModule, DOCUMENT } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -19,14 +19,7 @@ import {
   templateUrl: './system-settings.html',
   styleUrls: ['./system-settings.css'],
 })
-export class SystemSettingsPage implements OnInit, OnDestroy {
-  private readonly document = inject(DOCUMENT);
-
-  // Scroll lock listeners
-  private removeWheel?: () => void;
-  private removeTouch?: () => void;
-  private removeKeydown?: () => void;
-
+export class SystemSettingsPage implements OnInit {
   private readonly api = inject(SystemSettingsService);
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly auth = inject(AuthService);
@@ -39,7 +32,7 @@ export class SystemSettingsPage implements OnInit, OnDestroy {
   openBooking() {}
   openSignIn() {}
   goToPaymentTransactions() {
-    throw new Error('Method not implemented.');
+    this.router.navigate(['/payment-transactions']);
   }
   signOut() {
     this.auth.logout().subscribe({
@@ -87,64 +80,7 @@ export class SystemSettingsPage implements OnInit, OnDestroy {
   createForm = { firstName: '', lastName: '', email: '' };
 
   ngOnInit(): void {
-    // 1) CSS lock
-    this.document.body.classList.add('page-lock');
-
-    // 2) Hard block scroll input (macOS bounce killer)
-    this.installHardScrollBlock();
-
     this.bootstrap();
-  }
-
-  ngOnDestroy(): void {
-    this.uninstallHardScrollBlock();
-    this.document.body.classList.remove('page-lock');
-  }
-
-  private installHardScrollBlock(): void {
-    const doc = this.document;
-
-    const block = (e: Event) => {
-      if (doc.body.classList.contains('page-lock')) {
-        e.preventDefault();
-      }
-    };
-
-    const blockKeys = (e: KeyboardEvent) => {
-      if (!doc.body.classList.contains('page-lock')) return;
-
-      const scrollKeys = new Set([
-        'ArrowUp',
-        'ArrowDown',
-        'PageUp',
-        'PageDown',
-        'Home',
-        'End',
-        ' ',
-        'Spacebar',
-      ]);
-
-      if (scrollKeys.has(e.key)) {
-        e.preventDefault();
-      }
-    };
-
-    doc.addEventListener('wheel', block, { passive: false });
-    doc.addEventListener('touchmove', block, { passive: false });
-    doc.addEventListener('keydown', blockKeys, { passive: false });
-
-    this.removeWheel = () => doc.removeEventListener('wheel', block as any);
-    this.removeTouch = () => doc.removeEventListener('touchmove', block as any);
-    this.removeKeydown = () => doc.removeEventListener('keydown', blockKeys as any);
-  }
-
-  private uninstallHardScrollBlock(): void {
-    this.removeWheel?.();
-    this.removeTouch?.();
-    this.removeKeydown?.();
-    this.removeWheel = undefined;
-    this.removeTouch = undefined;
-    this.removeKeydown = undefined;
   }
 
   bootstrap(): void {
@@ -174,14 +110,15 @@ export class SystemSettingsPage implements OnInit, OnDestroy {
     this.cdr.markForCheck();
 
     this.api.searchUsers(this.query, this.statusFilter, 0, 25).subscribe({
-      next: (result) => {
+      next: (result: any) => {
         if (Array.isArray(result)) {
           this.users = result;
-        } else if (Array.isArray((result as any)?.content)) {
-          this.users = (result as any).content;
+        } else if (Array.isArray(result?.content)) {
+          this.users = result.content;
         } else {
           this.users = [];
         }
+
         this.selected = this.users[0] ?? null;
         this.loading = false;
         this.cdr.markForCheck();
@@ -202,6 +139,7 @@ export class SystemSettingsPage implements OnInit, OnDestroy {
   removeRole(roleName: string): void {
     if (!this.selected?.userId) return;
     this.loading = true;
+
     this.api.updateUserRoles(this.selected.userId, { remove: [roleName] }).subscribe({
       next: (updated) => {
         this.patchLocalUser(updated);
@@ -221,6 +159,7 @@ export class SystemSettingsPage implements OnInit, OnDestroy {
     if (!roleName || !this.selected?.userId) return;
 
     this.loading = true;
+
     this.api.updateUserRoles(this.selected.userId, { add: [roleName] }).subscribe({
       next: (updated) => {
         this.patchLocalUser(updated);
@@ -238,13 +177,16 @@ export class SystemSettingsPage implements OnInit, OnDestroy {
 
   deactivateSelected(): void {
     if (!this.selected?.userId) return;
+
     if (this.selected.userId === this.auth.meSignal()?.localUserId) {
       this.error = 'You cannot deactivate your own account.';
       return;
     }
+
     if (!confirm('Deactivate this user?')) return;
 
     this.loading = true;
+
     this.api.deactivateUser(this.selected.userId).subscribe({
       next: () => {
         this.selected = { ...this.selected!, status: 'INACTIVE' };
@@ -267,6 +209,7 @@ export class SystemSettingsPage implements OnInit, OnDestroy {
     if (!confirm('Activate this user?')) return;
 
     this.loading = true;
+
     this.api.activateUser(this.selected.userId).subscribe({
       next: () => {
         this.selected = { ...this.selected!, status: 'ACTIVE' };
