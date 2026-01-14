@@ -44,6 +44,20 @@
             <span class="avatar">{{ avatarText }}</span>
           </button>
 
+          @if (isAdmin && showSystemSettings) {
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenSystemSettings()">
+            System settings
+          </button>
+          } @if (isAdmin) {
+          <button
+            class="menu-item"
+            type="button"
+            role="menuitem"
+            (click)="onOpenPaymentTransactions()"
+          >
+            Payment Transactions
+          </button>
+          }
           @if (userMenuOpen) {
             <div class="menu-backdrop" (click)="closeUserMenu()"></div>
 

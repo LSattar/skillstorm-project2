@@ -29,6 +29,7 @@ export class Header implements OnDestroy {
   @Input() roleLabel = '';
   @Input() userEmail = '';
   @Input() showSystemSettings = false;
+  @Input() showPaymentTransactions = false;
 
   @Output() toggleNav = new EventEmitter<void>();
   @Output() closeNav = new EventEmitter<void>();
@@ -117,6 +118,13 @@ export class Header implements OnDestroy {
     this.closeUserMenu();
     this.closeNav.emit();
   }
+
+  onOpenPaymentTransactions() {
+    this.router.navigate(['/payment-transactions']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
   ngOnDestroy() {
     this.removeGlobalClickListener();
   }
