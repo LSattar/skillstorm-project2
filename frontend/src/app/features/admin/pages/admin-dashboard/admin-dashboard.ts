@@ -67,6 +67,20 @@ export class AdminDashboard implements OnInit {
 
   ngOnInit(): void {
     this.loadMockData();
+    // Scroll to fragment if present
+    this.router.events.subscribe((event: any) => {
+      if (event?.constructor?.name === 'NavigationEnd') {
+        const fragment = this.router.parseUrl(this.router.url).fragment;
+        if (fragment) {
+          setTimeout(() => {
+            const el = document.getElementById(fragment);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 100);
+        }
+      }
+    });
   }
 
   loadMockData(): void {

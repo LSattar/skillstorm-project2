@@ -56,11 +56,13 @@ export class UserProfilePage {
     this.userProfile.updateMe(this.profile).subscribe({
       next: () => {
         this.saving = false;
+        this.loading = false;
         this.router.navigate(['/']);
       },
       error: (err: unknown) => {
         this.error = this.formatHttpError('Could not save your profile', err);
         this.saving = false;
+        this.loading = false;
       },
     });
   }
@@ -86,6 +88,17 @@ export class UserProfilePage {
       error: () => {
         this.error = 'Could not load your profile. Please sign in and try again.';
         this.loading = false;
+      },
+    });
+  }
+
+  signOut(): void {
+    this.auth.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/']);
+      },
+      error: () => {
+        this.router.navigate(['/']);
       },
     });
   }

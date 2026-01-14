@@ -29,9 +29,8 @@
   background: var(--border) !important;
   background-position: 0 0 !important;
 }
-.payment-transactions-page {
-  max-width: 1400px;
-  margin: 0 auto;
+
+.page-content {
   padding: 2rem;
 }
 

@@ -10,31 +10,16 @@ import {
   Output,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { Nav } from '../nav/nav';
+import { NavComponent } from '../nav/nav';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [Nav, RouterLink],
+  imports: [NavComponent, RouterLink],
   templateUrl: './header.html',
   styleUrls: ['./header.css'],
 })
 export class Header implements OnDestroy, AfterViewInit {
-  get currentRoute(): string {
-    return this.router.url;
-  }
-
-  ngAfterViewInit(): void {
-    // Close user menu if on profile settings page to prevent modal whitespace
-    if (this.router.url === '/profile-settings' && this.userMenuOpen) {
-      this.closeUserMenu();
-    }
-  }
-  onOpenPaymentTransactions() {
-    this.router.navigate(['/payment-transactions']);
-    this.closeUserMenu();
-    this.closeNav.emit();
-  }
   private readonly router = inject(Router);
   private readonly el = inject(ElementRef<HTMLElement>);
   private readonly zone = inject(NgZone);
@@ -58,6 +43,14 @@ export class Header implements OnDestroy, AfterViewInit {
   userMenuOpen = false;
   private globalClickListener?: (event: MouseEvent) => void;
 
+  get currentRoute(): string {
+    return this.router.url;
+  }
+
+  get isAdmin(): boolean {
+    return this.roleLabel?.toLowerCase() === 'admin';
+  }
+
   get avatarText(): string {
     const email = (this.userEmail || '').trim();
     if (email) return email[0].toUpperCase();
@@ -68,11 +61,14 @@ export class Header implements OnDestroy, AfterViewInit {
     return '?';
   }
 
-  get isAdmin(): boolean {
-    return this.roleLabel?.toLowerCase() === 'admin';
+  ngAfterViewInit(): void {
+    // Close user menu if on profile settings page to prevent modal whitespace
+    if (this.router.url === '/profile-settings' && this.userMenuOpen) {
+      this.closeUserMenu();
+    }
   }
 
-  toggleUserMenu() {
+  toggleUserMenu(): void {
     this.userMenuOpen = !this.userMenuOpen;
     if (this.userMenuOpen) {
       this.addGlobalClickListener();
@@ -81,61 +77,65 @@ export class Header implements OnDestroy, AfterViewInit {
     }
   }
 
-  closeUserMenu() {
+  closeUserMenu(): void {
     this.userMenuOpen = false;
     this.removeGlobalClickListener();
   }
 
-  private addGlobalClickListener() {
+  private addGlobalClickListener(): void {
     this.removeGlobalClickListener();
     this.globalClickListener = (event: MouseEvent) => {
-      // Only close if click is outside the header element
       if (!this.el.nativeElement.contains(event.target as Node)) {
-        // Run inside Angular zone to trigger change detection
         this.zone.run(() => this.closeUserMenu());
       }
     };
     document.addEventListener('click', this.globalClickListener, true);
   }
 
-  private removeGlobalClickListener() {
+  private removeGlobalClickListener(): void {
     if (this.globalClickListener) {
       document.removeEventListener('click', this.globalClickListener, true);
       this.globalClickListener = undefined;
     }
   }
 
-  onLogout() {
+  onLogout(): void {
     this.logout.emit();
     this.closeUserMenu();
     this.closeNav.emit();
   }
 
-  onOpenProfile() {
+  onOpenProfile(): void {
     this.openProfile.emit();
     this.closeUserMenu();
     this.closeNav.emit();
   }
 
-  onOpenAdminDashboard() {
+  onOpenAdminDashboard(): void {
     this.router.navigate(['/admin-dashboard']);
     this.closeUserMenu();
     this.closeNav.emit();
   }
 
-  onOpenMyBookings() {
+  onOpenMyBookings(): void {
     this.router.navigate(['/my-bookings']);
     this.closeUserMenu();
     this.closeNav.emit();
   }
 
-  onOpenSystemSettings() {
+  onOpenSystemSettings(): void {
     this.router.navigate(['/admin/system-settings']);
     this.closeUserMenu();
     this.closeNav.emit();
   }
 
-  ngOnDestroy() {
+  onOpenPaymentTransactions(): void {
+    this.router.navigate(['/payment-transactions']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
+  ngOnDestroy(): void {
     this.removeGlobalClickListener();
   }
 }

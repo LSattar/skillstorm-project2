@@ -4,17 +4,114 @@
     type="button"
     aria-label="Open menu"
     [attr.aria-expanded]="isOpen"
-    (click)="toggle.emit()"
+    [disabled]="hideAllNavItems"
+    (click)="!hideAllNavItems && toggle.emit()"
   >
     ☰
   </button>
 
-  <ul class="nav-list" [class.open]="isOpen">
-    <li><a href="#rooms" (click)="close.emit()">Rooms</a></li>
-    <li><a href="#amenities" (click)="close.emit()">Amenities</a></li>
-    <li><a href="#rewards" (click)="close.emit()">Rewards</a></li>
-    <li><a href="#offers" (click)="close.emit()">Offers</a></li>
-    <li><a href="#faq" (click)="close.emit()">FAQ</a></li>
-    <li><a href="#contact" (click)="close.emit()">Contact</a></li>
+  <ul class="nav-list" [class.open]="isOpen" [class.nav-list--empty]="hideAllNavItems">
+    <ng-container *ngIf="!hideAllNavItems">
+      <!-- ADMIN: show only on /admin-dashboard -->
+      <ng-container *ngIf="isAdmin && isOnAdminDashboard; else landingNav">
+        <li>
+          <a
+            href="#reservations"
+            (click)="$event.preventDefault(); scrollToSection('reservations'); close.emit()"
+          >
+            Reservations
+          </a>
+        </li>
+
+        <li>
+          <a
+            href="#revenue"
+            (click)="$event.preventDefault(); scrollToSection('revenue'); close.emit()"
+          >
+            Revenue
+          </a>
+        </li>
+
+        <li>
+          <a
+            href="#reports"
+            (click)="$event.preventDefault(); scrollToSection('reports'); close.emit()"
+          >
+            Reports
+          </a>
+        </li>
+      </ng-container>
+
+      <!-- LANDING -->
+      <ng-template #landingNav>
+        <ng-container *ngIf="!isAdmin">
+          <li>
+            <a
+              href="#rooms"
+              (click)="$event.preventDefault(); scrollToSection('rooms'); close.emit()"
+            >
+              Rooms
+            </a>
+          </li>
+
+          <li>
+            <a
+              href="#amenities"
+              (click)="$event.preventDefault(); scrollToSection('amenities'); close.emit()"
+            >
+              Amenities
+            </a>
+          </li>
+
+          <li>
+            <a
+              href="#rewards"
+              (click)="$event.preventDefault(); scrollToSection('rewards'); close.emit()"
+            >
+              Rewards
+            </a>
+          </li>
+
+          <!-- More -->
+          <li class="more">
+            <button
+              type="button"
+              class="more-btn"
+              aria-haspopup="menu"
+              [attr.aria-expanded]="moreOpen"
+              (click)="toggleMore()"
+            >
+              More <span aria-hidden="true">▾</span>
+            </button>
+
+            <div class="more-menu" *ngIf="moreOpen" role="menu" aria-label="More navigation">
+              <a
+                href="#offers"
+                role="menuitem"
+                (click)="$event.preventDefault(); scrollToSection('offers'); closeAllMenus()"
+              >
+                Offers
+              </a>
+
+              <a
+                href="#faq"
+                role="menuitem"
+                (click)="$event.preventDefault(); scrollToSection('faq'); closeAllMenus()"
+              >
+                FAQ
+              </a>
+
+              <a
+                href="#contact"
+                role="menuitem"
+                (click)="$event.preventDefault(); scrollToSection('contact'); closeAllMenus()"
+              >
+                Contact
+              </a>
+            </div>
+          </li>
+        </ng-container>
+      </ng-template>
+    </ng-container>
   </ul>
 </nav>
