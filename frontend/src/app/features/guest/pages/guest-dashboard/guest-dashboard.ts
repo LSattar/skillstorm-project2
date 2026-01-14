@@ -11,6 +11,7 @@ import {
 } from '../../../admin/services/reservation.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { ReservationCancelModal } from '../../components/reservation-cancel-modal/reservation-cancel-modal';
+import { HotelService, HotelResponse } from '../../../landing/services/hotel.service';
 import { ReservationModifyModal } from '../../components/reservation-modify-modal/reservation-modify-modal';
 
 @Component({
@@ -23,6 +24,7 @@ import { ReservationModifyModal } from '../../components/reservation-modify-moda
 export class GuestDashboard implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly reservationService = inject(ReservationService);
+  protected readonly hotelService = inject(HotelService);
   protected readonly router = inject(Router);
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
@@ -41,6 +43,9 @@ export class GuestDashboard implements OnInit {
   error: string | null = null;
   checkingIn: Record<string, boolean> = {};
 
+  hotels: HotelResponse[] = [];
+  hotelMap: Record<string, string> = {};
+
   isNavOpen = false;
   showProfileModal = false;
   selectedReservation: ReservationResponse | null = null;
@@ -48,6 +53,23 @@ export class GuestDashboard implements OnInit {
   showCancelModal = false;
 
   ngOnInit(): void {
+    this.loadHotels();
+    this.loadReservations();
+  }
+
+  private loadHotels(): void {
+    this.hotelService.getAllHotels().subscribe({
+      next: (hotels) => {
+        this.hotels = hotels;
+        // Create a map for quick lookup
+        this.hotelMap = {};
+        hotels.forEach((hotel) => {
+          this.hotelMap[hotel.hotelId] = hotel.name;
+        });
+      },
+      error: () => {
+        // Silently fail - hotel names are not critical
+        this.hotelMap = {};
     // Temporarily disabled backend calls - just show UI
     // this.loadReservations();
 
@@ -84,11 +106,10 @@ export class GuestDashboard implements OnInit {
         createdAt: '2025-01-15T14:20:00Z',
         updatedAt: '2025-03-01T12:00:00Z',
       },
-    ];
+    });
   }
 
   loadReservations(): void {
-    // Temporarily disabled - backend integration disabled for preview
     const me = this.auth.meSignal();
     if (!me?.localUserId) {
       this.error = 'You must be logged in to view your bookings.';
@@ -226,13 +247,7 @@ export class GuestDashboard implements OnInit {
   }
 
   getHotelLocation(hotelId: string): string {
-    // Temporary mapping for mock data - will be replaced with actual hotel service call
-    const hotelMap: Record<string, string> = {
-      'hotel-1': 'ReserveOne Downtown',
-      'hotel-2': 'ReserveOne Airport',
-      'hotel-3': 'ReserveOne Beach Resort',
-    };
-    return hotelMap[hotelId] || hotelId;
+    return this.hotelMap[hotelId] || `Hotel ${hotelId.substring(0, 8)}`;
   }
 
   hasBalance(reservation: ReservationResponse): boolean {
@@ -264,6 +279,8 @@ export class GuestDashboard implements OnInit {
       this.reservations[index] = updated;
     }
     this.closeModifyModal();
+    // Reload reservations to ensure data is fresh
+    this.loadReservations();
   }
 
   openCancelModal(reservation: ReservationResponse): void {
@@ -282,6 +299,8 @@ export class GuestDashboard implements OnInit {
       this.reservations[index] = cancelled;
     }
     this.closeCancelModal();
+    // Reload reservations to ensure data is fresh
+    this.loadReservations();
   }
 
   canModify(reservation: ReservationResponse): boolean {

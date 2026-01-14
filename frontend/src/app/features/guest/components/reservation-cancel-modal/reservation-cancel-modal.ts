@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ReservationResponse } from '../../../admin/services/reservation.service';
+import { ReservationResponse, ReservationService } from '../../../admin/services/reservation.service';
 
 @Component({
   selector: 'app-reservation-cancel-modal',
@@ -14,6 +14,8 @@ export class ReservationCancelModal {
   @Input() reservation!: ReservationResponse;
   @Output() close = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<ReservationResponse>();
+
+  private readonly reservationService = inject(ReservationService);
 
   cancelReason = '';
   loading = false;
@@ -39,21 +41,23 @@ export class ReservationCancelModal {
     this.loading = true;
     this.error = null;
 
-    // Temporarily disabled - backend integration disabled for preview
-    // Just emit cancelled reservation
-    setTimeout(() => {
-      const cancelledReservation: ReservationResponse = {
-        ...this.reservation,
-        status: 'CANCELLED',
-        cancellationReason: this.cancelReason || undefined,
-        cancelledAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      this.loading = false;
-      this.cancelled.emit(cancelledReservation);
-      this.onClose();
-    }, 500);
+    this.reservationService.cancelReservation(this.reservation.reservationId, this.cancelReason || undefined).subscribe({
+      next: (cancelled) => {
+        this.loading = false;
+        this.cancelled.emit(cancelled);
+        this.onClose();
+      },
+      error: (err) => {
+        this.loading = false;
+        if (err.error?.detail) {
+          this.error = err.error.detail;
+        } else if (err.error?.message) {
+          this.error = err.error.message;
+        } else {
+          this.error = 'Failed to cancel reservation. Please try again.';
+        }
+      },
+    });
   }
 
   onClose(): void {

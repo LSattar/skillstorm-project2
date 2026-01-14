@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ReservationResponse } from '../../../admin/services/reservation.service';
+import { ReservationResponse, ReservationService, ReservationRequest } from '../../../admin/services/reservation.service';
 
 @Component({
   selector: 'app-reservation-modify-modal',
@@ -14,6 +14,8 @@ export class ReservationModifyModal implements OnInit {
   @Input() reservation!: ReservationResponse;
   @Output() close = new EventEmitter<void>();
   @Output() updated = new EventEmitter<ReservationResponse>();
+
+  private readonly reservationService = inject(ReservationService);
 
   startDate = '';
   endDate = '';
@@ -42,22 +44,36 @@ export class ReservationModifyModal implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // Temporarily disabled - backend integration disabled for preview
-    // Just emit updated reservation with modified fields
-    setTimeout(() => {
-      const updatedReservation: ReservationResponse = {
-        ...this.reservation,
-        startDate: this.startDate,
-        endDate: this.endDate,
-        guestCount: this.guestCount,
-        specialRequests: this.specialRequests || undefined,
-        updatedAt: new Date().toISOString(),
-      };
+    const updateRequest: ReservationRequest = {
+      hotelId: this.reservation.hotelId,
+      userId: this.reservation.userId,
+      roomId: this.reservation.roomId,
+      roomTypeId: this.reservation.roomTypeId,
+      startDate: this.startDate,
+      endDate: this.endDate,
+      guestCount: this.guestCount,
+      totalAmount: this.reservation.totalAmount,
+      currency: this.reservation.currency,
+      specialRequests: this.specialRequests || undefined,
+    };
 
-      this.loading = false;
-      this.updated.emit(updatedReservation);
-      this.onClose();
-    }, 500);
+    this.reservationService.updateReservation(this.reservation.reservationId, updateRequest).subscribe({
+      next: (updated) => {
+        this.loading = false;
+        this.updated.emit(updated);
+        this.onClose();
+      },
+      error: (err) => {
+        this.loading = false;
+        if (err.error?.detail) {
+          this.error = err.error.detail;
+        } else if (err.error?.message) {
+          this.error = err.error.message;
+        } else {
+          this.error = 'Failed to update reservation. Please try again.';
+        }
+      },
+    });
   }
 
   onClose(): void {
