@@ -70,41 +70,6 @@ export class GuestDashboard implements OnInit {
       error: () => {
         // Silently fail - hotel names are not critical
         this.hotelMap = {};
-    // Temporarily disabled backend calls - just show UI
-    // this.loadReservations();
-
-    // Mock data for UI preview
-    this.reservations = [
-      {
-        reservationId: 'res-abc123def456',
-        hotelId: 'hotel-1',
-        userId: 'user-101',
-        roomId: 'room-201',
-        roomTypeId: 'type-deluxe',
-        startDate: '2025-02-15',
-        endDate: '2025-02-18',
-        guestCount: 2,
-        status: 'CONFIRMED',
-        totalAmount: 450.0,
-        currency: 'USD',
-        specialRequests: 'Late check-in requested',
-        createdAt: '2025-01-20T10:30:00Z',
-        updatedAt: '2025-01-20T10:30:00Z',
-      },
-      {
-        reservationId: 'res-xyz789ghi012',
-        hotelId: 'hotel-2',
-        userId: 'user-101',
-        roomId: 'room-305',
-        roomTypeId: 'type-standard',
-        startDate: '2025-03-01',
-        endDate: '2025-03-03',
-        guestCount: 1,
-        status: 'CHECKED_IN',
-        totalAmount: 280.0,
-        currency: 'USD',
-        createdAt: '2025-01-15T14:20:00Z',
-        updatedAt: '2025-03-01T12:00:00Z',
       },
     });
   }
