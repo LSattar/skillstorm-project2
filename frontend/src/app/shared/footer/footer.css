@@ -1,8 +1,12 @@
 .site-footer {
-  border-top:
-/* ===== Footer ===== */ 1px solid var(--border);
+  border-top: 1px solid var(--border);
   padding: 22px 0;
   background: rgba(52, 78, 65, 0.04);
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100vw;
+  z-index: 100;
 }
 
 .footer-inner {
