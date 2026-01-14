@@ -41,45 +41,44 @@
         </button>
 
         @if (userMenuOpen) {
-          <div class="menu-backdrop" (click)="closeUserMenu()"></div>
-          <div
-            class="menu-panel"
-            role="menu"
-            aria-label="User menu"
-            (click)="$event.stopPropagation()"
+        <div class="menu-backdrop" (click)="closeUserMenu()"></div>
+        <div
+          class="menu-panel"
+          role="menu"
+          aria-label="User menu"
+          (click)="$event.stopPropagation()"
+        >
+          @if (roleLabel) {
+          <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
+          } @if (isAdmin) {
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenAdminDashboard()">
+            Admin Dashboard
+          </button>
+          @if (showSystemSettings) {
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenSystemSettings()">
+            System settings
+          </button>
+          }
+          <button
+            class="menu-item"
+            type="button"
+            role="menuitem"
+            (click)="onOpenPaymentTransactions()"
           >
-            @if (roleLabel) {
-              <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
-            }
-            @if (isAdmin) {
-              <button class="menu-item" type="button" role="menuitem" (click)="onOpenAdminDashboard()">
-                Admin Dashboard
-              </button>
-              @if (showSystemSettings) {
-                <button class="menu-item" type="button" role="menuitem" (click)="onOpenSystemSettings()">
-                  System settings
-                </button>
-              }
-              <button
-                class="menu-item"
-                type="button"
-                role="menuitem"
-                (click)="onOpenPaymentTransactions()"
-              >
-                Payment Transactions
-              </button>
-            } @else {
-              <button class="menu-item" type="button" role="menuitem" (click)="onOpenMyBookings()">
-                My Bookings
-              </button>
-            }
-            <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
-              Profile settings
-            </button>
-            <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
-              Log out
-            </button>
-          </div>
+            Payment Transactions
+          </button>
+          } @else {
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenMyBookings()">
+            My Bookings
+          </button>
+          }
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
+            Profile settings
+          </button>
+          <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
+            Log out
+          </button>
+        </div>
         }
       </div>
       }
