@@ -1,0 +1,98 @@
+<app-header
+  [isAuthenticated]="isAuthenticated"
+  [roleLabel]="roleLabel"
+  [userLabel]="userLabel"
+  [userEmail]="userEmail"
+  [showSystemSettings]="auth.isAdmin()"
+></app-header>
+<main class="user-profile-page">
+  <h2>Profile Settings</h2>
+  <form class="booking-form" (ngSubmit)="save()">
+    <p class="auth-hint" *ngIf="loading">Loading your profile…</p>
+    <p class="auth-error" *ngIf="error" role="alert">{{ error }}</p>
+    <div class="field-row">
+      <div class="field">
+        <label for="pfFirst">First name</label>
+        <input id="pfFirst" name="firstName" type="text" [(ngModel)]="profile.firstName" />
+      </div>
+      <div class="field">
+        <label for="pfLast">Last name</label>
+        <input id="pfLast" name="lastName" type="text" [(ngModel)]="profile.lastName" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="pfPhone">Phone</label>
+        <input
+          id="pfPhone"
+          name="phone"
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder="+1 555-555-5555"
+          [(ngModel)]="profile.phone"
+        />
+      </div>
+      <div class="field">
+        <label for="pfState">State</label>
+        <input
+          id="pfState"
+          name="state"
+          type="text"
+          maxlength="2"
+          autocomplete="address-level1"
+          [(ngModel)]="profile.state"
+        />
+      </div>
+    </div>
+    <div class="field">
+      <label for="pfAddress1">Address line 1</label>
+      <input
+        id="pfAddress1"
+        name="address1"
+        type="text"
+        autocomplete="address-line1"
+        [(ngModel)]="profile.address1"
+      />
+    </div>
+    <div class="field">
+      <label for="pfAddress2">Address line 2</label>
+      <input
+        id="pfAddress2"
+        name="address2"
+        type="text"
+        autocomplete="address-line2"
+        [(ngModel)]="profile.address2"
+      />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="pfCity">City</label>
+        <input
+          id="pfCity"
+          name="city"
+          type="text"
+          autocomplete="address-level2"
+          [(ngModel)]="profile.city"
+        />
+      </div>
+      <div class="field">
+        <label for="pfZip">ZIP</label>
+        <input
+          id="pfZip"
+          name="zip"
+          type="text"
+          inputmode="numeric"
+          autocomplete="postal-code"
+          [(ngModel)]="profile.zip"
+        />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary btn-block" type="submit" [disabled]="saving || loading">
+        {{ saving ? 'Saving...' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+</main>
+<app-footer></app-footer>

@@ -4,6 +4,7 @@
   [roleLabel]="roleLabel"
   [userLabel]="userLabel"
   [userEmail]="userEmail"
+  [showSystemSettings]="auth.isAdmin()"
   (toggleNav)="toggleNav()"
   (closeNav)="closeNav()"
   (openBooking)="openBooking()"
@@ -145,7 +146,7 @@
             Clear
           </button>
         </div>
-        <div class="form-actions">
+        <div class="form-actions search-actions">
           <button type="submit" class="btn btn-primary">
             <span class="material-symbols-outlined">search</span>
             Search
@@ -277,79 +278,4 @@
       </button>
     </div>
   </div>
-
-  <!-- Profile Modal -->
-  <app-user-profile-modal
-    *ngIf="isProfileOpen"
-    [open]="isProfileOpen"
-    (closed)="closeProfile()"
-    (saved)="closeProfile()"
-  ></app-user-profile-modal>
-
-  <!-- Details Modal -->
-  <app-user-profile-modal
-    *ngIf="showDetailsModal && selected"
-    [open]="showDetailsModal"
-    (closed)="closeDetailsModal()"
-  >
-    <div class="modal-content">
-      <h2>Transaction Details</h2>
-      <p><strong>Guest:</strong> {{ selected.guestName }} ({{ selected.guestEmail }})</p>
-      <p><strong>Reservation:</strong> {{ selected.reservationId }}</p>
-      <!-- Room type not available in PaymentTransaction; remove or replace if needed -->
-      <p><strong>Check-in:</strong> {{ formatDate(selected.checkIn) }}</p>
-      <p><strong>Check-out:</strong> {{ formatDate(selected.checkOut) }}</p>
-      <p><strong>Nights:</strong> {{ computeNights(selected.checkIn, selected.checkOut) }}</p>
-      <p>
-        <strong>Nightly Rate:</strong>
-        {{ formatCurrency(selected.nightlyRate || 0, selected.currency) }}
-      </p>
-      <p><strong>Subtotal:</strong> {{ formatCurrency(selected.subtotal, selected.currency) }}</p>
-      <p><strong>Tax:</strong> {{ formatCurrency(selected.taxTotal, selected.currency) }}</p>
-      <div *ngIf="selected.taxLineItems?.length">
-        <strong>Tax Items:</strong>
-        <ul>
-          <li *ngFor="let item of selected.taxLineItems">
-            {{ item.label }}: {{ formatCurrency(item.amount, selected.currency) }}
-          </li>
-        </ul>
-      </div>
-      <p *ngIf="selected.feesTotal">
-        <strong>Fees:</strong> {{ formatCurrency(selected.feesTotal, selected.currency) }}
-      </p>
-      <div *ngIf="selected.discountLineItems?.length">
-        <strong>Discounts:</strong>
-        <ul>
-          <li *ngFor="let item of selected.discountLineItems">
-            {{ item.label }}: -{{ formatCurrency(item.amount, selected.currency) }}
-          </li>
-        </ul>
-      </div>
-      <p *ngIf="selected.rewardsEarned">
-        <strong>Rewards Earned:</strong>
-        {{ formatCurrency(selected.rewardsEarned, selected.currency) }}
-      </p>
-      <p *ngIf="selected.rewardsApplied">
-        <strong>Rewards Applied:</strong> -{{
-          formatCurrency(selected.rewardsApplied, selected.currency)
-        }}
-      </p>
-      <p><strong>Total:</strong> {{ formatCurrency(selected.total, selected.currency) }}</p>
-      <p>
-        <strong>Status:</strong>
-        <span class="status-badge" [ngClass]="getStatusClass(selected.status)">{{
-          selected.status
-        }}</span>
-      </p>
-      <p><strong>Payment Provider:</strong> {{ selected.paymentProvider }}</p>
-      <p *ngIf="selected.paymentMethodLast4">
-        <strong>Card Last 4:</strong> {{ selected.paymentMethodLast4 }}
-      </p>
-      <p><strong>Transaction ID:</strong> {{ selected.transactionId }}</p>
-      <p><strong>Created:</strong> {{ formatDate(selected.createdAt) }}</p>
-      <p><strong>Updated:</strong> {{ formatDate(selected.updatedAt) }}</p>
-    </div>
-  </app-user-profile-modal>
-
-  <app-footer [year]="today.getFullYear()"></app-footer>
 </main>

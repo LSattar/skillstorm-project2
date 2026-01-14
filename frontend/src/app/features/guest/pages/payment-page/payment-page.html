@@ -59,7 +59,9 @@
             </div>
             <div class="summary-row total-row">
               <span class="summary-label">Total Amount:</span>
-              <span class="summary-value total-amount">{{ formatCurrency(reservation.totalAmount, reservation.currency) }}</span>
+              <span class="summary-value total-amount">{{
+                formatCurrency(reservation.totalAmount, reservation.currency)
+              }}</span>
             </div>
           </div>
         </div>
@@ -121,9 +123,8 @@
               >
                 @if (paymentProcessing) {
                 <span class="spinner"></span>
-                Processing...
-                } @else {
-                Pay {{ formatCurrency(reservation.totalAmount, reservation.currency) }}
+                Processing... } @else { Pay
+                {{ formatCurrency(reservation.totalAmount, reservation.currency) }}
                 }
               </button>
             </div>
@@ -131,7 +132,8 @@
 
           <div class="payment-note">
             <p>
-              <strong>Note:</strong> Payment will be processed securely through Stripe. You will receive a confirmation email once payment is complete.
+              <strong>Note:</strong> Payment will be processed securely through Stripe. You will
+              receive a confirmation email once payment is complete.
             </p>
           </div>
         </div>
@@ -142,9 +144,3 @@
 </div>
 
 <app-footer></app-footer>
-
-<app-user-profile-modal
-  [open]="showProfileModal"
-  (closed)="closeProfile()"
-  (saved)="closeProfile()"
-></app-user-profile-modal>

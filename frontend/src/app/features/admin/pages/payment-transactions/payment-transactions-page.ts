@@ -2,10 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
-import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
+
 import {
   PaymentTransaction,
   PaymentTransactionStatus,
@@ -15,7 +14,7 @@ import {
 @Component({
   selector: 'app-payment-transactions-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer, UserProfileModal],
+  imports: [CommonModule, FormsModule, Header],
   templateUrl: './payment-transactions-page.html',
   styleUrls: ['./payment-transactions-page.css'],
 })
@@ -134,8 +133,7 @@ export class PaymentTransactionsPage implements OnInit {
     });
   }
   openProfile() {
-    this.isProfileOpen = true;
-    document.body.style.overflow = 'hidden';
+    this.router.navigate(['/profile-settings']);
   }
 
   closeProfile() {

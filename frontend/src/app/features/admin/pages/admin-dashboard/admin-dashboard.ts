@@ -4,7 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
-import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
+
 import { Alert, MonthlyRevenue, Reservation } from '../../services/admin-metrics.service';
 
 export type OperationalMetrics = {
@@ -20,7 +20,7 @@ export type OperationalMetrics = {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, Header, Footer, UserProfileModal],
+  imports: [CommonModule, RouterModule, Header, Footer],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.css',
 })
@@ -379,8 +379,7 @@ export class AdminDashboard implements OnInit {
   isProfileOpen = false;
 
   openProfile() {
-    this.isProfileOpen = true;
-    document.body.style.overflow = 'hidden';
+    this.router.navigate(['/profile-settings']);
   }
 
   closeProfile() {

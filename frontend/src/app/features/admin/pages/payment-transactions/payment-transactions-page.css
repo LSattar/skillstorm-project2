@@ -1,3 +1,29 @@
+/* Improve visibility of the Clear button in the search form */
+.search-section .btn-secondary {
+  color: var(--primary-2);
+  border: 1.5px solid rgba(52, 78, 65, 0.32); /* Slightly darker border */
+  background: var(--card);
+  font-weight: 500;
+  box-shadow: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.search-section .btn-secondary:hover,
+.search-section .btn-secondary:focus {
+  background: var(--border);
+  color: var(--primary-2);
+  border-color: var(--primary-2);
+}
+.search-section .btn-secondary:active,
+.search-section .btn-secondary:focus:active,
+.search-section .btn-secondary:visited:active,
+.search-section .btn-secondary:focus-visible:active,
+.search-section .btn-secondary:focus:not(:hover):not(:active),
+.search-section .btn-secondary:focus-visible:not(:hover):not(:active) {
+  background: var(--card) !important;
+  color: var(--primary-2) !important;
+  border-color: rgba(52, 78, 65, 0.32) !important;
+  box-shadow: none !important;
+}
 .transactions-table .skeleton-row.stopped {
   animation: none !important;
   background: var(--border) !important;
@@ -14,7 +40,7 @@
 }
 .page-header h1 {
   font-size: 2rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--primary-2);
   margin: 0 0 0.5rem 0;
 }
@@ -130,10 +156,27 @@
   color: var(--text);
   background: var(--bg);
 }
+
 .search-section .search-form .btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Add spacing between Search and Clear buttons */
+.search-section .search-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+@media (max-width: 600px) {
+  .search-section .search-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+    width: 100%;
+  }
 }
 
 .results-section {

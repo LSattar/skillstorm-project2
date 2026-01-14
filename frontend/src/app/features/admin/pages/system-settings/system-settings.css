@@ -19,17 +19,18 @@
   padding: 32px 24px;
 }
 .system-settings-page .header {
-  margin-bottom: 24px;
+  margin-bottom: 1em;
 }
 .system-settings-page h2 {
   margin: 0;
   color: var(--primary-2);
-  font-weight: 900;
+  font-weight: 600;
+  font-size: 2.25rem;
 }
 .system-settings-page .subtitle {
   margin: 6px 0 0;
   color: var(--primary-3);
-  font-weight: 650;
+  font-weight: 600;
 }
 .icon-btn {
   border: 1px solid var(--border);
