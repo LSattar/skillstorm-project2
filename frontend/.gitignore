@@ -1,3 +1,6 @@
+# Ignore build artifacts
+dist/reserveone-client/browser/main-KE3X3F7X.js
+dist/reserveone-client/browser/styles-L4BMZS5I.css
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # Compiled output
