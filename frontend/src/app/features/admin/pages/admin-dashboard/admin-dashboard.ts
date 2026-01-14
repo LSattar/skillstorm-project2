@@ -353,8 +353,16 @@ export class AdminDashboard implements OnInit {
 
   signOut() {
     this.auth.logout().subscribe({
-      next: () => {},
-      error: () => {},
+      next: () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        this.router.navigate(['/']);
+      },
+      error: () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        this.router.navigate(['/']);
+      },
     });
   }
 

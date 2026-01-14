@@ -5,11 +5,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -34,12 +38,15 @@ import com.skillstorm.reserveone.dto.users.UpdateUserStatusRequest;
 import com.skillstorm.reserveone.dto.users.UserResponse;
 import com.skillstorm.reserveone.services.UserService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/users")
 @Validated
 public class UserController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     private final UserService service;
 
@@ -136,8 +143,12 @@ public class UserController {
     @GetMapping("/search")
     public ResponseEntity<List<UserResponse>> search(
             @RequestParam(name = "q", defaultValue = "") String q,
-            @RequestParam(name = "limit", defaultValue = "20") int limit) {
-        return ResponseEntity.ok(service.search(q, limit));
+            @RequestParam(name = "status", defaultValue = "ACTIVE") String status,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "25") int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        return ResponseEntity.ok(service.searchPage(q, status, safePage, safeSize));
     }
 
     @PatchMapping("/{userId}/roles")
@@ -190,8 +201,26 @@ public class UserController {
     }
 
     // DELETE /users/{userId}
+    // @DeleteMapping("/{userId}")
+    // public ResponseEntity<Void> delete(@NonNull @PathVariable UUID userId) {
+    // service.delete(userId);
+    // return ResponseEntity.noContent().build();
+    // }
+
+    // TESTING METHOD
+
     @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> delete(@NonNull @PathVariable UUID userId) {
+    public ResponseEntity<Void> delete(@NonNull @PathVariable UUID userId,
+            Authentication auth,
+            HttpServletRequest req) {
+
+        log.warn("DELETE /users/{}  session={}  user={}  authorities={}",
+                userId,
+                req.getSession(false) == null ? "null" : req.getSession(false).getId(),
+                auth == null ? "null" : auth.getName(),
+                auth == null ? "null"
+                        : auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
+
         service.delete(userId);
         return ResponseEntity.noContent().build();
     }

@@ -28,14 +28,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   boolean existsByUserId(@NonNull UUID userId);
 
   @Query("""
-      select distinct u
-      from User u
-      left join fetch u.roles r
-      where (:q is null or :q = ''
-         or lower(u.email) like lower(concat('%', :q, '%'))
-         or lower(u.firstName) like lower(concat('%', :q, '%'))
+      select u from User u
+      where
+        (:q = '' or lower(u.firstName) like lower(concat('%', :q, '%'))
          or lower(u.lastName) like lower(concat('%', :q, '%'))
-      )
+         or lower(u.email) like lower(concat('%', :q, '%')))
+        and (:status is null or u.status = :status)
       """)
-  Page<User> searchWithRoles(@Param("q") String q, Pageable pageable);
+  Page<User> searchUsers(@Param("q") String q, @Param("status") com.skillstorm.reserveone.models.User.Status status,
+      Pageable pageable);
 }
