@@ -1,0 +1,29 @@
+<div class="toast-stack" aria-label="Notifications">
+  <div
+    class="toast"
+    *ngFor="let t of toasts; trackBy: trackById"
+    [class.toast-success]="t.kind === 'success'"
+    [class.toast-error]="t.kind === 'error'"
+    [class.toast-warning]="t.kind === 'warning'"
+    [class.toast-info]="t.kind === 'info'"
+    [class.toast-loading]="t.kind === 'loading'"
+    role="status"
+    [attr.aria-live]="ariaLive(t.kind)"
+    (mouseenter)="onMouseEnter(t.id)"
+    (mouseleave)="onMouseLeave(t.id)"
+  >
+    <div class="left">
+      <div class="icon" *ngIf="t.kind !== 'loading'">{{ iconFor(t.kind) }}</div>
+      <div class="spinner" *ngIf="t.kind === 'loading'" aria-hidden="true"></div>
+    </div>
+
+    <div class="content">
+      <div class="title" *ngIf="t.title">{{ t.title }}</div>
+      <div class="message">{{ t.message }}</div>
+    </div>
+
+    <button class="close" type="button" (click)="dismiss(t.id)" aria-label="Dismiss notification">
+      ×
+    </button>
+  </div>
+</div>

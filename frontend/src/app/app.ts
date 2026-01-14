@@ -2,11 +2,12 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthService } from './features/auth/services/auth.service';
 import { Footer } from './shared/footer/footer';
+import { ToastHostComponent } from "./shared/toast/toast-host";
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, Footer],
+  imports: [RouterOutlet, Footer, ToastHostComponent],
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
 })

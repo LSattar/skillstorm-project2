@@ -1,10 +1,11 @@
 import { CommonModule, DOCUMENT } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
 import { UserProfile, UserProfileService, UserProfileUpdate } from '../../user-profile.service';
+import { ToastService } from './../../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-user-profile-page',
@@ -22,6 +23,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
   private removeKeydown?: () => void;
 
   protected readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   get isAuthenticated() {
     return this.auth.isAuthenticated();
@@ -55,7 +57,11 @@ export class UserProfilePage implements OnInit, OnDestroy {
   saving = false;
   error = '';
 
-  constructor(private userProfile: UserProfileService, private router: Router) {}
+  constructor(
+    private userProfile: UserProfileService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     // 1) CSS lock
@@ -127,18 +133,39 @@ export class UserProfilePage implements OnInit, OnDestroy {
   }
 
   save(): void {
+    if (this.saving || this.loading) return;
+
     this.saving = true;
     this.error = '';
+
+    // Optional: show a sticky "loading" toast while the request is in flight
+    const loadingToastId = this.toast.loading('Saving your profile…');
+
     this.userProfile.updateMe(this.profile).subscribe({
       next: () => {
+        // Optional safety: only dismiss if we actually received an id
+        if (loadingToastId) {
+          this.toast.dismiss(loadingToastId);
+        }
+
         this.saving = false;
         this.loading = false;
-        this.router.navigate(['/']);
+
+        // Success toast
+        this.toast.success('Your profile changes were saved.');
       },
       error: (err: unknown) => {
+        // Optional safety: only dismiss if we actually received an id
+        if (loadingToastId) {
+          this.toast.dismiss(loadingToastId);
+        }
+
         this.error = this.formatHttpError('Could not save your profile', err);
         this.saving = false;
         this.loading = false;
+
+        // Friendly error toast
+        this.toast.error(this.error);
       },
     });
   }
@@ -160,10 +187,12 @@ export class UserProfilePage implements OnInit, OnDestroy {
           zip: me.zip ?? '',
         };
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.error = 'Could not load your profile. Please sign in and try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
