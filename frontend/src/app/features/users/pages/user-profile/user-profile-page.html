@@ -4,6 +4,7 @@
   [userLabel]="userLabel"
   [userEmail]="userEmail"
   [showSystemSettings]="auth.isAdmin()"
+  (logout)="signOut()"
 ></app-header>
 <main>
   <div class="container user-profile-page">

@@ -6,7 +6,7 @@
   min-width: 0;
 }
 
-.nav-toggle {
+.nav .nav-toggle {
   display: none;
   border: 1px solid var(--border);
   background: var(--bg);
@@ -16,7 +16,7 @@
   color: var(--text);
 }
 
-.nav-list {
+.nav .nav-list {
   list-style: none;
   display: flex;
   gap: 14px;
@@ -30,25 +30,104 @@
   width: 100%;
 }
 
-.nav-list a {
+/* base link styling */
+.nav .nav-list a {
   text-decoration: none;
   color: var(--text);
   font-weight: 650;
   padding: 8px 10px;
   border-radius: 12px;
-  margin: 0 1.5em 0 1.5em;
+  margin: 0 1em;
 }
 
-.nav-list a:hover {
+.nav .nav-list a:hover {
   background: rgba(163, 177, 138, 0.22);
 }
 
+/* More dropdown */
+.nav .nav-more {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nav .nav-more-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-weight: 650;
+  padding: 8px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.nav .nav-more-btn:hover,
+.nav .nav-more-btn:focus {
+  background: rgba(163, 177, 138, 0.22);
+}
+
+.nav .nav-more-list {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  min-width: 140px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  z-index: 10;
+  padding: 6px 0;
+  margin: 0;
+  list-style: none;
+}
+
+.nav .nav-more-list li {
+  width: 100%;
+}
+
+.nav .nav-more-list a {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  margin: 0;
+  border-radius: 8px;
+}
+
+.nav .nav-more-list a:hover,
+.nav .nav-more-list a:focus {
+  background: rgba(163, 177, 138, 0.18);
+}
+
+/* Search CTA */
+.nav .nav-search-cta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.nav .search-cta {
+  background: var(--primary);
+  color: var(--bg);
+  font-weight: 700;
+  border-radius: 16px;
+  padding: 8px 22px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(47, 93, 80, 0.1);
+  transition: background 0.2s;
+}
+
+.nav .search-cta:hover,
+.nav .search-cta:focus {
+  background: var(--primary-2);
+}
+
+/* mobile */
 @media (max-width: 720px) {
-  .nav-toggle {
+  .nav .nav-toggle {
     display: inline-flex;
   }
 
-  .nav-list {
+  .nav .nav-list {
     display: none;
     position: absolute;
     right: 1rem;
@@ -61,9 +140,47 @@
     flex-direction: column;
     gap: 6px;
     min-width: 180px;
+    width: auto;
+    margin-left: 0;
+    justify-content: flex-start;
   }
 
-  .nav-list.open {
+  .nav .nav-list.open {
     display: flex;
+  }
+
+  .nav .nav-search-cta {
+    width: 100%;
+    margin: 0;
+    justify-content: flex-end;
+  }
+
+  .nav .search-cta {
+    width: 100%;
+    padding: 10px 0;
+    border-radius: 12px;
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .nav .nav-more-list {
+    position: static;
+    box-shadow: none;
+    border-radius: 10px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .nav .nav-list.nav-list--empty {
+    display: flex;
+    gap: 0;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* Optional: visually de-emphasize the disabled toggle */
+  .nav .nav-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }

@@ -18,7 +18,7 @@
       </span>
     </a>
 
-    <!-- Navigation (now a component) -->
+    <!-- Navigation (component) -->
     <app-nav
       [isOpen]="isNavOpen"
       [isAuthenticated]="isAuthenticated"
@@ -82,6 +82,7 @@
             Profile settings
           </button>
           }
+
           <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
             Log out
           </button>

@@ -92,6 +92,17 @@ export class UserProfilePage {
     });
   }
 
+  signOut(): void {
+    this.auth.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/']);
+      },
+      error: () => {
+        this.router.navigate(['/']);
+      },
+    });
+  }
+
   private formatHttpError(prefix: string, err: unknown): string {
     if (err && typeof err === 'object' && 'status' in err) {
       const status = (err as any).status;

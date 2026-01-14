@@ -4,46 +4,33 @@
     type="button"
     aria-label="Open menu"
     [attr.aria-expanded]="isOpen"
-    (click)="toggle.emit()"
+    [disabled]="hideAllNavItems"
+    (click)="!hideAllNavItems && toggle.emit()"
   >
     ☰
   </button>
 
-  <ul class="nav-list" [class.open]="isOpen">
-    <!-- ADMIN NAVIGATION (admin only) -->
-    <ng-container *ngIf="isAdmin">
+  <ul class="nav-list" [class.open]="isOpen" [class.nav-list--empty]="hideAllNavItems">
+    <!-- Admin items ONLY on /admin-dashboard -->
+    <ng-container *ngIf="!hideAllNavItems">
       <li>
-        <a routerLink="/admin-dashboard" fragment="reservations" (click)="close.emit()">
+        <a
+          href="#reservations"
+          (click)="$event.preventDefault(); scrollToSection('reservations'); close.emit()"
+        >
           Reservations
         </a>
       </li>
       <li>
-        <a routerLink="/admin-dashboard" fragment="revenue" (click)="close.emit()"> Revenue </a>
+        <a
+          href="#revenue"
+          (click)="$event.preventDefault(); scrollToSection('revenue'); close.emit()"
+          >Revenue</a
+        >
       </li>
       <li>
-        <a routerLink="/admin-dashboard" fragment="reports" (click)="close.emit()"> Reports </a>
+        <a routerLink="/admin-dashboard" fragment="reports" (click)="close.emit()">Reports</a>
       </li>
-    </ng-container>
-
-    <!-- NON-ADMIN NAVIGATION -->
-    <ng-container *ngIf="!isAdmin">
-      <!-- Guest navigation -->
-      <ng-container *ngIf="!isAuthenticated">
-        <li><a href="#rooms" (click)="close.emit()">Rooms</a></li>
-        <li><a href="#amenities" (click)="close.emit()">Amenities</a></li>
-        <li><a href="#rewards" (click)="close.emit()">Rewards</a></li>
-        <li><a href="#offers" (click)="close.emit()">Offers</a></li>
-        <li><a href="#faq" (click)="close.emit()">FAQ</a></li>
-        <li><a href="#contact" (click)="close.emit()">Contact</a></li>
-      </ng-container>
-
-      <!-- Authenticated user navigation -->
-      <ng-container *ngIf="isAuthenticated">
-        <li><a routerLink="/my-bookings" (click)="close.emit()">My Bookings</a></li>
-        <li><a routerLink="/profile-settings" (click)="close.emit()">Profile</a></li>
-        <li><a routerLink="/rewards" (click)="close.emit()">Rewards</a></li>
-        <li><a routerLink="/support" (click)="close.emit()">Support</a></li>
-      </ng-container>
     </ng-container>
   </ul>
 </nav>
