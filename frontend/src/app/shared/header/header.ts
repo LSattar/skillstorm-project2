@@ -107,6 +107,12 @@ export class Header implements OnDestroy {
     this.closeNav.emit();
   }
 
+  onOpenMyBookings() {
+    this.router.navigate(['/my-bookings']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
   onOpenSystemSettings() {
     this.openSystemSettings.emit();
     this.closeUserMenu();

@@ -141,4 +141,22 @@ export class ReservationService {
       )
     );
   }
+
+  /**
+   * Check in to a reservation
+   */
+  checkIn(id: string): Observable<ReservationResponse> {
+    return this.ensureCsrfToken().pipe(
+      switchMap((csrf) =>
+        this.http.post<ReservationResponse>(
+          `${this.api}/reservations/${id}/check-in`,
+          {},
+          {
+            withCredentials: true,
+            headers: csrf?.token ? { [csrf.headerName || 'X-XSRF-TOKEN']: csrf.token } : undefined,
+          }
+        )
+      )
+    );
+  }
 }
