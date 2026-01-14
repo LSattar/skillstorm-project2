@@ -20,6 +20,73 @@ import {
   styleUrls: ['./payment-transactions-page.css'],
 })
 export class PaymentTransactionsPage implements OnInit {
+  // Retry handler for error state: show skeleton for 1s, then show error again
+  retryLoadTransactions(): void {
+    this.loading = true;
+    this.skeletonStopped = false;
+    setTimeout(() => {
+      this.skeletonStopped = true;
+      this.loading = false;
+    }, 1000);
+  }
+  skeletonStopped = false;
+  // KPI filter state
+  activeKpi: 'ALL' | 'PAID' | 'PENDING' | 'FAILED' = 'ALL';
+
+  // Date preset logic
+  setDatePreset(preset: 'today' | 'last7' | 'last30' | 'month') {
+    const now = new Date();
+    let from = '',
+      to = '';
+    if (preset === 'today') {
+      from = to = now.toISOString().slice(0, 10);
+    } else if (preset === 'last7') {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 6);
+      from = d.toISOString().slice(0, 10);
+      to = now.toISOString().slice(0, 10);
+    } else if (preset === 'last30') {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 29);
+      from = d.toISOString().slice(0, 10);
+      to = now.toISOString().slice(0, 10);
+    } else if (preset === 'month') {
+      from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      to = now.toISOString().slice(0, 10);
+    }
+    this.fromDate = from;
+    this.toDate = to;
+    this.onSearch();
+  }
+
+  // KPI card click handler
+  onKpiClick(type: 'ALL' | 'PAID' | 'PENDING' | 'FAILED') {
+    if (this.activeKpi === type) {
+      // Clicking active KPI resets to ALL
+      this.activeKpi = 'ALL';
+      this.status = '';
+    } else {
+      this.activeKpi = type;
+      this.status = type === 'ALL' ? '' : type;
+    }
+    this.onSearch();
+  }
+
+  // Override onClearFilters to reset KPI and dates
+  onClearFilters(): void {
+    this.query = '';
+    this.status = '';
+    this.fromDate = '';
+    this.toDate = '';
+    this.page = 0;
+    this.activeKpi = 'ALL';
+    this.loadTransactions();
+  }
+
+  // For skeleton loading rows
+  get skeletonRows(): number[] {
+    return Array.from({ length: 5 }, (_, i) => i);
+  }
   isProfileOpen = false;
   protected readonly auth = inject(AuthService);
 
@@ -113,46 +180,47 @@ export class PaymentTransactionsPage implements OnInit {
 
   loadTransactions(): void {
     this.loading = true;
+    this.skeletonStopped = false;
     this.error = null;
-    this.api
-      .getTransactions({
-        query: this.query,
-        status: this.status,
-        from: this.fromDate,
-        to: this.toDate,
-        page: this.page,
-        size: this.size,
-        sort: this.sort,
-      })
-      .subscribe({
-        next: (result) => {
-          this.transactions = result.content || [];
-          this.total = result.totalElements || 0;
-          this.paidCount = this.transactions.filter((t) => t.status === 'PAID').length;
-          this.pendingCount = this.transactions.filter((t) => t.status === 'PENDING').length;
-          this.failedCount = this.transactions.filter((t) => t.status === 'FAILED').length;
-          this.summaryRevenue = this.transactions
-            .filter((t) => t.status === 'PAID')
-            .reduce((sum, t) => sum + (t.total || 0), 0);
-          this.loading = false;
-        },
-        error: () => {
-          this.error = 'Failed to load payment transactions.';
-          this.loading = false;
-        },
-      });
+    const skeletonTimeout = setTimeout(() => {
+      this.skeletonStopped = true;
+    }, 1000);
+    setTimeout(() => {
+      this.api
+        .getTransactions({
+          query: this.query,
+          status: this.status,
+          from: this.fromDate,
+          to: this.toDate,
+          page: this.page,
+          size: this.size,
+          sort: this.sort,
+        })
+        .subscribe({
+          next: (result) => {
+            this.transactions = result.content || [];
+            this.total = result.totalElements || 0;
+            this.paidCount = this.transactions.filter((t) => t.status === 'PAID').length;
+            this.pendingCount = this.transactions.filter((t) => t.status === 'PENDING').length;
+            this.failedCount = this.transactions.filter((t) => t.status === 'FAILED').length;
+            this.summaryRevenue = this.transactions
+              .filter((t) => t.status === 'PAID')
+              .reduce((sum, t) => sum + (t.total || 0), 0);
+            this.loading = false;
+            this.skeletonStopped = true;
+            clearTimeout(skeletonTimeout);
+          },
+          error: () => {
+            this.error = 'Failed to load payment transactions.';
+            this.loading = false;
+            this.skeletonStopped = true;
+            clearTimeout(skeletonTimeout);
+          },
+        });
+    }, 2000);
   }
 
   onSearch(): void {
-    this.page = 0;
-    this.loadTransactions();
-  }
-
-  onClearFilters(): void {
-    this.query = '';
-    this.status = '';
-    this.fromDate = '';
-    this.toDate = '';
     this.page = 0;
     this.loadTransactions();
   }
