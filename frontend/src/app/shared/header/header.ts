@@ -19,8 +19,11 @@ import { Nav } from '../nav/nav';
   styleUrls: ['./header.css'],
 })
 export class Header implements OnDestroy {
+  get currentRoute(): string {
+    return this.router.url;
+  }
   onOpenPaymentTransactions() {
-    this.router.navigate(['/admin/payment-transactions']);
+    this.router.navigate(['/payment-transactions']);
     this.closeUserMenu();
     this.closeNav.emit();
   }
@@ -120,12 +123,6 @@ export class Header implements OnDestroy {
 
   onOpenSystemSettings() {
     this.router.navigate(['/admin/system-settings']);
-    this.closeUserMenu();
-    this.closeNav.emit();
-  }
-
-  onOpenPaymentTransactions() {
-    this.router.navigate(['/payment-transactions']);
     this.closeUserMenu();
     this.closeNav.emit();
   }

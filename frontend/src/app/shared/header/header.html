@@ -50,15 +50,15 @@
         >
           @if (roleLabel) {
           <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
-          } @if (isAdmin) {
+          } @if (isAdmin) { @if (currentRoute !== '/admin-dashboard') {
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenAdminDashboard()">
             Admin Dashboard
           </button>
-          @if (showSystemSettings) {
+          } @if (showSystemSettings && currentRoute !== '/admin/system-settings') {
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenSystemSettings()">
             System settings
           </button>
-          }
+          } @if (currentRoute !== '/payment-transactions') {
           <button
             class="menu-item"
             type="button"
@@ -67,13 +67,13 @@
           >
             Payment Transactions
           </button>
-          } @else {
+          } } @else {
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenMyBookings()">
             My Bookings
           </button>
           }
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
-            Profile settings
+            @if (currentRoute !== '/profile-settings') { Profile settings }
           </button>
           <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
             Log out
