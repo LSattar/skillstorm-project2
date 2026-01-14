@@ -8,7 +8,7 @@
   margin-left: 8px;
   vertical-align: middle;
 }
-/* System settings page styles */
+
 .system-settings-page {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -17,8 +17,9 @@
   padding: 1.5em;
   width: 55%;
   margin: 2.5em auto;
-  overflow-y: hidden !important;
+  overflow: hidden;
 }
+
 .system-settings-page .header {
   margin-bottom: 1em;
 }
@@ -91,10 +92,19 @@
 
 .list {
   display: grid;
-  gap: 8px;
-  max-height: 320px;
-  overflow: auto;
-  padding-right: 4px;
+  gap: 0.5rem;
+  max-height: 20rem;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding-right: 0.25rem;
+
+  /* Prevent "scroll chaining" to the body (mac bounce) */
+  overscroll-behavior: contain;
+
+  /* Smooth internal scrolling on iOS/mac trackpads */
+  -webkit-overflow-scrolling: touch;
 }
 
 .list-item {
