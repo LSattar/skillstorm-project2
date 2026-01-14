@@ -1,28 +1,28 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { Component, OnInit, ViewChild, computed, inject } from '@angular/core';
+import {
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { StripeCardComponent, StripeService } from 'ngx-stripe';
 import { StripeCardElementOptions, StripeElementsOptions } from '@stripe/stripe-js';
+import { StripeCardComponent, StripeService } from 'ngx-stripe';
 import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
+import {
+  ReservationResponse,
+  ReservationService,
+} from '../../../admin/services/reservation.service';
 import { AuthService } from '../../../auth/services/auth.service';
-import { ReservationResponse, ReservationService } from '../../../admin/services/reservation.service';
 import { PaymentService } from '../../services/payment.service';
-import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
 
 @Component({
   selector: 'app-payment-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    Header,
-    Footer,
-    UserProfileModal,
-    StripeCardComponent,
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, Header, Footer, StripeCardComponent],
   templateUrl: './payment-page.html',
   styleUrl: './payment-page.css',
 })

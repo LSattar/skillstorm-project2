@@ -9,6 +9,7 @@ import { SystemSettingsPage } from './features/admin/pages/system-settings/syste
 import { adminGuard } from './features/auth/guards/admin.guard';
 import { GuestDashboard } from './features/guest/pages/guest-dashboard/guest-dashboard';
 import { PaymentPage } from './features/guest/pages/payment-page/payment-page';
+import { UserProfilePage } from './features/users/pages/user-profile/user-profile-page';
 
 import { PaymentTransactionsPage } from './features/admin/pages/payment-transactions/payment-transactions-page';
 
@@ -20,10 +21,11 @@ export const routes: Routes = [
   { path: 'admin/system-settings', component: SystemSettingsPage, canActivate: [adminGuard] },
   { path: 'admin/reservations', component: ReservationLookup, canActivate: [adminGuard] },
   {
-    path: 'admin/payment-transactions',
+    path: 'payment-transactions',
     component: PaymentTransactionsPage,
     canActivate: [adminGuard],
   },
+  { path: 'profile-settings', component: UserProfilePage },
   { path: 'forbidden', component: ForbiddenPage },
   { path: 'error', component: NotFoundPage },
   { path: '**', component: NotFoundPage },

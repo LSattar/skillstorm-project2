@@ -4,6 +4,7 @@
   [roleLabel]="roleLabel"
   [userLabel]="userLabel"
   [userEmail]="userEmail"
+  [showSystemSettings]="auth.isAdmin()"
   (toggleNav)="toggleNav()"
   (closeNav)="closeNav()"
   (openBooking)="openBooking()"
@@ -20,24 +21,52 @@
     </div>
 
     <!-- Summary Cards -->
-    <section class="summary-section">
+    <section class="summary-section" aria-label="KPI Filters">
       <div class="summary-grid">
-        <div class="summary-card">
+        <button
+          type="button"
+          class="summary-card kpi-card"
+          [class.active]="activeKpi === 'ALL'"
+          aria-pressed="{{ activeKpi === 'ALL' }}"
+          (click)="onKpiClick('ALL')"
+          tabindex="0"
+        >
           <h3>Total Revenue</h3>
           <p class="summary-value">{{ formatCurrency(summaryRevenue) }}</p>
-        </div>
-        <div class="summary-card">
+        </button>
+        <button
+          type="button"
+          class="summary-card kpi-card"
+          [class.active]="activeKpi === 'PAID'"
+          aria-pressed="{{ activeKpi === 'PAID' }}"
+          (click)="onKpiClick('PAID')"
+          tabindex="0"
+        >
           <h3>Paid</h3>
           <p class="summary-value">{{ paidCount }}</p>
-        </div>
-        <div class="summary-card">
+        </button>
+        <button
+          type="button"
+          class="summary-card kpi-card"
+          [class.active]="activeKpi === 'PENDING'"
+          aria-pressed="{{ activeKpi === 'PENDING' }}"
+          (click)="onKpiClick('PENDING')"
+          tabindex="0"
+        >
           <h3>Pending</h3>
           <p class="summary-value">{{ pendingCount }}</p>
-        </div>
-        <div class="summary-card">
+        </button>
+        <button
+          type="button"
+          class="summary-card kpi-card"
+          [class.active]="activeKpi === 'FAILED'"
+          aria-pressed="{{ activeKpi === 'FAILED' }}"
+          (click)="onKpiClick('FAILED')"
+          tabindex="0"
+        >
           <h3>Failed</h3>
           <p class="summary-value">{{ failedCount }}</p>
-        </div>
+        </button>
       </div>
     </section>
 
@@ -75,7 +104,49 @@
             <input class="input" type="date" id="toDate" [(ngModel)]="toDate" name="toDate" />
           </div>
         </div>
-        <div class="form-actions">
+        <div class="date-presets" role="group" aria-label="Quick date presets">
+          <button
+            type="button"
+            class="btn btn-link date-preset"
+            (click)="setDatePreset('today')"
+            aria-label="Today"
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            class="btn btn-link date-preset"
+            (click)="setDatePreset('last7')"
+            aria-label="Last 7 days"
+          >
+            Last 7 days
+          </button>
+          <button
+            type="button"
+            class="btn btn-link date-preset"
+            (click)="setDatePreset('last30')"
+            aria-label="Last 30 days"
+          >
+            Last 30 days
+          </button>
+          <button
+            type="button"
+            class="btn btn-link date-preset"
+            (click)="setDatePreset('month')"
+            aria-label="This month"
+          >
+            This month
+          </button>
+          <button
+            type="button"
+            class="btn btn-link date-preset"
+            (click)="onClearFilters()"
+            aria-label="Clear all filters"
+          >
+            Clear
+          </button>
+        </div>
+        <div class="form-actions search-actions">
           <button type="submit" class="btn btn-primary">
             <span class="material-symbols-outlined">search</span>
             Search
@@ -94,93 +165,102 @@
         <h2>Transactions</h2>
         <span class="result-count">{{ transactions.length }} found</span>
       </div>
-
-      <ng-container *ngIf="loading; else notLoading">
-        <div class="loading-state">
-          <p>Loading transactions...</p>
-        </div>
-      </ng-container>
-      <ng-template #notLoading>
-        <ng-container *ngIf="error; else noError">
-          <div class="error-state">
-            <p>{{ error }}</p>
-            <button class="btn btn-primary" (click)="loadTransactions()">Retry</button>
-          </div>
-        </ng-container>
-        <ng-template #noError>
-          <ng-container *ngIf="transactions.length === 0; else hasResults">
-            <div class="empty-state">
-              <span class="material-symbols-outlined">search_off</span>
-              <p>No payment transactions found.</p>
-            </div>
-          </ng-container>
-          <ng-template #hasResults>
-            <div class="transactions-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Guest</th>
-                    <th>Reservation</th>
-                    <th>Nights</th>
-                    <th>Subtotal</th>
-                    <th>Tax</th>
-                    <th>Discounts/Rewards</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Payment Method</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let tx of transactions; trackBy: trackById">
-                    <td>{{ formatDate(tx.createdAt) }}</td>
-                    <td>
-                      <span class="guest-name">{{ tx.guestName }}</span>
-                      <br />
-                      <span class="guest-email">{{ tx.guestEmail }}</span>
-                    </td>
-                    <td>
-                      <span class="reservation-id">{{ tx.reservationId }}</span>
-                      <br />
-                      <!-- Room type not available in PaymentTransaction; remove or replace if needed -->
-                      <br />
-                      <span>{{ formatDate(tx.checkIn) }} - {{ formatDate(tx.checkOut) }}</span>
-                    </td>
-                    <td>{{ computeNights(tx.checkIn, tx.checkOut) }}</td>
-                    <td>{{ formatCurrency(tx.subtotal, tx.currency) }}</td>
-                    <td>{{ formatCurrency(tx.taxTotal, tx.currency) }}</td>
-                    <td>
-                      <span *ngIf="tx.discountTotal">{{
-                        formatCurrency(tx.discountTotal, tx.currency)
-                      }}</span>
-                      <span *ngIf="tx.rewardsEarned"
-                        >+{{ formatCurrency(tx.rewardsEarned, tx.currency) }}</span
-                      >
-                    </td>
-                    <td>{{ formatCurrency(tx.total, tx.currency) }}</td>
-                    <td>
-                      <span class="status-badge" [ngClass]="getStatusClass(tx.status)">
-                        {{ tx.status }}
-                      </span>
-                    </td>
-                    <td>
-                      <span>{{ tx.paymentProvider }}</span>
-                      <span *ngIf="tx.paymentMethodLast4">•••• {{ tx.paymentMethodLast4 }}</span>
-                    </td>
-                    <td>
-                      <button class="btn btn-sm btn-primary" (click)="openDetailsModal(tx)">
-                        <span class="material-symbols-outlined">visibility</span>
-                        View details
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </ng-template>
-        </ng-template>
-      </ng-template>
+      <div class="transactions-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Guest</th>
+              <th>Reservation</th>
+              <th>Nights</th>
+              <th>Subtotal</th>
+              <th>Tax</th>
+              <th>Discounts/Rewards</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Payment Method</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Skeleton loading rows -->
+            <ng-container *ngIf="loading">
+              <tr *ngFor="let i of skeletonRows">
+                <td colspan="11">
+                  <div class="skeleton-row" [class.stopped]="skeletonStopped"></div>
+                </td>
+              </tr>
+            </ng-container>
+            <!-- Data rows -->
+            <tr *ngIf="!loading && transactions.length === 0 && !error">
+              <td colspan="11">
+                <div class="empty-state">
+                  <span class="material-symbols-outlined">search_off</span>
+                  <p *ngIf="!fromDate && !toDate && !query && !status">
+                    No payment transactions yet. Payments will appear here after guests complete
+                    bookings.
+                  </p>
+                  <ng-container *ngIf="fromDate || toDate || query || status">
+                    No transactions match your filters.
+                    <button class="btn btn-link" (click)="onClearFilters()">Clear filters</button>
+                  </ng-container>
+                </div>
+              </td>
+            </tr>
+            <tr *ngFor="let tx of transactions; trackBy: trackById" [attr.tabindex]="0">
+              <td>{{ formatDate(tx.createdAt) || '—' }}</td>
+              <td>
+                <span class="guest-name">{{ tx.guestName || '—' }}</span>
+                <br />
+                <span class="guest-email">{{ tx.guestEmail || '—' }}</span>
+              </td>
+              <td>
+                <span class="reservation-id">{{ tx.reservationId || '—' }}</span>
+                <br />
+                <span
+                  >{{ formatDate(tx.checkIn) || '—' }} - {{ formatDate(tx.checkOut) || '—' }}</span
+                >
+              </td>
+              <td>{{ computeNights(tx.checkIn, tx.checkOut) || '—' }}</td>
+              <td>{{ formatCurrency(tx.subtotal, tx.currency) || '—' }}</td>
+              <td>{{ formatCurrency(tx.taxTotal, tx.currency) || '—' }}</td>
+              <td>
+                <span *ngIf="tx.discountTotal">{{
+                  formatCurrency(tx.discountTotal, tx.currency)
+                }}</span>
+                <span *ngIf="tx.rewardsEarned"
+                  >+{{ formatCurrency(tx.rewardsEarned, tx.currency) }}</span
+                >
+                <span *ngIf="!tx.discountTotal && !tx.rewardsEarned">—</span>
+              </td>
+              <td>{{ formatCurrency(tx.total, tx.currency) || '—' }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(tx.status)">
+                  {{ tx.status || '—' }}
+                </span>
+              </td>
+              <td>
+                <span>{{ tx.paymentProvider || '—' }}</span>
+                <span *ngIf="tx.paymentMethodLast4">•••• {{ tx.paymentMethodLast4 }}</span>
+              </td>
+              <td>
+                <button
+                  class="btn btn-sm btn-primary"
+                  (click)="openDetailsModal(tx)"
+                  aria-label="View details for transaction {{ tx.transactionId }}"
+                >
+                  <span class="material-symbols-outlined">visibility</span>
+                  View details
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="error" class="error-state">
+        <p>{{ error }}</p>
+        <button class="btn btn-primary" (click)="retryLoadTransactions()">Retry</button>
+      </div>
     </section>
 
     <!-- Pagination (simple) -->
@@ -198,79 +278,4 @@
       </button>
     </div>
   </div>
-
-  <!-- Profile Modal -->
-  <app-user-profile-modal
-    *ngIf="isProfileOpen"
-    [open]="isProfileOpen"
-    (closed)="closeProfile()"
-    (saved)="closeProfile()"
-  ></app-user-profile-modal>
-
-  <!-- Details Modal -->
-  <app-user-profile-modal
-    *ngIf="showDetailsModal && selected"
-    [open]="showDetailsModal"
-    (closed)="closeDetailsModal()"
-  >
-    <div class="modal-content">
-      <h2>Transaction Details</h2>
-      <p><strong>Guest:</strong> {{ selected.guestName }} ({{ selected.guestEmail }})</p>
-      <p><strong>Reservation:</strong> {{ selected.reservationId }}</p>
-      <!-- Room type not available in PaymentTransaction; remove or replace if needed -->
-      <p><strong>Check-in:</strong> {{ formatDate(selected.checkIn) }}</p>
-      <p><strong>Check-out:</strong> {{ formatDate(selected.checkOut) }}</p>
-      <p><strong>Nights:</strong> {{ computeNights(selected.checkIn, selected.checkOut) }}</p>
-      <p>
-        <strong>Nightly Rate:</strong>
-        {{ formatCurrency(selected.nightlyRate || 0, selected.currency) }}
-      </p>
-      <p><strong>Subtotal:</strong> {{ formatCurrency(selected.subtotal, selected.currency) }}</p>
-      <p><strong>Tax:</strong> {{ formatCurrency(selected.taxTotal, selected.currency) }}</p>
-      <div *ngIf="selected.taxLineItems?.length">
-        <strong>Tax Items:</strong>
-        <ul>
-          <li *ngFor="let item of selected.taxLineItems">
-            {{ item.label }}: {{ formatCurrency(item.amount, selected.currency) }}
-          </li>
-        </ul>
-      </div>
-      <p *ngIf="selected.feesTotal">
-        <strong>Fees:</strong> {{ formatCurrency(selected.feesTotal, selected.currency) }}
-      </p>
-      <div *ngIf="selected.discountLineItems?.length">
-        <strong>Discounts:</strong>
-        <ul>
-          <li *ngFor="let item of selected.discountLineItems">
-            {{ item.label }}: -{{ formatCurrency(item.amount, selected.currency) }}
-          </li>
-        </ul>
-      </div>
-      <p *ngIf="selected.rewardsEarned">
-        <strong>Rewards Earned:</strong>
-        {{ formatCurrency(selected.rewardsEarned, selected.currency) }}
-      </p>
-      <p *ngIf="selected.rewardsApplied">
-        <strong>Rewards Applied:</strong> -{{
-          formatCurrency(selected.rewardsApplied, selected.currency)
-        }}
-      </p>
-      <p><strong>Total:</strong> {{ formatCurrency(selected.total, selected.currency) }}</p>
-      <p>
-        <strong>Status:</strong>
-        <span class="status-badge" [ngClass]="getStatusClass(selected.status)">{{
-          selected.status
-        }}</span>
-      </p>
-      <p><strong>Payment Provider:</strong> {{ selected.paymentProvider }}</p>
-      <p *ngIf="selected.paymentMethodLast4">
-        <strong>Card Last 4:</strong> {{ selected.paymentMethodLast4 }}
-      </p>
-      <p><strong>Transaction ID:</strong> {{ selected.transactionId }}</p>
-      <p><strong>Created:</strong> {{ formatDate(selected.createdAt) }}</p>
-      <p><strong>Updated:</strong> {{ formatDate(selected.updatedAt) }}</p>
-    </div>
-  </app-user-profile-modal>
-
-  <app-footer [year]="today.getFullYear()"></app-footer>
 </main>

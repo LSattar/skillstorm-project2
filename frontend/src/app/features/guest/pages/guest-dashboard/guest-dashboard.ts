@@ -4,28 +4,20 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
-import { AuthService } from '../../../auth/services/auth.service';
-import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
 import {
   ReservationResponse,
   ReservationService,
   ReservationStatus,
 } from '../../../admin/services/reservation.service';
-import { ReservationModifyModal } from '../../components/reservation-modify-modal/reservation-modify-modal';
+import { AuthService } from '../../../auth/services/auth.service';
 import { ReservationCancelModal } from '../../components/reservation-cancel-modal/reservation-cancel-modal';
 import { HotelService, HotelResponse } from '../../../landing/services/hotel.service';
+import { ReservationModifyModal } from '../../components/reservation-modify-modal/reservation-modify-modal';
 
 @Component({
   selector: 'app-guest-dashboard',
   standalone: true,
-  imports: [
-    CommonModule,
-    Header,
-    Footer,
-    UserProfileModal,
-    ReservationModifyModal,
-    ReservationCancelModal,
-  ],
+  imports: [CommonModule, Header, Footer, ReservationModifyModal, ReservationCancelModal],
   templateUrl: './guest-dashboard.html',
   styleUrl: './guest-dashboard.css',
 })
@@ -78,6 +70,41 @@ export class GuestDashboard implements OnInit {
       error: () => {
         // Silently fail - hotel names are not critical
         this.hotelMap = {};
+    // Temporarily disabled backend calls - just show UI
+    // this.loadReservations();
+
+    // Mock data for UI preview
+    this.reservations = [
+      {
+        reservationId: 'res-abc123def456',
+        hotelId: 'hotel-1',
+        userId: 'user-101',
+        roomId: 'room-201',
+        roomTypeId: 'type-deluxe',
+        startDate: '2025-02-15',
+        endDate: '2025-02-18',
+        guestCount: 2,
+        status: 'CONFIRMED',
+        totalAmount: 450.0,
+        currency: 'USD',
+        specialRequests: 'Late check-in requested',
+        createdAt: '2025-01-20T10:30:00Z',
+        updatedAt: '2025-01-20T10:30:00Z',
+      },
+      {
+        reservationId: 'res-xyz789ghi012',
+        hotelId: 'hotel-2',
+        userId: 'user-101',
+        roomId: 'room-305',
+        roomTypeId: 'type-standard',
+        startDate: '2025-03-01',
+        endDate: '2025-03-03',
+        guestCount: 1,
+        status: 'CHECKED_IN',
+        totalAmount: 280.0,
+        currency: 'USD',
+        createdAt: '2025-01-15T14:20:00Z',
+        updatedAt: '2025-03-01T12:00:00Z',
       },
     });
   }
@@ -119,9 +146,7 @@ export class GuestDashboard implements OnInit {
   checkIn(reservation: ReservationResponse): void {
     // Temporarily disabled - backend integration disabled for preview
     // Just update the UI locally for demonstration
-    const index = this.reservations.findIndex(
-      (r) => r.reservationId === reservation.reservationId
-    );
+    const index = this.reservations.findIndex((r) => r.reservationId === reservation.reservationId);
     if (index !== -1 && this.reservations[index].status === 'CONFIRMED') {
       this.reservations[index] = {
         ...this.reservations[index],
@@ -315,7 +340,7 @@ export class GuestDashboard implements OnInit {
   }
 
   openProfile(): void {
-    this.showProfileModal = true;
+    this.router.navigate(['/profile-settings']);
   }
 
   closeProfile(): void {

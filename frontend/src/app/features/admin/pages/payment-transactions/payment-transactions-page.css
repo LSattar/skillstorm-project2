@@ -1,3 +1,34 @@
+/* Improve visibility of the Clear button in the search form */
+.search-section .btn-secondary {
+  color: var(--primary-2);
+  border: 1.5px solid rgba(52, 78, 65, 0.32); /* Slightly darker border */
+  background: var(--card);
+  font-weight: 500;
+  box-shadow: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.search-section .btn-secondary:hover,
+.search-section .btn-secondary:focus {
+  background: var(--border);
+  color: var(--primary-2);
+  border-color: var(--primary-2);
+}
+.search-section .btn-secondary:active,
+.search-section .btn-secondary:focus:active,
+.search-section .btn-secondary:visited:active,
+.search-section .btn-secondary:focus-visible:active,
+.search-section .btn-secondary:focus:not(:hover):not(:active),
+.search-section .btn-secondary:focus-visible:not(:hover):not(:active) {
+  background: var(--card) !important;
+  color: var(--primary-2) !important;
+  border-color: rgba(52, 78, 65, 0.32) !important;
+  box-shadow: none !important;
+}
+.transactions-table .skeleton-row.stopped {
+  animation: none !important;
+  background: var(--border) !important;
+  background-position: 0 0 !important;
+}
 .payment-transactions-page {
   max-width: 1400px;
   margin: 0 auto;
@@ -9,7 +40,7 @@
 }
 .page-header h1 {
   font-size: 2rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--primary-2);
   margin: 0 0 0.5rem 0;
 }
@@ -27,22 +58,79 @@
   gap: 2rem;
   flex-wrap: wrap;
 }
-.summary-section .summary-card {
+
+/* KPI Cards as buttons */
+.summary-section .summary-grid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.kpi-card {
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1.5rem 2rem;
   min-width: 180px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  outline: none;
+  text-align: left;
+  position: relative;
+  font: inherit;
+  color: inherit;
 }
-.summary-section .summary-card h3 {
+.kpi-card:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-2);
+  z-index: 1;
+}
+.kpi-card:hover,
+.kpi-card:active {
+  box-shadow: 0 2px 12px 0 rgba(52, 78, 65, 0.08);
+  border-color: var(--primary-2);
+}
+.kpi-card.active {
+  border-color: var(--primary-2);
+  background: linear-gradient(135deg, rgba(163, 177, 138, 0.1), rgba(221, 190, 169, 0.1));
+}
+.kpi-card h3 {
   font-size: 1.1rem;
   color: var(--primary-2);
   margin-bottom: 0.5rem;
 }
-.summary-section .summary-card .summary-value {
+.kpi-card .summary-value {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--primary);
+}
+.date-presets {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1rem 0;
+  flex-wrap: wrap;
+}
+.date-preset {
+  font-size: 0.95rem;
+  color: var(--primary-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+.date-preset:focus {
+  outline: 2px solid var(--primary);
+  background: var(--border);
+}
+.date-preset:hover {
+  background: var(--border);
+}
+.skeleton-row {
+  height: 1.5rem;
+  background: var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .search-section {
@@ -68,10 +156,27 @@
   color: var(--text);
   background: var(--bg);
 }
+
 .search-section .search-form .btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Add spacing between Search and Clear buttons */
+.search-section .search-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+@media (max-width: 600px) {
+  .search-section .search-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+    width: 100%;
+  }
 }
 
 .results-section {

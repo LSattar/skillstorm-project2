@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
-import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
+
 import {
   RoleResponse,
   SystemSettingsService,
@@ -15,11 +15,14 @@ import {
 @Component({
   selector: 'app-system-settings-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, UserProfileModal],
+  imports: [CommonModule, FormsModule, Header],
   templateUrl: './system-settings.html',
   styleUrls: ['./system-settings.css'],
 })
 export class SystemSettingsPage {
+  goToPaymentTransactions() {
+    throw new Error('Method not implemented.');
+  }
   private readonly api = inject(SystemSettingsService);
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly auth = inject(AuthService);
@@ -50,8 +53,7 @@ export class SystemSettingsPage {
   isProfileOpen = false;
 
   openProfile() {
-    this.isProfileOpen = true;
-    document.body.style.overflow = 'hidden';
+    this.router.navigate(['/profile-settings']);
   }
 
   closeProfile() {

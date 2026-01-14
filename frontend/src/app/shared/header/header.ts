@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   EventEmitter,
@@ -18,7 +19,22 @@ import { Nav } from '../nav/nav';
   templateUrl: './header.html',
   styleUrls: ['./header.css'],
 })
-export class Header implements OnDestroy {
+export class Header implements OnDestroy, AfterViewInit {
+  get currentRoute(): string {
+    return this.router.url;
+  }
+
+  ngAfterViewInit(): void {
+    // Close user menu if on profile settings page to prevent modal whitespace
+    if (this.router.url === '/profile-settings' && this.userMenuOpen) {
+      this.closeUserMenu();
+    }
+  }
+  onOpenPaymentTransactions() {
+    this.router.navigate(['/payment-transactions']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
   private readonly router = inject(Router);
   private readonly el = inject(ElementRef<HTMLElement>);
   private readonly zone = inject(NgZone);
@@ -29,6 +45,7 @@ export class Header implements OnDestroy {
   @Input() roleLabel = '';
   @Input() userEmail = '';
   @Input() showSystemSettings = false;
+  @Input() showPaymentTransactions = false;
 
   @Output() toggleNav = new EventEmitter<void>();
   @Output() closeNav = new EventEmitter<void>();
@@ -113,10 +130,11 @@ export class Header implements OnDestroy {
   }
 
   onOpenSystemSettings() {
-    this.openSystemSettings.emit();
+    this.router.navigate(['/admin/system-settings']);
     this.closeUserMenu();
     this.closeNav.emit();
   }
+
   ngOnDestroy() {
     this.removeGlobalClickListener();
   }

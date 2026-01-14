@@ -5,6 +5,7 @@
   [userLabel]="userLabel()"
   [userEmail]="userEmail()"
   [showSystemSettings]="auth.isAdmin()"
+  [showPaymentTransactions]="auth.isAdmin()"
   (toggleNav)="toggleNav()"
   (closeNav)="closeNav()"
   (openBooking)="openBooking()"
@@ -12,6 +13,7 @@
   (logout)="signOut()"
   (openProfile)="openProfile()"
   (openSystemSettings)="goToSystemSettings()"
+  (openPaymentTransactions)="goToPaymentTransactions()"
 ></app-header>
 
 <main>
@@ -171,11 +173,5 @@
     } }
   </div>
 </main>
-
-<app-user-profile-modal
-  [open]="isProfileOpen"
-  (closed)="closeProfile()"
-  (saved)="closeProfile()"
-></app-user-profile-modal>
 
 <app-footer [year]="today.getFullYear()"></app-footer>

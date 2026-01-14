@@ -113,7 +113,7 @@
   min-width: 170px;
   max-width: 240px;
   width: 200px;
-  padding: 8px;
+  padding: 8px 8px 4px 8px; /* Reduce bottom padding to minimize gap */
   border-radius: 12px;
   border: 1px solid var(--border);
   background: rgba(250, 249, 246, 0.96);
@@ -144,7 +144,7 @@
   border: 0;
   background: transparent;
   color: var(--text);
-  padding: 10px 10px;
+  padding: 8px 10px 8px 10px; /* Reduce vertical padding */
   border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
