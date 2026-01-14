@@ -133,7 +133,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
       next: () => {
         this.saving = false;
         this.loading = false;
-        this.router.navigate(['/']);
+        // Remain on profile page, optionally show a success message
       },
       error: (err: unknown) => {
         this.error = this.formatHttpError('Could not save your profile', err);
