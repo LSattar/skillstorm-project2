@@ -1,4 +1,7 @@
 .user-profile-page {
+  overflow-y: hidden !important;
+}
+.user-profile-page {
   padding-left: 1.5em;
   padding-right: 1.5em;
 }

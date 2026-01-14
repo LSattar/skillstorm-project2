@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
 
@@ -16,7 +15,7 @@ import { ReservationEditModal } from './reservation-edit-modal';
 @Component({
   selector: 'app-reservation-lookup',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer, ReservationEditModal],
+  imports: [CommonModule, FormsModule, Header, ReservationEditModal],
   templateUrl: './reservation-lookup.html',
   styleUrl: './reservation-lookup.css',
 })

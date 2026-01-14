@@ -14,10 +14,6 @@
       <p class="auth-error" *ngIf="error" role="alert">{{ error }}</p>
       <div class="field-row">
         <div class="field">
-          <label for="pfFirst">First name</label>
-          <input id="pfFirst" name="firstName" type="text" [(ngModel)]="profile.firstName" />
-        </div>
-        <div class="field">
           <label for="pfLast">Last name</label>
           <input id="pfLast" name="lastName" type="text" [(ngModel)]="profile.lastName" />
         </div>
@@ -102,4 +98,3 @@
     </form>
   </div>
 </main>
-<app-footer></app-footer>

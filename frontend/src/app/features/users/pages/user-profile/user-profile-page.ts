@@ -1,8 +1,7 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
 import { UserProfile, UserProfileService, UserProfileUpdate } from '../../user-profile.service';
@@ -10,12 +9,20 @@ import { UserProfile, UserProfileService, UserProfileUpdate } from '../../user-p
 @Component({
   selector: 'app-user-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer],
+  imports: [CommonModule, FormsModule, Header],
   templateUrl: './user-profile-page.html',
   styleUrls: ['./user-profile-page.css'],
 })
-export class UserProfilePage {
+export class UserProfilePage implements OnInit, OnDestroy {
+  private readonly document = inject(DOCUMENT);
+
+  // Scroll lock listeners
+  private removeWheel?: () => void;
+  private removeTouch?: () => void;
+  private removeKeydown?: () => void;
+
   protected readonly auth = inject(AuthService);
+
   get isAuthenticated() {
     return this.auth.isAuthenticated();
   }
@@ -32,6 +39,7 @@ export class UserProfilePage {
   get userEmail() {
     return this.auth.meSignal()?.email ?? '';
   }
+
   profile: UserProfileUpdate = {
     firstName: '',
     lastName: '',
@@ -42,12 +50,80 @@ export class UserProfilePage {
     state: '',
     zip: '',
   };
+
   loading = false;
   saving = false;
   error = '';
 
-  constructor(private userProfile: UserProfileService, private router: Router) {
+  constructor(private userProfile: UserProfileService, private router: Router) {}
+
+  ngOnInit(): void {
+    // 1) CSS lock
+    this.document.body.classList.add('page-lock');
+
+    // 2) Hard block scroll input (macOS bounce killer)
+    this.installHardScrollBlock();
+
+    // load data
     this.loadProfile();
+  }
+
+  ngOnDestroy(): void {
+    this.uninstallHardScrollBlock();
+    this.document.body.classList.remove('page-lock');
+  }
+
+  private installHardScrollBlock(): void {
+    const doc = this.document;
+
+    const block = (e: Event) => {
+      // If we are on a locked page, block scrolling input entirely
+      if (doc.body.classList.contains('page-lock')) {
+        e.preventDefault();
+      }
+    };
+
+    const blockKeys = (e: KeyboardEvent) => {
+      if (!doc.body.classList.contains('page-lock')) return;
+
+      // Keys that scroll the viewport
+      const scrollKeys = new Set([
+        'ArrowUp',
+        'ArrowDown',
+        'PageUp',
+        'PageDown',
+        'Home',
+        'End',
+        ' ',
+        'Spacebar',
+      ]);
+
+      if (scrollKeys.has(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    // Wheel (trackpad/mouse wheel)
+    doc.addEventListener('wheel', block, { passive: false });
+
+    // Touch scrolling (mobile/mac trackpad edge cases)
+    doc.addEventListener('touchmove', block, { passive: false });
+
+    // Keyboard scrolling
+    doc.addEventListener('keydown', blockKeys, { passive: false });
+
+    this.removeWheel = () => doc.removeEventListener('wheel', block as any);
+    this.removeTouch = () => doc.removeEventListener('touchmove', block as any);
+    this.removeKeydown = () => doc.removeEventListener('keydown', blockKeys as any);
+  }
+
+  private uninstallHardScrollBlock(): void {
+    this.removeWheel?.();
+    this.removeTouch?.();
+    this.removeKeydown?.();
+    this.removeWheel = undefined;
+    this.removeTouch = undefined;
+    this.removeKeydown = undefined;
   }
 
   save(): void {
@@ -94,12 +170,8 @@ export class UserProfilePage {
 
   signOut(): void {
     this.auth.logout().subscribe({
-      next: () => {
-        this.router.navigate(['/']);
-      },
-      error: () => {
-        this.router.navigate(['/']);
-      },
+      next: () => this.router.navigate(['/']),
+      error: () => this.router.navigate(['/']),
     });
   }
 
