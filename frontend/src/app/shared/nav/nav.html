@@ -46,10 +46,7 @@
       <ng-template #landingNav>
         <ng-container *ngIf="!isAdmin">
           <li>
-            <a
-              href="#rooms"
-              (click)="$event.preventDefault(); scrollToSection('rooms'); close.emit()"
-            >
+            <a [routerLink]="['/rooms']" routerLinkActive="active" (click)="close.emit()">
               Rooms
             </a>
           </li>

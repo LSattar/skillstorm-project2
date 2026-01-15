@@ -1,0 +1,205 @@
+<app-header
+  [isNavOpen]="isNavOpen"
+  [isAuthenticated]="isAuthenticated()"
+  [roleLabel]="roleLabel()"
+  [userLabel]="userLabel()"
+  [userEmail]="userEmail()"
+  [showSystemSettings]="showSystemSettings()"
+  (toggleNav)="toggleNav()"
+  (closeNav)="closeNav()"
+  (openBooking)="openBooking()"
+  (openSignIn)="openSignIn()"
+  (logout)="signOut()"
+  (openProfile)="openProfile()"
+  (openSystemSettings)="openSystemSettings()"
+></app-header>
+
+<div class="rooms-page">
+  <div class="rooms-header">
+    <h1>Our Rooms</h1>
+    <p>Discover our selection of premium rooms designed for comfort and style.</p>
+  </div>
+
+  <div class="rooms-grid">
+    <div class="room-card">
+      <div class="room-image-wrapper">
+        <app-carousel [images]="kingRoomImages"></app-carousel>
+      </div>
+      <div class="room-details">
+        <div class="room-title">King Bed Room</div>
+        <div class="room-description">
+          Spacious king room with forest views and luxury amenities.
+        </div>
+        <div class="room-features">
+          <span class="room-feature">🛏️ 1 King Bed</span>
+          <span class="room-feature">👥 Up to 2 guests</span>
+          <span class="room-feature">🛁 Ensuite Bathroom</span>
+        </div>
+        <div class="room-price">$189/night</div>
+        <div class="room-actions">
+          <button class="btn btn-primary" type="button">Book Now</button>
+          <button
+            class="btn btn-secondary"
+            type="button"
+            (click)="openDetailsModal('King Bed Room')"
+          >
+            Details
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="room-card">
+      <div class="room-image-wrapper">
+        <app-carousel [images]="queenRoomImages"></app-carousel>
+      </div>
+      <div class="room-details">
+        <div class="room-title">Double Queen Room</div>
+        <div class="room-description">
+          Perfect for families, featuring two queen beds and modern amenities.
+        </div>
+        <div class="room-features">
+          <span class="room-feature">🛏️ 2 Queen Beds</span>
+          <span class="room-feature">👥 Up to 4 guests</span>
+          <span class="room-feature">🛁 Spacious Bathroom</span>
+        </div>
+        <div class="room-price">$209/night</div>
+        <div class="room-actions">
+          <button class="btn btn-primary" type="button">Book Now</button>
+          <button
+            class="btn btn-secondary"
+            type="button"
+            (click)="openDetailsModal('Double Queen Room')"
+          >
+            Details
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="room-card">
+      <div class="room-image-wrapper">
+        <app-carousel [images]="sofaRoomImages"></app-carousel>
+      </div>
+      <div class="room-details">
+        <div class="room-title">Sofa Room</div>
+        <div class="room-description">
+          Relax in style with a plush sofa, elegant decor, and a luxury bathroom. Choose your
+          preferred layout!
+        </div>
+        <div class="room-features">
+          <span class="room-feature">🛏️ 1 King or Queen Bed</span>
+          <span class="room-feature">🛋️ Sofa</span>
+          <span class="room-feature">👥 Up to 3 guests</span>
+          <span class="room-feature">🛁 Ensuite Bathroom</span>
+        </div>
+        <div class="room-price">$179–$199/night</div>
+        <div class="room-actions">
+          <button class="btn btn-primary" type="button">Book Now</button>
+          <button class="btn btn-secondary" type="button" (click)="openDetailsModal('Sofa Room')">
+            Details
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Luxury Bathroom Modal -->
+<div
+  class="rooms-modal-overlay"
+  *ngIf="showBathroomModal"
+  role="dialog"
+  aria-modal="true"
+  (click)="onOverlayClick('bathroom')"
+>
+  <div class="rooms-modal-panel" (click)="$event.stopPropagation()">
+    <button class="rooms-modal-close" type="button" (click)="closeBathroomModal()">&times;</button>
+
+    <div class="rooms-modal-content">
+      <h2>Luxury Bathroom - {{ bathroomModalRoom }}</h2>
+      <img src="/images/rooms/bathroom.jpg" alt="Luxury Bathroom" class="rooms-modal-image" />
+      <div class="modal-description">
+        Elegant bathroom with premium fixtures and spa-like ambiance.<br />
+        <span class="room-feature">🛁 Spa Bath</span>
+        <span class="room-feature">🚿 Rain Shower</span>
+        <span class="room-feature">🧴 Toiletries Included</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Room Details Modal -->
+<div
+  class="rooms-modal-overlay"
+  *ngIf="showDetailsModal"
+  role="dialog"
+  aria-modal="true"
+  (click)="onOverlayClick('details')"
+>
+  <div class="rooms-modal-panel" (click)="$event.stopPropagation()">
+    <button class="rooms-modal-close" type="button" (click)="closeDetailsModal()">&times;</button>
+
+    <div class="rooms-modal-content">
+      <ng-container>
+        <div *ngIf="normalizedDetailsModalRoom === 'king bed room'">
+          <h2>King Bed Room</h2>
+          <p>
+            Experience ultimate comfort in our King Bed Room, featuring a plush king-size bed,
+            serene forest views, and a calming ambiance. Enjoy a spa-inspired bathroom, premium
+            linens, and blackout curtains for restful sleep.
+          </p>
+          <ul>
+            <li>Gourmet breakfast and healthy dining options</li>
+            <li>Access to relaxing spa and wellness center</li>
+            <li>Heated pool and hot tub</li>
+            <li>State-of-the-art fitness center</li>
+          </ul>
+        </div>
+
+        <div *ngIf="normalizedDetailsModalRoom === 'double queen room'">
+          <h2>Double Queen Room</h2>
+          <p>
+            Perfect for families or friends, our Double Queen Room offers two luxurious queen beds,
+            spacious layout, and modern amenities. Unwind in a tranquil setting designed for
+            wellness and relaxation.
+          </p>
+          <ul>
+            <li>Delicious food and beverage service</li>
+            <li>Full-service spa and massage treatments</li>
+            <li>Indoor/outdoor pool access</li>
+            <li>Fitness center with yoga and pilates classes</li>
+          </ul>
+        </div>
+
+        <div *ngIf="normalizedDetailsModalRoom === 'sofa room'">
+          <h2>Sofa Room</h2>
+          <p>
+            Enjoy extra comfort in our Sofa Room, featuring a cozy sofa, elegant decor, and flexible
+            sleeping arrangements. Ideal for solo travelers or couples seeking a wellness retreat.
+          </p>
+          <ul>
+            <li>Room service with healthy menu options</li>
+            <li>Relaxing spa and sauna</li>
+            <li>Infinity pool and sun deck</li>
+            <li>Modern fitness center and personal trainers</li>
+          </ul>
+        </div>
+
+        <div
+          *ngIf="
+            normalizedDetailsModalRoom !== 'king bed room' &&
+            normalizedDetailsModalRoom !== 'double queen room' &&
+            normalizedDetailsModalRoom !== 'sofa room'
+          "
+        >
+          <h2>Room Details</h2>
+          <p>
+            No details available for this room type.<br />
+            <span style="color: red">Debug: detailsModalRoom = {{ detailsModalRoom }}</span>
+          </p>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>

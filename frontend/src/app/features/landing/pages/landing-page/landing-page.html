@@ -30,7 +30,7 @@
           <button class="btn btn-primary" type="button" (click)="openBooking()">
             Search availability
           </button>
-          <a class="btn btn-ghost" href="#rooms">Explore rooms</a>
+          <a class="btn btn-ghost" [routerLink]="['/rooms']">Explore rooms</a>
         </div>
 
         <ul class="trust-row" aria-label="Highlights">
@@ -148,7 +148,7 @@
         </div>
 
         <div style="margin-top: 16px">
-          <a class="btn btn-ghost btn-sm" href="#rooms">Browse rooms</a>
+          <a class="btn btn-ghost btn-sm" [routerLink]="['/rooms']">Browse rooms</a>
         </div>
       </div>
     </div>

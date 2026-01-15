@@ -14,12 +14,15 @@ import { UserProfilePage } from './features/users/pages/user-profile/user-profil
 
 import { PaymentTransactionsPage } from './features/admin/pages/payment-transactions/payment-transactions-page';
 
+import { RoomsPage } from './features/rooms/pages/rooms-page';
+
 export const routes: Routes = [
   { path: '', component: LandingPage },
   { path: 'my-bookings', component: GuestDashboard },
   { path: 'payment/:id', component: PaymentPage },
   { path: 'admin-dashboard', component: AdminDashboard, canActivate: [adminGuard] },
   { path: 'admin/reservations', component: ReservationLookup, canActivate: [adminGuard] },
+  { path: 'rooms', component: RoomsPage },
   { path: 'admin/rooms', component: RoomManagement, canActivate: [adminGuard] },
   { path: 'admin/system-settings', component: SystemSettingsPage, canActivate: [adminGuard] },
   {
