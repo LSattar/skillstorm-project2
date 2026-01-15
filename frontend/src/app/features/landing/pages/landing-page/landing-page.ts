@@ -19,6 +19,33 @@ import { RoomResponse, RoomSearchParams } from '../../services/room-search.servi
   styleUrls: ['./landing-page.css'],
 })
 export class LandingPage {
+  // Amenities carousel logic
+  amenitiesImages = [
+    '/images/ammenities/exercise.jpg',
+    '/images/ammenities/food.jpg',
+    '/images/ammenities/food2.jpg',
+    '/images/ammenities/pool.jpg',
+    '/images/ammenities/spa.jpg',
+  ];
+
+  amenitiesCaptions = [
+    'Forest Fitness & Exercise',
+    'Organic Forest Cuisine',
+    'Gourmet Wellness Dining',
+    'Heated Pool Sanctuary',
+    'Forest Spa Retreat',
+  ];
+
+  activeAmenity = 0;
+
+  prevAmenity() {
+    this.activeAmenity =
+      (this.activeAmenity - 1 + this.amenitiesImages.length) % this.amenitiesImages.length;
+  }
+
+  nextAmenity() {
+    this.activeAmenity = (this.activeAmenity + 1) % this.amenitiesImages.length;
+  }
   protected readonly auth = inject(AuthService);
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;

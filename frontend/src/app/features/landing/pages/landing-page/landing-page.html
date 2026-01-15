@@ -154,6 +154,42 @@
     </div>
   </section>
 
+  <!-- Amenities Section -->
+  <section class="section amenities-section" id="wellness-amenities">
+    <div class="container">
+      <div class="section-head" style="margin-bottom: 2rem">
+        <h2 style="color: var(--primary-2); font-weight: 900">Wellness Forest Amenities</h2>
+        <p style="color: var(--muted); font-size: 1.1rem">
+          Experience tranquility and rejuvenation with our curated wellness amenities, inspired by
+          the serenity of the forest.
+        </p>
+      </div>
+      <div class="amenities-carousel">
+        <button
+          class="carousel-btn left"
+          type="button"
+          aria-label="Previous"
+          (click)="prevAmenity()"
+        >
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <div class="carousel-image-wrapper">
+          <img
+            [src]="amenitiesImages[activeAmenity]"
+            [alt]="amenitiesCaptions[activeAmenity]"
+            class="amenity-image"
+          />
+          <div class="amenity-caption">
+            {{ amenitiesCaptions[activeAmenity] }}
+          </div>
+        </div>
+        <button class="carousel-btn right" type="button" aria-label="Next" (click)="nextAmenity()">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- Rooms -->
   <section class="section" id="rooms">
     <!-- keep the rest of your sections as-is -->
