@@ -14,6 +14,14 @@ import { CarouselComponent } from '../components/carousel';
   styleUrls: ['./rooms-page.css'],
 })
 export class RoomsPage {
+  constructor() {
+    // Preload all room images for instant display
+    const allRoomImages = [...this.kingRoomImages, ...this.queenRoomImages, ...this.sofaRoomImages];
+    allRoomImages.forEach((src) => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
 
