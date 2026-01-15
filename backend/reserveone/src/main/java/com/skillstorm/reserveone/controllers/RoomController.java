@@ -48,9 +48,7 @@ public class RoomController {
     public List<RoomResponseDTO> readAll(
             @RequestParam(required = false) UUID hotelId) {
         if (hotelId != null) {
-            // If RoomService has a readByHotelId method, use it here
-            // Otherwise, just return all rooms
-            return service.readAll();
+            return service.readByHotelId(hotelId);
         }
         return service.readAll();
     }

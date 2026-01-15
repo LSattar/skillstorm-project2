@@ -26,7 +26,7 @@
       } @else { @if (error) {
       <div class="error-state">
         <p>{{ error }}</p>
-        <button class="btn btn-primary" (click)="loadMockData()">Reload</button>
+        <button class="btn btn-primary" (click)="loadDashboardData()">Reload</button>
       </div>
       }
 
@@ -126,12 +126,21 @@
       </section>
       }
 
+    <!-- Management Links -->
+    <section class="reservation-link-section">
+      <div class="management-buttons">
       <!-- Reservation Management Link -->
       <section class="reservation-link-section">
         <a routerLink="/admin/reservations" class="btn btn-primary">
           <span class="material-symbols-outlined">search</span>
           Manage Reservations
         </a>
+        <a routerLink="/admin/rooms" class="btn btn-primary">
+          <span class="material-symbols-outlined">hotel</span>
+          Manage Hotel Rooms
+        </a>
+      </div>
+    </section>
       </section>
 
       <!-- Recent Bookings -->

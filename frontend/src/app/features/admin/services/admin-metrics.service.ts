@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'CHECKED_IN' | 'CHECKED_OUT';
 
@@ -55,7 +56,7 @@ export type Alert = {
 
 @Injectable({ providedIn: 'root' })
 export class AdminMetricsService {
-  private readonly api = 'http://localhost:8080';
+  private readonly api = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -309,6 +310,42 @@ export class AdminMetricsService {
           })
           .slice(0, Math.max(0, Math.floor(this.toFiniteNumber(limit, 10))))
       )
+    );
+  }
+
+  getOperationalMetrics(hotelId?: string): Observable<{
+    totalRooms: number;
+    occupiedRooms: number;
+    occupancyRate: number;
+    checkInsToday: number;
+    checkInsPending: number;
+    checkOutsToday: number;
+    checkOutsPending: number;
+  }> {
+    const url = hotelId 
+      ? `${this.api}/admin/metrics?hotelId=${encodeURIComponent(hotelId)}`
+      : `${this.api}/admin/metrics`;
+    
+    return this.http.get<{
+      totalRooms: number;
+      occupiedRooms: number;
+      occupancyRate: number;
+      checkInsToday: number;
+      checkInsPending: number;
+      checkOutsToday: number;
+      checkOutsPending: number;
+    }>(url, {
+      withCredentials: true,
+    }).pipe(
+      map((metrics) => ({
+        totalRooms: this.toFiniteNumber(metrics?.totalRooms, 0),
+        occupiedRooms: this.toFiniteNumber(metrics?.occupiedRooms, 0),
+        occupancyRate: this.toFiniteNumber(metrics?.occupancyRate, 0),
+        checkInsToday: this.toFiniteNumber(metrics?.checkInsToday, 0),
+        checkInsPending: this.toFiniteNumber(metrics?.checkInsPending, 0),
+        checkOutsToday: this.toFiniteNumber(metrics?.checkOutsToday, 0),
+        checkOutsPending: this.toFiniteNumber(metrics?.checkOutsPending, 0),
+      }))
     );
   }
 }

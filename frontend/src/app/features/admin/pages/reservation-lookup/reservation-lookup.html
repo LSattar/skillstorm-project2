@@ -104,6 +104,10 @@
         <p>Loading reservations...</p>
       </div>
       } @else if (error) {
+        <div class="error-state">
+          <p>{{ error }}</p>
+          <button class="btn btn-primary" (click)="loadReservations()">Retry</button>
+        </div>
       <div class="error-state">
         <p>{{ error }}</p>
         <button class="btn btn-primary" (click)="loadMockData()">Retry</button>
