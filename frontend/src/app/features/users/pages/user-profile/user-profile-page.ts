@@ -57,6 +57,24 @@ export class UserProfilePage implements OnInit, OnDestroy {
   saving = false;
   error = '';
 
+  private profileLoaded = false;
+
+  constructor(private userProfile: UserProfileService, private router: Router) {
+    // Watch for auth state to become available, then load profile
+    effect(() => {
+      const me = this.auth.meSignal();
+      if (me?.localUserId && !this.profileLoaded) {
+        this.profileLoaded = true;
+        this.loadProfile();
+      }
+    });
+    
+    // Try to load profile immediately if auth is already ready
+    const me = this.auth.meSignal();
+    if (me?.localUserId && !this.profileLoaded) {
+      this.profileLoaded = true;
+      this.loadProfile();
+    }
   constructor(
     private userProfile: UserProfileService,
     private router: Router,

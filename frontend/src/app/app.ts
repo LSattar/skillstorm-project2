@@ -26,12 +26,8 @@ export class App implements OnInit {
     this.auth.refreshMe().subscribe({
       next: () => {
         const me = this.auth.meSignal();
-        console.log('refreshMe() result:', me);
-        console.log('isAdmin:', this.auth.isAdmin());
-        console.log('Current route:', this.router.url);
         // Check if user is admin and not already on admin-dashboard
         if (me && this.auth.isAdmin() && this.router.url !== '/admin-dashboard') {
-          console.log('Redirecting to /admin-dashboard');
           this.router.navigate(['/admin-dashboard']);
         }
       },

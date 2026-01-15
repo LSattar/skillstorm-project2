@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Header } from '../../../../shared/header/header';
@@ -51,9 +51,27 @@ export class GuestDashboard implements OnInit {
   showModifyModal = false;
   showCancelModal = false;
 
+  private reservationsLoaded = false;
+
+  constructor() {
+    // Watch for auth state to become available, then load reservations
+    effect(() => {
+      const me = this.auth.meSignal();
+      if (me?.localUserId && !this.reservationsLoaded) {
+        this.reservationsLoaded = true;
+        this.loadReservations();
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.loadHotels();
-    this.loadReservations();
+    // Try to load reservations immediately if auth is already ready
+    const me = this.auth.meSignal();
+    if (me?.localUserId && !this.reservationsLoaded) {
+      this.reservationsLoaded = true;
+      this.loadReservations();
+    }
   }
 
   private loadHotels(): void {
