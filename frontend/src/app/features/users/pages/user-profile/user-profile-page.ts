@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Footer } from '../../../../shared/footer/footer';
@@ -46,8 +46,24 @@ export class UserProfilePage {
   saving = false;
   error = '';
 
+  private profileLoaded = false;
+
   constructor(private userProfile: UserProfileService, private router: Router) {
-    this.loadProfile();
+    // Watch for auth state to become available, then load profile
+    effect(() => {
+      const me = this.auth.meSignal();
+      if (me?.localUserId && !this.profileLoaded) {
+        this.profileLoaded = true;
+        this.loadProfile();
+      }
+    });
+    
+    // Try to load profile immediately if auth is already ready
+    const me = this.auth.meSignal();
+    if (me?.localUserId && !this.profileLoaded) {
+      this.profileLoaded = true;
+      this.loadProfile();
+    }
   }
 
   save(): void {
