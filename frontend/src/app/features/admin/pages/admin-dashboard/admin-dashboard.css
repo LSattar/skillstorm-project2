@@ -319,9 +319,13 @@
 
 /* Reservation Management Link Section */
 .reservation-link-section {
-  margin-bottom: 2rem;
+  margin: 2rem 0;
+}
+
+.management-buttons {
   display: flex;
-  justify-content: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .reservation-link-section .btn {

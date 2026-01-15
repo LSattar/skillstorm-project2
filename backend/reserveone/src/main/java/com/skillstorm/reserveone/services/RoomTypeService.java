@@ -57,6 +57,13 @@ public class RoomTypeService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<RoomTypeResponseDTO> readByHotelId(UUID hotelId) {
+        return roomTypeRepository.findByHotel_HotelId(hotelId).stream()
+            .map(mapper::toResponse)
+            .collect(Collectors.toList());
+    }
+
     public RoomTypeResponseDTO updateOne(UUID id, RoomTypeRequestDTO dto) {
         RoomType roomType = roomTypeRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + id));

@@ -23,7 +23,7 @@
     @if (error) {
       <div class="error-state">
         <p>{{ error }}</p>
-        <button class="btn btn-primary" (click)="loadMockData()">Reload</button>
+        <button class="btn btn-primary" (click)="loadDashboardData()">Reload</button>
       </div>
     }
 
@@ -116,12 +116,18 @@
       </section>
     }
 
-    <!-- Reservation Management Link -->
+    <!-- Management Links -->
     <section class="reservation-link-section">
-      <a routerLink="/admin/reservations" class="btn btn-primary">
-        <span class="material-symbols-outlined">search</span>
-        Manage Reservations
-      </a>
+      <div class="management-buttons">
+        <a routerLink="/admin/reservations" class="btn btn-primary">
+          <span class="material-symbols-outlined">search</span>
+          Manage Reservations
+        </a>
+        <a routerLink="/admin/rooms" class="btn btn-primary">
+          <span class="material-symbols-outlined">hotel</span>
+          Manage Hotel Rooms
+        </a>
+      </div>
     </section>
 
     <!-- Recent Bookings -->

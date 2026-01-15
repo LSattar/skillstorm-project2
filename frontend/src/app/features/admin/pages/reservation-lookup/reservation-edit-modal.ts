@@ -176,27 +176,18 @@ export class ReservationEditModal implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // Simulate API call with mock data
-    setTimeout(() => {
-      const updatedReservation: ReservationResponse = {
-        ...this.reservation,
-        hotelId: this.editForm.hotelId,
-        userId: this.editForm.userId,
-        roomId: this.editForm.roomId,
-        roomTypeId: this.editForm.roomTypeId,
-        startDate: this.editForm.startDate,
-        endDate: this.editForm.endDate,
-        guestCount: this.editForm.guestCount,
-        status: this.editForm.status || this.reservation.status,
-        totalAmount: this.editForm.totalAmount,
-        currency: this.editForm.currency,
-        specialRequests: this.editForm.specialRequests,
-        updatedAt: new Date().toISOString(),
-      };
-
-      this.loading = false;
-      this.updated.emit(updatedReservation);
-    }, 500);
+    // Update reservation via API
+    this.reservationService.updateReservation(this.reservation.reservationId, this.editForm).subscribe({
+      next: (updatedReservation) => {
+        this.loading = false;
+        this.updated.emit(updatedReservation);
+      },
+      error: (err) => {
+        console.error('Error updating reservation:', err);
+        this.error = 'Failed to update reservation. Please try again.';
+        this.loading = false;
+      },
+    });
   }
 
   onCancelReservation(): void {
@@ -205,19 +196,23 @@ export class ReservationEditModal implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // Simulate API call with mock data
-    setTimeout(() => {
-      const cancelledReservation: ReservationResponse = {
-        ...this.reservation,
-        status: 'CANCELLED',
-        cancellationReason: this.cancelReason || undefined,
-        cancelledAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      this.loading = false;
-      this.updated.emit(cancelledReservation);
-    }, 500);
+    // Cancel reservation via API
+    this.reservationService.cancelReservation(
+      this.reservation.reservationId,
+      this.cancelReason || undefined
+    ).subscribe({
+      next: (cancelledReservation) => {
+        this.loading = false;
+        this.updated.emit(cancelledReservation);
+        this.showCancelConfirm = false;
+        this.cancelReason = '';
+      },
+      error: (err) => {
+        console.error('Error cancelling reservation:', err);
+        this.error = 'Failed to cancel reservation. Please try again.';
+        this.loading = false;
+      },
+    });
   }
 
   formatCurrency(amount: number): string {

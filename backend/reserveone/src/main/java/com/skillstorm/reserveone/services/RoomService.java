@@ -80,6 +80,13 @@ public class RoomService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<RoomResponseDTO> readByHotelId(UUID hotelId) {
+        return roomRepository.findByHotel_HotelId(hotelId).stream()
+            .map(mapper::toResponse)
+            .collect(Collectors.toList());
+    }
+
     public RoomResponseDTO updateOne(UUID id, RoomRequestDTO dto) {
         Room room = roomRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
