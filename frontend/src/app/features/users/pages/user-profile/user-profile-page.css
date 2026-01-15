@@ -1,7 +1,9 @@
 .user-profile-page {
-  padding: 1em;
-  max-width: 1200px;
-  margin: 0 auto;
+  overflow-y: hidden !important;
+}
+.user-profile-page {
+  padding-left: 1.5em;
+  padding-right: 1.5em;
 }
 
 .user-profile-page h2 {
@@ -33,7 +35,15 @@
   margin-bottom: 1rem;
 }
 
-.btn.btn-primary {
-  margin-top: 1rem;
-  width: 100%;
+.profile-save-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+.profile-save-btn {
+  min-width: 140px;
+  max-width: 220px;
+  width: auto;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
 }

@@ -1,21 +1,30 @@
-import { CommonModule } from '@angular/common';
-import { Component, effect, inject } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
 import { UserProfile, UserProfileService, UserProfileUpdate } from '../../user-profile.service';
+import { ToastService } from './../../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-user-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer],
+  imports: [CommonModule, FormsModule, Header],
   templateUrl: './user-profile-page.html',
   styleUrls: ['./user-profile-page.css'],
 })
-export class UserProfilePage {
+export class UserProfilePage implements OnInit, OnDestroy {
+  private readonly document = inject(DOCUMENT);
+
+  // Scroll lock listeners
+  private removeWheel?: () => void;
+  private removeTouch?: () => void;
+  private removeKeydown?: () => void;
+
   protected readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
+
   get isAuthenticated() {
     return this.auth.isAuthenticated();
   }
@@ -32,6 +41,7 @@ export class UserProfilePage {
   get userEmail() {
     return this.auth.meSignal()?.email ?? '';
   }
+
   profile: UserProfileUpdate = {
     firstName: '',
     lastName: '',
@@ -42,6 +52,7 @@ export class UserProfilePage {
     state: '',
     zip: '',
   };
+
   loading = false;
   saving = false;
   error = '';
@@ -64,19 +75,115 @@ export class UserProfilePage {
       this.profileLoaded = true;
       this.loadProfile();
     }
+  constructor(
+    private userProfile: UserProfileService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
+    // 1) CSS lock
+    this.document.body.classList.add('page-lock');
+
+    // 2) Hard block scroll input (macOS bounce killer)
+    this.installHardScrollBlock();
+
+    // load data
+    this.loadProfile();
+  }
+
+  ngOnDestroy(): void {
+    this.uninstallHardScrollBlock();
+    this.document.body.classList.remove('page-lock');
+  }
+
+  private installHardScrollBlock(): void {
+    const doc = this.document;
+
+    const block = (e: Event) => {
+      // If we are on a locked page, block scrolling input entirely
+      if (doc.body.classList.contains('page-lock')) {
+        e.preventDefault();
+      }
+    };
+
+    const blockKeys = (e: KeyboardEvent) => {
+      if (!doc.body.classList.contains('page-lock')) return;
+
+      // Keys that scroll the viewport
+      const scrollKeys = new Set([
+        'ArrowUp',
+        'ArrowDown',
+        'PageUp',
+        'PageDown',
+        'Home',
+        'End',
+        ' ',
+        'Spacebar',
+      ]);
+
+      if (scrollKeys.has(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    // Wheel (trackpad/mouse wheel)
+    doc.addEventListener('wheel', block, { passive: false });
+
+    // Touch scrolling (mobile/mac trackpad edge cases)
+    doc.addEventListener('touchmove', block, { passive: false });
+
+    // Keyboard scrolling
+    doc.addEventListener('keydown', blockKeys, { passive: false });
+
+    this.removeWheel = () => doc.removeEventListener('wheel', block as any);
+    this.removeTouch = () => doc.removeEventListener('touchmove', block as any);
+    this.removeKeydown = () => doc.removeEventListener('keydown', blockKeys as any);
+  }
+
+  private uninstallHardScrollBlock(): void {
+    this.removeWheel?.();
+    this.removeTouch?.();
+    this.removeKeydown?.();
+    this.removeWheel = undefined;
+    this.removeTouch = undefined;
+    this.removeKeydown = undefined;
   }
 
   save(): void {
+    if (this.saving || this.loading) return;
+
     this.saving = true;
     this.error = '';
+
+    // Optional: show a sticky "loading" toast while the request is in flight
+    const loadingToastId = this.toast.loading('Saving your profile…');
+
     this.userProfile.updateMe(this.profile).subscribe({
       next: () => {
+        // Optional safety: only dismiss if we actually received an id
+        if (loadingToastId) {
+          this.toast.dismiss(loadingToastId);
+        }
+
         this.saving = false;
-        this.router.navigate(['/']);
+        this.loading = false;
+
+        // Success toast
+        this.toast.success('Your profile changes were saved.');
       },
       error: (err: unknown) => {
+        // Optional safety: only dismiss if we actually received an id
+        if (loadingToastId) {
+          this.toast.dismiss(loadingToastId);
+        }
+
         this.error = this.formatHttpError('Could not save your profile', err);
         this.saving = false;
+        this.loading = false;
+
+        // Friendly error toast
+        this.toast.error(this.error);
       },
     });
   }
@@ -98,11 +205,20 @@ export class UserProfilePage {
           zip: me.zip ?? '',
         };
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.error = 'Could not load your profile. Please sign in and try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
+    });
+  }
+
+  signOut(): void {
+    this.auth.logout().subscribe({
+      next: () => this.router.navigate(['/']),
+      error: () => this.router.navigate(['/']),
     });
   }
 

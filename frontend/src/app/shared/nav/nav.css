@@ -1,60 +1,255 @@
 .nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 1rem;
+  margin-left: 5em;
 }
 
-.nav-toggle {
-  display: none;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 10px 12px;
-  cursor: pointer;
-  color: var(--text);
-}
-
+/* Make the list take available space so "center" works */
 .nav-list {
   list-style: none;
   display: flex;
-  gap: 14px;
-  margin: 0;
+  align-items: center;
+
   padding: 0;
+  margin: 0;
+
+  flex: 1;
+  justify-content: center;
+  gap: 0.25rem;
 }
 
+.nav-list.nav-list--empty {
+  min-height: 5em;
+}
+
+/* Links */
 .nav-list a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   text-decoration: none;
-  color: var(--text);
-  font-weight: 650;
-  padding: 8px 10px;
-  border-radius: 12px;
+  color: inherit;
+
+  font-weight: 600;
+  letter-spacing: 0.02em;
+
+  min-height: 2.6rem;
+  padding: 0 1.25rem;
+  border-radius: 0.85rem;
+
+  border: 0.0625rem solid transparent;
+
+  transition: background-color 160ms ease, border-color 160ms ease, transform 120ms ease,
+    opacity 160ms ease;
 }
 
 .nav-list a:hover {
-  background: rgba(163, 177, 138, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-0.04rem);
 }
 
-@media (max-width: 720px) {
-  .nav-toggle {
-    display: inline-flex;
-  }
+.nav-list a:active {
+  transform: translateY(0);
+  opacity: 0.95;
+}
 
+.nav-list a:focus-visible {
+  outline: 0.15rem solid rgba(255, 255, 255, 0.35);
+  outline-offset: 0.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Hamburger */
+.nav-toggle {
+  font: inherit;
+  background: transparent;
+  border: 0.0625rem solid rgba(255, 255, 255, 0.18);
+  color: inherit;
+  border-radius: 0.85rem;
+
+  min-height: 2.6rem;
+  padding: 0 0.9rem;
+
+  cursor: pointer;
+  display: none;
+
+  transition: background-color 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+
+.nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-0.04rem);
+}
+
+.nav-toggle:active {
+  transform: translateY(0);
+}
+
+.nav-toggle:focus-visible {
+  outline: 0.15rem solid rgba(255, 255, 255, 0.35);
+  outline-offset: 0.2rem;
+}
+
+.nav-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* More */
+.more {
+  position: relative;
+}
+
+.more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  background: transparent;
+  border: 0.0625rem solid transparent;
+  color: inherit;
+  font: inherit;
+
+  font-weight: 600;
+  letter-spacing: 0.02em;
+
+  min-height: 2.6rem;
+  padding: 0 0.9rem;
+  cursor: pointer;
+  border-radius: 0.85rem;
+
+  transition: background-color 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+
+.more-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-0.04rem);
+}
+
+.more-btn:active {
+  transform: translateY(0);
+}
+
+.more-btn:focus-visible {
+  outline: 0.15rem solid rgba(255, 255, 255, 0.35);
+  outline-offset: 0.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Solid, readable "avatar-modal-like" menu */
+/* More menu — match avatar modal (.menu-panel) */
+.more-menu {
+  position: absolute;
+  right: 0;
+  top: 2.85rem;
+  min-width: 11rem;
+
+  /* Match avatar panel styling */
+  padding: 0.5rem 0.5rem 0.25rem 0.5rem;
+  border-radius: 0.75rem;
+  border: 0.0625rem solid var(--border);
+  background: rgba(250, 249, 246, 0.96);
+  backdrop-filter: blur(0.625rem);
+  box-shadow: var(--shadow);
+  z-index: 50;
+}
+
+/* More menu links — match avatar .menu-item look */
+.more-menu a {
+  width: 100%;
+  display: block;
+  text-align: left;
+
+  text-decoration: none;
+  color: var(--text);
+
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.625rem;
+
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.more-menu a:hover {
+  background: rgba(163, 177, 138, 0.18);
+}
+
+/* More menu items (match avatar modal feel) */
+.more-menu a {
+  display: flex;
+  align-items: center;
+
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.75rem;
+
+  text-decoration: none;
+  color: inherit;
+
+  font-weight: 600;
+  letter-spacing: 0.01em;
+
+  border: 0.0625rem solid transparent;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.more-menu a:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.more-menu a:focus-visible {
+  outline: 0.15rem solid rgba(255, 255, 255, 0.35);
+  outline-offset: 0.15rem;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Slight spacing between items */
+.more-menu a + a {
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 48rem) {
   .nav-list {
     display: none;
-    position: absolute;
-    right: 1rem;
-    top: 64px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 10px;
-    box-shadow: var(--shadow);
-    flex-direction: column;
-    gap: 6px;
-    min-width: 180px;
+    flex: 0;
+    justify-content: flex-start;
   }
 
   .nav-list.open {
     display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding-top: 0.5rem;
+  }
+
+  .nav-list a {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0 1rem;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* keep the More menu readable on mobile too */
+  .more-menu {
+    position: static;
+    min-width: 100%;
+    margin-top: 0.35rem;
   }
 }

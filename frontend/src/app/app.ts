@@ -1,13 +1,15 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthService } from './features/auth/services/auth.service';
+import { Footer } from './shared/footer/footer';
+import { ToastHostComponent } from "./shared/toast/toast-host";
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, Footer, ToastHostComponent],
   templateUrl: './app.html',
-  styleUrl: './app.css',
+  styleUrls: ['./app.css'],
 })
 export class App implements OnInit {
   protected readonly title = signal('reserveone-client');

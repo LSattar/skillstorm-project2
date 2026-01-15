@@ -18,8 +18,14 @@
       </span>
     </a>
 
-    <!-- Navigation (now a component) -->
-    <app-nav [isOpen]="isNavOpen" (toggle)="toggleNav.emit()" (close)="closeNav.emit()"></app-nav>
+    <!-- Navigation (component) -->
+    <app-nav
+      [isOpen]="isNavOpen"
+      [isAuthenticated]="isAuthenticated"
+      [isAdmin]="isAdmin"
+      (toggle)="toggleNav.emit()"
+      (close)="closeNav.emit()"
+    ></app-nav>
 
     <!-- Actions -->
     <div class="header-actions">
@@ -76,6 +82,7 @@
             Profile settings
           </button>
           }
+
           <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
             Log out
           </button>

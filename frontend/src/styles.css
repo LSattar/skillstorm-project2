@@ -32,6 +32,7 @@
 }
 
 html {
+  overflow-y: scroll;
   scroll-behavior: smooth;
 }
 
@@ -413,5 +414,22 @@ select:focus {
 
   .modal-panel {
     margin: 4vh auto;
+  }
+
+  /* HARD LOCK: removes macOS elastic scroll bounce entirely.
+   Only active when body has .page-lock */
+  body.page-lock {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  /* Extra insurance for scroll chaining / bounce in nested areas */
+  body.page-lock,
+  body.page-lock * {
+    overscroll-behavior: none;
   }
 }

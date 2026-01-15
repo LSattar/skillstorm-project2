@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, computed, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -19,10 +19,7 @@ import {
   templateUrl: './system-settings.html',
   styleUrls: ['./system-settings.css'],
 })
-export class SystemSettingsPage {
-  goToPaymentTransactions() {
-    throw new Error('Method not implemented.');
-  }
+export class SystemSettingsPage implements OnInit {
   private readonly api = inject(SystemSettingsService);
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly auth = inject(AuthService);
@@ -34,13 +31,14 @@ export class SystemSettingsPage {
   closeNav() {}
   openBooking() {}
   openSignIn() {}
+  goToPaymentTransactions() {
+    this.router.navigate(['/payment-transactions']);
+  }
   signOut() {
     this.auth.logout().subscribe({
       next: () => {
-        // Clear any local/session storage if used
         localStorage.clear();
         sessionStorage.clear();
-        // Redirect to landing page
         this.router.navigate(['/']);
       },
       error: () => {
@@ -50,18 +48,11 @@ export class SystemSettingsPage {
       },
     });
   }
-  isProfileOpen = false;
-
   openProfile() {
     this.router.navigate(['/profile-settings']);
   }
-
-  closeProfile() {
-    this.isProfileOpen = false;
-    document.body.style.overflow = '';
-  }
   goToSystemSettings() {}
-  // Use real user info from AuthService
+
   isAuthenticated = this.auth.isAuthenticated;
   roleLabel = this.auth.primaryRoleLabel;
   userLabel = computed(() => {
@@ -77,17 +68,14 @@ export class SystemSettingsPage {
   loading = false;
   error = '';
 
-  // Search
   query = '';
   statusFilter: 'ACTIVE' | 'INACTIVE' | 'ALL' = 'ACTIVE';
   users: UserAdminView[] = [];
   selected: UserAdminView | null = null;
 
-  // Roles
   roles: RoleResponse[] = [];
   roleToAdd = '';
 
-  // Create user
   creating = false;
   createForm = { firstName: '', lastName: '', email: '' };
 
@@ -122,8 +110,7 @@ export class SystemSettingsPage {
     this.cdr.markForCheck();
 
     this.api.searchUsers(this.query, this.statusFilter, 0, 25).subscribe({
-      next: (result) => {
-        // Support both array and object response formats
+      next: (result: any) => {
         if (Array.isArray(result)) {
           this.users = result;
         } else if (Array.isArray(result?.content)) {
@@ -131,6 +118,7 @@ export class SystemSettingsPage {
         } else {
           this.users = [];
         }
+
         this.selected = this.users[0] ?? null;
         this.loading = false;
         this.cdr.markForCheck();
@@ -151,6 +139,7 @@ export class SystemSettingsPage {
   removeRole(roleName: string): void {
     if (!this.selected?.userId) return;
     this.loading = true;
+
     this.api.updateUserRoles(this.selected.userId, { remove: [roleName] }).subscribe({
       next: (updated) => {
         this.patchLocalUser(updated);
@@ -170,6 +159,7 @@ export class SystemSettingsPage {
     if (!roleName || !this.selected?.userId) return;
 
     this.loading = true;
+
     this.api.updateUserRoles(this.selected.userId, { add: [roleName] }).subscribe({
       next: (updated) => {
         this.patchLocalUser(updated);
@@ -187,13 +177,16 @@ export class SystemSettingsPage {
 
   deactivateSelected(): void {
     if (!this.selected?.userId) return;
+
     if (this.selected.userId === this.auth.meSignal()?.localUserId) {
       this.error = 'You cannot deactivate your own account.';
       return;
     }
+
     if (!confirm('Deactivate this user?')) return;
 
     this.loading = true;
+
     this.api.deactivateUser(this.selected.userId).subscribe({
       next: () => {
         this.selected = { ...this.selected!, status: 'INACTIVE' };
@@ -216,6 +209,7 @@ export class SystemSettingsPage {
     if (!confirm('Activate this user?')) return;
 
     this.loading = true;
+
     this.api.activateUser(this.selected.userId).subscribe({
       next: () => {
         this.selected = { ...this.selected!, status: 'ACTIVE' };

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
-import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import {
   ReservationResponse,
@@ -10,14 +9,14 @@ import {
   ReservationStatus,
 } from '../../../admin/services/reservation.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { HotelResponse, HotelService } from '../../../landing/services/hotel.service';
 import { ReservationCancelModal } from '../../components/reservation-cancel-modal/reservation-cancel-modal';
-import { HotelService, HotelResponse } from '../../../landing/services/hotel.service';
 import { ReservationModifyModal } from '../../components/reservation-modify-modal/reservation-modify-modal';
 
 @Component({
   selector: 'app-guest-dashboard',
   standalone: true,
-  imports: [CommonModule, Header, Footer, ReservationModifyModal, ReservationCancelModal],
+  imports: [CommonModule, Header, ReservationModifyModal, ReservationCancelModal],
   templateUrl: './guest-dashboard.html',
   styleUrl: './guest-dashboard.css',
 })
