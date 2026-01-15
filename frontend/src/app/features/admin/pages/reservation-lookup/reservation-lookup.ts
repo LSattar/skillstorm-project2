@@ -1,14 +1,14 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Header } from '../../../../shared/header/header';
-import { Footer } from '../../../../shared/footer/footer';
 import { AuthService } from '../../../auth/services/auth.service';
+
 import {
-  ReservationService,
   ReservationResponse,
+  ReservationService,
   ReservationStatus,
 } from '../../services/reservation.service';
 import { ReservationEditModal } from './reservation-edit-modal';
@@ -18,7 +18,7 @@ import { environment } from '../../../../../environments/environment';
 @Component({
   selector: 'app-reservation-lookup',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer, ReservationEditModal],
+  imports: [CommonModule, FormsModule, Header, ReservationEditModal],
   templateUrl: './reservation-lookup.html',
   styleUrl: './reservation-lookup.css',
 })
@@ -63,7 +63,13 @@ export class ReservationLookup implements OnInit {
   isNavOpen = false;
   today = new Date();
 
-  statusOptions: ReservationStatus[] = ['PENDING', 'CONFIRMED', 'CANCELLED', 'CHECKED_IN', 'CHECKED_OUT'];
+  statusOptions: ReservationStatus[] = [
+    'PENDING',
+    'CONFIRMED',
+    'CANCELLED',
+    'CHECKED_IN',
+    'CHECKED_OUT',
+  ];
 
   ngOnInit(): void {
     this.loadReservations();
@@ -268,5 +274,15 @@ export class ReservationLookup implements OnInit {
     });
   }
 
-  openProfile() {}
+  isProfileOpen = false;
+
+  openProfile() {
+    this.isProfileOpen = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeProfile() {
+    this.isProfileOpen = false;
+    document.body.style.overflow = '';
+  }
 }

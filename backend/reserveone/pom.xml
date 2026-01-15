@@ -94,6 +94,12 @@
              <scope>test</scope>
         </dependency>
 
+        <!-- Persist HTTP sessions in Postgres (Spring Session JDBC) -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-jdbc</artifactId>
+        </dependency>
+
     </dependencies>
 
     <!-- Maven-->

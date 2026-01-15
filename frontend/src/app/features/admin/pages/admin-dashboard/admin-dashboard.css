@@ -1,7 +1,9 @@
 .admin-dashboard {
+  /* Padding moved to .page-content for alignment */
+}
+
+.page-content {
   padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 .dashboard-header {
@@ -545,4 +547,3 @@
     grid-template-columns: 1fr;
   }
 }
-

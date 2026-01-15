@@ -1,25 +1,52 @@
 /* ===== Header ===== */
 .site-header {
+  display: flex;
+  align-items: center;
   position: sticky;
   top: 0;
   z-index: 30;
   background: rgba(250, 249, 246, 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
+  padding: 0.25rem 1rem;
+  height: 5rem;
+  box-sizing: border-box;
 }
 
 .header-inner {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 0;
+  gap: 2rem;
+  padding: 0;
+  position: relative;
+  width: 56%;
+  height: 100%;
+}
+
+.brand {
+  flex: 0 0 auto;
+}
+
+.header-actions {
+  flex: 0 0 auto;
+}
+
+.header-inner app-nav {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+.header-actions {
+  flex-shrink: 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 20px;
   text-decoration: none;
   color: inherit;
 }
@@ -98,7 +125,10 @@
 
 .menu-backdrop {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: transparent;
   z-index: 40;
 }
@@ -107,8 +137,10 @@
   position: absolute;
   right: 0;
   top: calc(100% + 10px);
-  min-width: 190px;
-  padding: 8px;
+  min-width: 170px;
+  max-width: 240px;
+  width: 200px;
+  padding: 8px 8px 4px 8px; /* Reduce bottom padding to minimize gap */
   border-radius: 12px;
   border: 1px solid var(--border);
   background: rgba(250, 249, 246, 0.96);
@@ -139,7 +171,7 @@
   border: 0;
   background: transparent;
   color: var(--text);
-  padding: 10px 10px;
+  padding: 8px 10px 8px 10px; /* Reduce vertical padding */
   border-radius: 10px;
   cursor: pointer;
   font-size: 14px;

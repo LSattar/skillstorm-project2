@@ -18,24 +18,31 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  EB_APPLICATION_NAME: "reserveone"
-  EB_ENVIRONMENT_NAME: "Reserveone-env"
-  BACKEND_DIR: "backend/reserveone"
+  EB_APPLICATION_NAME: reserveone
+  EB_ENVIRONMENT_NAME: Reserveone-env
+  BACKEND_DIR: backend/reserveone
+  EB_JAR_NAME: application.jar
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
+          distribution: temurin
           java-version: "17"
-          cache: "maven"
+          cache: maven
+
+      - name: Install jq
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5
@@ -46,344 +53,131 @@ jobs:
           mask-aws-account-id: true
           unset-current-credentials: true
 
-      - name: Debug AWS identity
+      - name: Verify AWS identity
         run: |
           set -euo pipefail
           aws sts get-caller-identity --output json
-          ARN="$(aws sts get-caller-identity --query Arn --output text)"
-          echo "Assumed role/session: $(echo \"$ARN\" | awk -F'/' '{print $(NF-1) "/" $NF}')"
 
-      - name: Build JAR (Maven)
+      - name: Build Spring Boot JAR (Maven)
         working-directory: ${{ env.BACKEND_DIR }}
-        run: mvn -B -DskipTests package
+        run: |
+          set -euo pipefail
+          mvn -B -DskipTests package
 
-      - name: Prepare Elastic Beanstalk source bundle (zip)
+      - name: Prepare Elastic Beanstalk source bundle
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           set -euo pipefail
 
-          echo "Built artifacts:"
-          ls -lh target || true
-          echo
-
           JAR_PATH="$(ls -1t target/*.jar | grep -vE '(original|sources|javadoc|tests)' | head -n 1)"
-          if [ -z "${JAR_PATH}" ]; then
-            echo "No deployable JAR found in target/." >&2
-            exit 1
-          fi
-          echo "Using jar: ${JAR_PATH}"
-          sha256sum "${JAR_PATH}" || true
+          echo "Using JAR: ${JAR_PATH}"
 
           rm -rf eb-bundle bundle.zip
           mkdir -p eb-bundle
 
           cp "${JAR_PATH}" eb-bundle/application.jar
 
-          [ -d ".platform" ] && cp -R .platform eb-bundle/.platform || true
-          [ -d ".ebextensions" ] && cp -R .ebextensions eb-bundle/.ebextensions || true
-          [ -f "Procfile" ] && cp Procfile eb-bundle/Procfile || true
+          [ -d .platform ] && cp -R .platform eb-bundle/.platform
+          [ -d .ebextensions ] && cp -R .ebextensions eb-bundle/.ebextensions
 
-          (cd eb-bundle && zip -r ../bundle.zip .)
+          if [ -f Procfile ]; then
+            cp Procfile eb-bundle/Procfile
+          else
+            echo "web: java -jar application.jar" > eb-bundle/Procfile
+          fi
 
-          echo
-          echo "Bundle contents:"
-          unzip -l bundle.zip | head -n 50
+          (cd eb-bundle && zip -qr ../bundle.zip .)
 
-      - name: Compute EB bucket + version label
-        id: meta
+          echo "Validating bundle contents:"
+          unzip -l bundle.zip | grep -E 'application.jar|Procfile'
+          unzip -l bundle.zip | awk '{print $4}' | grep -qx 'application.jar'
+          unzip -l bundle.zip | awk '{print $4}' | grep -qx 'Procfile'
+
+          # Optional visibility checks (won't fail build)
+          unzip -l bundle.zip | awk '{print $4}' | grep -q '^\.platform/' || echo "Note: no .platform directory in bundle"
+          unzip -l bundle.zip | awk '{print $4}' | grep -q '^\.ebextensions/' || echo "Note: no .ebextensions directory in bundle"
+
+      - name: Resolve Elastic Beanstalk S3 bucket
         run: |
           set -euo pipefail
           ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-          echo "account_id=${ACCOUNT_ID}" >> "$GITHUB_OUTPUT"
-
-          EB_BUCKET="elasticbeanstalk-${{ env.AWS_REGION }}-${ACCOUNT_ID}"
-          echo "eb_bucket=${EB_BUCKET}" >> "$GITHUB_OUTPUT"
-
-          VERSION_LABEL="github-${GITHUB_SHA}-${GITHUB_RUN_ID}"
-          echo "version_label=${VERSION_LABEL}" >> "$GITHUB_OUTPUT"
+          EB_BUCKET="elasticbeanstalk-${AWS_REGION}-${ACCOUNT_ID}"
+          echo "EB_BUCKET=${EB_BUCKET}" >> $GITHUB_ENV
+          echo "Using EB bucket: ${EB_BUCKET}"
 
       - name: Upload bundle to S3
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           set -euo pipefail
-          S3_KEY="${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip"
-          aws s3 cp \
-            "bundle.zip" \
-            "s3://${{ steps.meta.outputs.eb_bucket }}/${S3_KEY}"
 
-          echo
-          echo "Verifying S3 upload exists:"
-          aws s3api head-object \
-            --bucket "${{ steps.meta.outputs.eb_bucket }}" \
-            --key "${S3_KEY}" \
-            --query '{ContentLength:ContentLength, LastModified:LastModified, ETag:ETag}' \
-            --output table
+          SHORT_SHA="${GITHUB_SHA:0:12}"
+          VERSION_LABEL="github-${SHORT_SHA}-${GITHUB_RUN_NUMBER}"
+          S3_KEY="reserveone/${VERSION_LABEL}.zip"
 
-          echo
-          echo "Verifying role can read object ACL (matches EB error if denied):"
-          aws s3api get-object-acl \
-            --bucket "${{ steps.meta.outputs.eb_bucket }}" \
-            --key "${S3_KEY}" \
-            --query '{Owner:Owner,Grants:Grants}' \
-            --output json
+          aws s3 cp bundle.zip "s3://${EB_BUCKET}/${S3_KEY}"
 
-      - name: Create new Elastic Beanstalk application version (idempotent)
+          echo "VERSION_LABEL=${VERSION_LABEL}" >> $GITHUB_ENV
+          echo "S3_KEY=${S3_KEY}" >> $GITHUB_ENV
+
+      - name: Create Elastic Beanstalk application version
         run: |
           set -euo pipefail
-
-          VERSION_LABEL="${{ steps.meta.outputs.version_label }}"
-
-          EXISTING="$(aws elasticbeanstalk describe-application-versions \
-            --application-name "${{ env.EB_APPLICATION_NAME }}" \
-            --version-labels "$VERSION_LABEL" \
-            --query "ApplicationVersions[0].VersionLabel" \
-            --output text 2>/dev/null || true)"
-
-          if [ "$EXISTING" = "$VERSION_LABEL" ]; then
-            echo "EB application version $VERSION_LABEL already exists. Skipping create."
-          else
-            aws elasticbeanstalk create-application-version \
-              --application-name "${{ env.EB_APPLICATION_NAME }}" \
-              --version-label "$VERSION_LABEL" \
-              --source-bundle S3Bucket="${{ steps.meta.outputs.eb_bucket }}",S3Key="${{ env.EB_APPLICATION_NAME }}/${{ steps.meta.outputs.version_label }}.zip" \
-              --process
-          fi
-
-          echo
-          echo "Confirming EB version exists:"
-          aws elasticbeanstalk describe-application-versions \
-            --application-name "${{ env.EB_APPLICATION_NAME }}" \
-            --version-labels "$VERSION_LABEL" \
-            --query 'ApplicationVersions[0].{VersionLabel:VersionLabel,Status:Status,DateCreated:DateCreated}' \
-            --output table
-
-      - name: Deploy version to environment
-        run: |
-          set -euo pipefail
-
-          VERSION_LABEL="${{ steps.meta.outputs.version_label }}"
-
-          echo "---"
-          echo "Preflight: show EB configuration roles (instance profile / service role if present)"
-          aws elasticbeanstalk describe-configuration-settings \
-            --application-name "${{ env.EB_APPLICATION_NAME }}" \
-            --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
-            --output json | \
-            jq -r '
-              .ConfigurationSettings[0].OptionSettings
-              | map(select(.OptionName=="IamInstanceProfile" or .OptionName=="ServiceRole" or .OptionName=="ServiceRoleForManagedUpdates"))
-              | .[]
-              | "\(.Namespace) \(.OptionName)=\(.Value)"
-            ' || true
-
-          echo "---"
-          echo "Preflight: can assumed role read EB patching resource object? (helps diagnose S3 403)"
-          aws s3api head-object \
-            --bucket "elasticbeanstalk-env-resources-${{ env.AWS_REGION }}" \
-            --key "eb_patching_resources/instance_patch_extension.linux" \
-            --output json >/dev/null && echo "OK: head-object succeeded" || echo "WARN: head-object failed (expected with current error)"
-
-          echo "---"
-          echo "Preflight: can assumed role call ec2:DescribeImages? (required by UpdateEnvironment on some EB platform flows)"
-          aws ec2 describe-images \
-            --owners self \
-            --max-results 5 \
-            --output json >/dev/null && echo "OK: describe-images succeeded" || echo "WARN: describe-images failed (permission likely missing)"
-
-          echo "---"
-          echo "Deploying VersionLabel=${VERSION_LABEL} to environment..."
-
-          UPDATE_JSON="$(aws elasticbeanstalk update-environment \
-            --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
+          aws elasticbeanstalk create-application-version \
+            --application-name "${EB_APPLICATION_NAME}" \
             --version-label "${VERSION_LABEL}" \
-            --output json)"
+            --source-bundle S3Bucket="${EB_BUCKET}",S3Key="${S3_KEY}" \
+            --process
 
-          echo "UpdateEnvironment response:"
-          echo "$UPDATE_JSON" | jq '{EnvironmentName, Status, VersionLabel, AbortableOperationInProgress, Health, HealthStatus}'
+      - name: Deploy application version
+        run: |
+          set -euo pipefail
+          aws elasticbeanstalk update-environment \
+            --environment-name "${EB_ENVIRONMENT_NAME}" \
+            --version-label "${VERSION_LABEL}"
 
-          RESP_VERSION="$(echo "$UPDATE_JSON" | jq -r '.VersionLabel // empty')"
-          if [ "$RESP_VERSION" != "$VERSION_LABEL" ]; then
-            echo "UpdateEnvironment response VersionLabel was '$RESP_VERSION' (expected '$VERSION_LABEL')." >&2
-            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
-            exit 1
-          fi
+      - name: Wait for environment to finish updating
+        run: |
+          set -euo pipefail
+          aws elasticbeanstalk wait environment-updated \
+            --environment-name "${EB_ENVIRONMENT_NAME}"
 
-          echo "Waiting briefly for EB to start applying the update..."
-          STARTED="false"
-          for _ in {1..24}; do
-            ENV_JSON="$(aws elasticbeanstalk describe-environments \
-              --environment-names "${{ env.EB_ENVIRONMENT_NAME }}" \
-              --query 'Environments[0]' \
+      - name: Wait for environment health to be OK/Green
+        run: |
+          set -euo pipefail
+
+          ENV="${EB_ENVIRONMENT_NAME}"
+          echo "Waiting for EB env health to be OK/Green..."
+
+          deadline=$((SECONDS + 600))  # 10 min
+          while (( SECONDS < deadline )); do
+            out="$(aws elasticbeanstalk describe-environments \
+              --environment-names "$ENV" \
+              --query 'Environments[0].{Status:Status,Health:Health,HealthStatus:HealthStatus}' \
               --output json)"
 
-            CUR_VERSION="$(echo "$ENV_JSON" | jq -r '.VersionLabel // empty')"
-            IN_PROGRESS="$(echo "$ENV_JSON" | jq -r '.AbortableOperationInProgress // false')"
+            status="$(echo "$out" | jq -r .Status)"
+            health="$(echo "$out" | jq -r .Health)"
+            healthStatus="$(echo "$out" | jq -r .HealthStatus)"
 
-            if [ "$CUR_VERSION" = "$VERSION_LABEL" ] || [ "$IN_PROGRESS" = "true" ]; then
-              STARTED="true"
-              echo "EB acknowledged update: VersionLabel=$CUR_VERSION, AbortableOperationInProgress=$IN_PROGRESS"
-              break
+            echo "Status=$status Health=$health HealthStatus=$healthStatus"
+
+            if [[ "$status" == "Ready" && ( "$health" == "Green" || "$healthStatus" == "Ok" ) ]]; then
+              echo "Environment is healthy."
+              exit 0
             fi
-            sleep 5
+
+            sleep 15
           done
 
-          if [ "$STARTED" != "true" ]; then
-            echo "EB did not appear to start applying the update within ~2 minutes." >&2
-            echo "Recent events:" >&2
-            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
-            exit 1
-          fi
+          echo "Timed out waiting for healthy environment."
+          exit 1
 
-      - name: Wait for environment update + verify health
+      - name: Dump recent EB events (on failure)
+        if: failure()
         run: |
           set -euo pipefail
-
-          VERSION_LABEL="${{ steps.meta.outputs.version_label }}"
-
-          dump_cfn_events() {
-            local env_id stack_name
-            env_id="$(aws elasticbeanstalk describe-environments \
-              --environment-names "${{ env.EB_ENVIRONMENT_NAME }}" \
-              --query 'Environments[0].EnvironmentId' \
-              --output text 2>/dev/null || true)"
-
-            if [ -z "$env_id" ] || [ "$env_id" = "None" ]; then
-              echo "WARN: Could not resolve EnvironmentId; skipping CloudFormation events." >&2
-              return 0
-            fi
-
-            stack_name="awseb-${env_id}-stack"
-
-            echo "CloudFormation stack status for ${stack_name}:" >&2
-            aws cloudformation describe-stacks \
-              --stack-name "$stack_name" \
-              --query 'Stacks[0].{StackStatus:StackStatus,StackStatusReason:StackStatusReason,LastUpdatedTime:LastUpdatedTime,CreationTime:CreationTime}' \
-              --output table || true
-
-            echo "CloudFormation stack events (latest 200) for ${stack_name}:" >&2
-            aws cloudformation describe-stack-events \
-              --stack-name "$stack_name" \
-              --max-items 200 \
-              --query 'StackEvents[*].{Time:Timestamp,Status:ResourceStatus,Type:ResourceType,LogicalId:LogicalResourceId,Reason:ResourceStatusReason}' \
-              --output table || true
-
-            echo "CloudFormation failures / AccessDenied (filtered):" >&2
-            aws cloudformation describe-stack-events \
-              --stack-name "$stack_name" \
-              --max-items 200 \
-              --output json | \
-              jq -r '
-                .StackEvents
-                | map(select(
-                    (.ResourceStatus|test("FAILED|ROLLBACK|DELETE_FAILED"))
-                    or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
-                  ))
-                | .[]
-                | "\(.Timestamp)\t\(.ResourceStatus)\t\(.ResourceType)\t\(.LogicalResourceId)\t\(.ResourceStatusReason // \"\")"' \
-              | head -n 50 || true
-          }
-
-          aws elasticbeanstalk wait environment-updated \
-            --environment-names "${{ env.EB_ENVIRONMENT_NAME }}"
-
-          ENV_JSON="$(aws elasticbeanstalk describe-environments \
-            --environment-names "${{ env.EB_ENVIRONMENT_NAME }}" \
-            --query 'Environments[0]' \
-            --output json)"
-
-          echo "Environment summary:"
-          echo "$ENV_JSON" | jq '{EnvironmentName, ApplicationName, Status, Health, HealthStatus, VersionLabel, EndpointURL}'
-
-          STATUS="$(echo "$ENV_JSON" | jq -r '.Status // empty')"
-          HEALTH="$(echo "$ENV_JSON" | jq -r '.Health // empty')"
-          VERSION="$(echo "$ENV_JSON" | jq -r '.VersionLabel // empty')"
-
-          if [ "$VERSION" != "$VERSION_LABEL" ]; then
-            echo "Expected VersionLabel $VERSION_LABEL, but environment is on $VERSION" >&2
-            echo "Recent events:" >&2
-            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
-            dump_cfn_events
-            exit 1
-          fi
-
-          if [ "$STATUS" != "Ready" ]; then
-            echo "Environment status is $STATUS (expected Ready)." >&2
-            echo "Recent events:" >&2
-            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
-            dump_cfn_events
-            exit 1
-          fi
-
-          if [ "$HEALTH" = "Red" ] || [ "$HEALTH" = "Grey" ]; then
-            echo "Environment health is $HEALTH." >&2
-            echo "Recent events:" >&2
-            aws elasticbeanstalk describe-events --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" --max-records 25 --output table || true
-            dump_cfn_events
-            exit 1
-          fi
-
-      - name: Fetch EB logs on failure
-        if: ${{ failure() }}
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-
-          echo "---"
-          echo "Recent Elastic Beanstalk events (25):"
           aws elasticbeanstalk describe-events \
-            --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
-            --max-records 25 \
-            --output table || true
-
-          echo "---"
-          ENV_ID="$(aws elasticbeanstalk describe-environments \
-            --environment-names "${{ env.EB_ENVIRONMENT_NAME }}" \
-            --query 'Environments[0].EnvironmentId' \
-            --output text 2>/dev/null || true)"
-          if [ -n "$ENV_ID" ] && [ "$ENV_ID" != "None" ]; then
-            STACK_NAME="awseb-${ENV_ID}-stack"
-            echo "CloudFormation stack status for ${STACK_NAME}:"
-            aws cloudformation describe-stacks \
-              --stack-name "$STACK_NAME" \
-              --query 'Stacks[0].{StackStatus:StackStatus,StackStatusReason:StackStatusReason,LastUpdatedTime:LastUpdatedTime,CreationTime:CreationTime}' \
-              --output table || true
-
-            echo "CloudFormation stack events (latest 200) for ${STACK_NAME}:"
-            aws cloudformation describe-stack-events \
-              --stack-name "$STACK_NAME" \
-              --max-items 200 \
-              --query 'StackEvents[*].{Time:Timestamp,Status:ResourceStatus,Type:ResourceType,LogicalId:LogicalResourceId,Reason:ResourceStatusReason}' \
-              --output table || true
-
-            echo "CloudFormation failures / AccessDenied (filtered):"
-            aws cloudformation describe-stack-events \
-              --stack-name "$STACK_NAME" \
-              --max-items 200 \
-              --output json | \
-              jq -r '
-                .StackEvents
-                | map(select(
-                    (.ResourceStatus|test("FAILED|ROLLBACK|DELETE_FAILED"))
-                    or ((.ResourceStatusReason // "") | test("AccessDenied|access denied|S3 error"; "i"))
-                  ))
-                | .[]
-                | "\(.Timestamp)\t\(.ResourceStatus)\t\(.ResourceType)\t\(.LogicalResourceId)\t\(.ResourceStatusReason // \"\")"' \
-              | head -n 50 || true
-          else
-            echo "WARN: Could not resolve EnvironmentId; skipping CloudFormation events." >&2
-          fi
-
-          echo "Requesting Elastic Beanstalk log bundle..."
-          aws elasticbeanstalk request-environment-info \
-            --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
-            --info-type bundle
-
-          # Give EB a moment to generate the bundle.
-          sleep 30
-
-          echo "Retrieving log bundle URL (look for eb-engine.log inside):"
-          aws elasticbeanstalk retrieve-environment-info \
-            --environment-name "${{ env.EB_ENVIRONMENT_NAME }}" \
-            --info-type bundle \
-            --query 'EnvironmentInfo[0].Message' \
-            --output text || true
+            --environment-name "${EB_ENVIRONMENT_NAME}" \
+            --max-items 50 \
+            --query 'Events[].{Time:EventDate,Severity:Severity,Message:Message}' \
+            --output table

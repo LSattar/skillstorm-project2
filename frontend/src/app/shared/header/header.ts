@@ -1,16 +1,28 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  EventEmitter,
+  inject,
+  Input,
+  NgZone,
+  OnDestroy,
+  Output,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { Nav } from '../nav/nav';
+import { NavComponent } from '../nav/nav';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [Nav, RouterLink],
+  imports: [NavComponent, RouterLink],
   templateUrl: './header.html',
   styleUrls: ['./header.css'],
 })
-export class Header {
+export class Header implements OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
+  private readonly el = inject(ElementRef<HTMLElement>);
+  private readonly zone = inject(NgZone);
 
   @Input() isNavOpen = false;
   @Input() isAuthenticated = false;
@@ -18,6 +30,7 @@ export class Header {
   @Input() roleLabel = '';
   @Input() userEmail = '';
   @Input() showSystemSettings = false;
+  @Input() showPaymentTransactions = false;
 
   @Output() toggleNav = new EventEmitter<void>();
   @Output() closeNav = new EventEmitter<void>();
@@ -28,6 +41,15 @@ export class Header {
   @Output() openSystemSettings = new EventEmitter<void>();
 
   userMenuOpen = false;
+  private globalClickListener?: (event: MouseEvent) => void;
+
+  get currentRoute(): string {
+    return this.router.url;
+  }
+
+  get isAdmin(): boolean {
+    return this.roleLabel?.toLowerCase() === 'admin';
+  }
 
   get avatarText(): string {
     const email = (this.userEmail || '').trim();
@@ -39,39 +61,81 @@ export class Header {
     return '?';
   }
 
-  get isAdmin(): boolean {
-    return this.roleLabel?.toLowerCase() === 'admin';
+  ngAfterViewInit(): void {
+    // Close user menu if on profile settings page to prevent modal whitespace
+    if (this.router.url === '/profile-settings' && this.userMenuOpen) {
+      this.closeUserMenu();
+    }
   }
 
-  toggleUserMenu() {
+  toggleUserMenu(): void {
     this.userMenuOpen = !this.userMenuOpen;
+    if (this.userMenuOpen) {
+      this.addGlobalClickListener();
+    } else {
+      this.removeGlobalClickListener();
+    }
   }
 
-  closeUserMenu() {
+  closeUserMenu(): void {
     this.userMenuOpen = false;
+    this.removeGlobalClickListener();
   }
 
-  onLogout() {
+  private addGlobalClickListener(): void {
+    this.removeGlobalClickListener();
+    this.globalClickListener = (event: MouseEvent) => {
+      if (!this.el.nativeElement.contains(event.target as Node)) {
+        this.zone.run(() => this.closeUserMenu());
+      }
+    };
+    document.addEventListener('click', this.globalClickListener, true);
+  }
+
+  private removeGlobalClickListener(): void {
+    if (this.globalClickListener) {
+      document.removeEventListener('click', this.globalClickListener, true);
+      this.globalClickListener = undefined;
+    }
+  }
+
+  onLogout(): void {
     this.logout.emit();
     this.closeUserMenu();
     this.closeNav.emit();
   }
 
-  onOpenProfile() {
+  onOpenProfile(): void {
     this.openProfile.emit();
     this.closeUserMenu();
     this.closeNav.emit();
   }
 
-  onOpenAdminDashboard() {
+  onOpenAdminDashboard(): void {
     this.router.navigate(['/admin-dashboard']);
     this.closeUserMenu();
     this.closeNav.emit();
   }
 
-  onOpenSystemSettings() {
-    this.openSystemSettings.emit();
+  onOpenMyBookings(): void {
+    this.router.navigate(['/my-bookings']);
     this.closeUserMenu();
     this.closeNav.emit();
+  }
+
+  onOpenSystemSettings(): void {
+    this.router.navigate(['/admin/system-settings']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
+  onOpenPaymentTransactions(): void {
+    this.router.navigate(['/payment-transactions']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
+  ngOnDestroy(): void {
+    this.removeGlobalClickListener();
   }
 }

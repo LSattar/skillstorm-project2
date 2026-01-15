@@ -1,0 +1,66 @@
+<div class="modal-overlay" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Cancel Reservation</h2>
+      <button class="close-btn" (click)="onClose()" type="button" aria-label="Close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      @if (error) {
+      <div class="error-message">
+        <span class="material-symbols-outlined">error</span>
+        <p>{{ error }}</p>
+      </div>
+      }
+
+      <div class="warning-message">
+        <span class="material-symbols-outlined">warning</span>
+        <div>
+          <p><strong>Are you sure you want to cancel this reservation?</strong></p>
+          <p>
+            This action cannot be undone. Cancellation policies and refunds (if applicable) will
+            apply.
+          </p>
+        </div>
+      </div>
+
+      <div class="reservation-summary">
+        <p><strong>Reservation Details:</strong></p>
+        <div class="summary-details">
+          <span>Check-in:</span>
+          <span>{{ formatDate(reservation.startDate) }}</span>
+          <span>Check-out:</span>
+          <span>{{ formatDate(reservation.endDate) }}</span>
+          <span>Total Amount:</span>
+          <span>{{ formatCurrency(reservation.totalAmount, reservation.currency) }}</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="cancelReason">Cancellation Reason (Optional)</label>
+        <textarea
+          id="cancelReason"
+          [(ngModel)]="cancelReason"
+          name="cancelReason"
+          rows="3"
+          placeholder="Please let us know why you're cancelling..."
+        ></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onClose()" [disabled]="loading">
+          Keep Reservation
+        </button>
+        <button type="button" class="btn btn-danger" (click)="onCancel()" [disabled]="loading">
+          @if (loading) {
+          <span>Cancelling...</span>
+          } @else {
+          <span>Confirm Cancellation</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

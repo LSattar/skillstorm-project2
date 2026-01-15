@@ -31,9 +31,9 @@ export class SystemSettingsService {
 
   constructor(private http: HttpClient) {}
 
-  searchUsers(q: string, limit = 20): Observable<UserAdminView[]> {
-    return this.http.get<UserAdminView[]>(`${this.api}/users/search`, {
-      params: { q: q ?? '', limit: String(limit) },
+  searchUsers(q: string, status: string = 'ACTIVE', page = 0, size = 20): Observable<any> {
+    return this.http.get<any>(`${this.api}/users/search`, {
+      params: { q, status, page: String(page), size: String(size) },
       withCredentials: true,
     });
   }
@@ -48,8 +48,20 @@ export class SystemSettingsService {
     });
   }
 
-  deleteUser(userId: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/users/${userId}`, { withCredentials: true });
+  deactivateUser(userId: string): Observable<void> {
+    return this.http.patch<void>(
+      `${this.api}/users/${userId}/status`,
+      { status: 'INACTIVE' },
+      { withCredentials: true }
+    );
+  }
+
+  activateUser(userId: string): Observable<void> {
+    return this.http.patch<void>(
+      `${this.api}/users/${userId}/status`,
+      { status: 'ACTIVE' },
+      { withCredentials: true }
+    );
   }
 
   createUser(body: CreateUserRequest): Observable<UserAdminView> {

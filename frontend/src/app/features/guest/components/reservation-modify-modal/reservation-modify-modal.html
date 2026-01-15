@@ -1,0 +1,86 @@
+<div class="modal-overlay" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Modify Reservation</h2>
+      <button class="close-btn" (click)="onClose()" type="button" aria-label="Close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      @if (error) {
+      <div class="error-message">
+        <span class="material-symbols-outlined">error</span>
+        <p>{{ error }}</p>
+      </div>
+      }
+
+      <p class="modal-description">
+        Update your reservation details. Changes to dates or guest count may affect pricing.
+      </p>
+
+      <form class="modify-form" (ngSubmit)="onSave()">
+        <div class="form-group">
+          <label for="startDate">Check-in Date</label>
+          <input
+            type="date"
+            id="startDate"
+            [(ngModel)]="startDate"
+            name="startDate"
+            [min]="minDate"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="endDate">Check-out Date</label>
+          <input
+            type="date"
+            id="endDate"
+            [(ngModel)]="endDate"
+            name="endDate"
+            [min]="startDate || minDate"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="guestCount">Number of Guests</label>
+          <input
+            type="number"
+            id="guestCount"
+            [(ngModel)]="guestCount"
+            name="guestCount"
+            min="1"
+            max="10"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="specialRequests">Special Requests (Optional)</label>
+          <textarea
+            id="specialRequests"
+            [(ngModel)]="specialRequests"
+            name="specialRequests"
+            rows="3"
+            placeholder="Any special requests or preferences..."
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="onClose()" [disabled]="loading">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            @if (loading) {
+            <span>Saving...</span>
+            } @else {
+            <span>Save Changes</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

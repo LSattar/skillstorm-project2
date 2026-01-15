@@ -4,7 +4,7 @@ import { Component, Input } from '@angular/core';
   selector: 'app-footer',
   standalone: true,
   templateUrl: './footer.html',
-  styleUrl: './footer.css',
+  styleUrls: ['./footer.css'],
 })
 export class Footer {
   @Input() year: string | number = new Date().getFullYear();

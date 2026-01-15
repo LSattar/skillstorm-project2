@@ -1,7 +1,16 @@
 <header class="site-header">
   <div class="container header-inner">
     <!-- Brand -->
-    <a class="brand" routerLink="/" aria-label="ReserveOne home" (click)="closeNav.emit()">
+    <a
+      class="brand"
+      [routerLink]="isAdmin ? '/admin-dashboard' : '/'"
+      aria-label="ReserveOne home"
+      (click)="closeNav.emit()"
+      [class.disabled]="isAdmin"
+      [attr.tabindex]="isAdmin ? -1 : 0"
+      [attr.aria-disabled]="isAdmin ? 'true' : null"
+      (click)="isAdmin ? $event.preventDefault() : null"
+    >
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">
         <span class="brand-name">ReserveOne</span>
@@ -9,12 +18,19 @@
       </span>
     </a>
 
-    <!-- Navigation (now a component) -->
-    <app-nav [isOpen]="isNavOpen" (toggle)="toggleNav.emit()" (close)="closeNav.emit()"></app-nav>
+    <!-- Navigation (component) -->
+    <app-nav
+      [isOpen]="isNavOpen"
+      [isAuthenticated]="isAuthenticated"
+      [isAdmin]="isAdmin"
+      (toggle)="toggleNav.emit()"
+      (close)="closeNav.emit()"
+    ></app-nav>
 
     <!-- Actions -->
     <div class="header-actions">
       <button class="btn btn-ghost" type="button" (click)="openBooking.emit()">Search</button>
+
       @if (!isAuthenticated) {
       <button class="btn btn-primary" type="button" (click)="openSignIn.emit(); closeNav.emit()">
         Sign in
@@ -32,21 +48,38 @@
 
         @if (userMenuOpen) {
         <div class="menu-backdrop" (click)="closeUserMenu()"></div>
-        <div class="menu-panel" role="menu" aria-label="User menu">
+        <div
+          class="menu-panel"
+          role="menu"
+          aria-label="User menu"
+          (click)="$event.stopPropagation()"
+        >
           @if (roleLabel) {
           <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
-          } @if (isAdmin) {
+          } @if (isAdmin) { @if (currentRoute !== '/admin-dashboard') {
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenAdminDashboard()">
             Admin Dashboard
           </button>
-          }
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
-            Profile settings
-          </button>
-
-          @if (showSystemSettings) {
+          } @if (showSystemSettings && currentRoute !== '/admin/system-settings') {
           <button class="menu-item" type="button" role="menuitem" (click)="onOpenSystemSettings()">
             System settings
+          </button>
+          } @if (currentRoute !== '/payment-transactions') {
+          <button
+            class="menu-item"
+            type="button"
+            role="menuitem"
+            (click)="onOpenPaymentTransactions()"
+          >
+            Payment Transactions
+          </button>
+          } } @else {
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenMyBookings()">
+            My Bookings
+          </button>
+          } @if (currentRoute !== '/profile-settings') {
+          <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
+            Profile settings
           </button>
           }
 

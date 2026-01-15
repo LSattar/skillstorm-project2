@@ -1,0 +1,49 @@
+.user-profile-page {
+  overflow-y: hidden !important;
+}
+.user-profile-page {
+  padding-left: 1.5em;
+  padding-right: 1.5em;
+}
+
+.user-profile-page h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--primary-2);
+  font-weight: 600;
+}
+
+.booking-form {
+  padding: 0;
+}
+
+.field-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.field {
+  flex: 1 1 0%;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-error {
+  color: var(--danger, #b00020);
+  margin-bottom: 1rem;
+}
+
+.profile-save-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+.profile-save-btn {
+  min-width: 140px;
+  max-width: 220px;
+  width: auto;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}

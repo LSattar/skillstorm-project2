@@ -9,10 +9,10 @@
 
     <div class="modal-body">
       @if (error) {
-        <div class="error-message">
-          <span class="material-symbols-outlined">error</span>
-          <p>{{ error }}</p>
-        </div>
+      <div class="error-message">
+        <span class="material-symbols-outlined">error</span>
+        <p>{{ error }}</p>
+      </div>
       }
 
       <div class="reservation-info">
@@ -42,7 +42,7 @@
               required
             >
               @for (hotel of hotelOptions; track hotel.id) {
-                <option [value]="hotel.id">{{ hotel.name }}</option>
+              <option [value]="hotel.id">{{ hotel.name }}</option>
               }
             </select>
           </div>
@@ -57,7 +57,7 @@
               required
             >
               @for (guest of guestOptions; track guest.id) {
-                <option [value]="guest.id">{{ guest.name }}</option>
+              <option [value]="guest.id">{{ guest.name }}</option>
               }
             </select>
           </div>
@@ -85,19 +85,31 @@
               required
             >
               @for (roomType of roomTypeOptions; track roomType.id) {
-                <option [value]="roomType.id">{{ roomType.name }}</option>
+              <option [value]="roomType.id">{{ roomType.name }}</option>
               }
             </select>
           </div>
 
           <div class="form-group">
             <label for="startDate">Check-in Date</label>
-            <input type="date" id="startDate" [(ngModel)]="editForm.startDate" name="startDate" required />
+            <input
+              type="date"
+              id="startDate"
+              [(ngModel)]="editForm.startDate"
+              name="startDate"
+              required
+            />
           </div>
 
           <div class="form-group">
             <label for="endDate">Check-out Date</label>
-            <input type="date" id="endDate" [(ngModel)]="editForm.endDate" name="endDate" required />
+            <input
+              type="date"
+              id="endDate"
+              [(ngModel)]="editForm.endDate"
+              name="endDate"
+              required
+            />
           </div>
 
           <div class="form-group">
@@ -116,7 +128,7 @@
             <label for="status">Status</label>
             <select id="status" [(ngModel)]="editForm.status" name="status" required>
               @for (status of statusOptions; track status) {
-                <option [value]="status">{{ status }}</option>
+              <option [value]="status">{{ status }}</option>
               }
             </select>
           </div>
@@ -165,11 +177,8 @@
           </button>
           <button type="submit" class="btn btn-primary" [disabled]="loading">
             @if (loading) {
-              <span class="spinner"></span>
-              Saving...
-            } @else {
-              Save Changes
-            }
+            <span class="spinner"></span>
+            Saving... } @else { Save Changes }
           </button>
         </div>
       </form>
@@ -178,43 +187,40 @@
         <div class="cancel-header">
           <h3>Cancel Reservation</h3>
           @if (!showCancelConfirm) {
-            <button type="button" class="btn btn-danger" (click)="showCancelConfirm = true">
-              Cancel Reservation
-            </button>
+          <button type="button" class="btn btn-danger" (click)="showCancelConfirm = true">
+            Cancel Reservation
+          </button>
           }
         </div>
 
         @if (showCancelConfirm) {
-          <div class="cancel-confirm">
-            <p>Are you sure you want to cancel this reservation? This action cannot be undone.</p>
-            <div class="form-group">
-              <label for="cancelReason">Cancellation Reason (Optional)</label>
-              <textarea
-                id="cancelReason"
-                [(ngModel)]="cancelReason"
-                rows="2"
-                placeholder="Enter reason for cancellation..."
-              ></textarea>
-            </div>
-            <div class="cancel-actions">
-              <button type="button" class="btn btn-secondary" (click)="showCancelConfirm = false">
-                Keep Reservation
-              </button>
-              <button
-                type="button"
-                class="btn btn-danger"
-                (click)="onCancelReservation()"
-                [disabled]="loading"
-              >
-                @if (loading) {
-                  <span class="spinner"></span>
-                  Cancelling...
-                } @else {
-                  Confirm Cancellation
-                }
-              </button>
-            </div>
+        <div class="cancel-confirm">
+          <p>Are you sure you want to cancel this reservation? This action cannot be undone.</p>
+          <div class="form-group">
+            <label for="cancelReason">Cancellation Reason (Optional)</label>
+            <textarea
+              id="cancelReason"
+              [(ngModel)]="cancelReason"
+              rows="2"
+              placeholder="Enter reason for cancellation..."
+            ></textarea>
           </div>
+          <div class="cancel-actions">
+            <button type="button" class="btn btn-secondary" (click)="showCancelConfirm = false">
+              Keep Reservation
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              (click)="onCancelReservation()"
+              [disabled]="loading"
+            >
+              @if (loading) {
+              <span class="spinner"></span>
+              Cancelling... } @else { Confirm Cancellation }
+            </button>
+          </div>
+        </div>
         }
       </div>
     </div>

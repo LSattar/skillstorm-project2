@@ -49,6 +49,18 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    // Handles missing endpoints and static resources as 404 Not Found
+    @ExceptionHandler({ org.springframework.web.servlet.resource.NoResourceFoundException.class,
+            org.springframework.web.servlet.NoHandlerFoundException.class })
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.NOT_FOUND)
+    public java.util.Map<String, Object> handleNotFound(Exception ex, jakarta.servlet.http.HttpServletRequest req) {
+        return java.util.Map.of(
+                "status", 404,
+                "error", "Not Found",
+                "path", req.getRequestURI(),
+                "message", ex.getMessage());
+    }
+
     /**
      * Handles ResourceNotFoundException by returning an HTTP 404 response.
      * 

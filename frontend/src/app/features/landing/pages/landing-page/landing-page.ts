@@ -1,15 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Footer } from '../../../../shared/footer/footer';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
-import { SystemSettingsModal } from '../../../admin/components/system-settings-modal/system-settings-modal';
-import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
+
 import { RoomSearchModal } from '../../components/room-search-modal/room-search-modal';
-import { RoomSearchResults, SearchResultsData } from '../../components/room-search-results/room-search-results';
+import {
+  RoomSearchResults,
+  SearchResultsData,
+} from '../../components/room-search-results/room-search-results';
 import { RoomResponse, RoomSearchParams } from '../../services/room-search.service';
-import { HotelResponse } from '../../services/hotel.service';
 
 @Component({
   selector: 'app-landing-page',
@@ -19,6 +19,33 @@ import { HotelResponse } from '../../services/hotel.service';
   styleUrls: ['./landing-page.css'],
 })
 export class LandingPage {
+  // Amenities carousel logic
+  amenitiesImages = [
+    '/images/ammenities/exercise.jpg',
+    '/images/ammenities/food.jpg',
+    '/images/ammenities/food2.jpg',
+    '/images/ammenities/pool.jpg',
+    '/images/ammenities/spa.jpg',
+  ];
+
+  amenitiesCaptions = [
+    'Forest Fitness & Exercise',
+    'Organic Forest Cuisine',
+    'Gourmet Wellness Dining',
+    'Heated Pool Sanctuary',
+    'Forest Spa Retreat',
+  ];
+
+  activeAmenity = 0;
+
+  prevAmenity() {
+    this.activeAmenity =
+      (this.activeAmenity - 1 + this.amenitiesImages.length) % this.amenitiesImages.length;
+  }
+
+  nextAmenity() {
+    this.activeAmenity = (this.activeAmenity + 1) % this.amenitiesImages.length;
+  }
   protected readonly auth = inject(AuthService);
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;

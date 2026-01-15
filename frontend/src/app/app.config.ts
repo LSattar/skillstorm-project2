@@ -1,13 +1,29 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import {
+  HTTP_INTERCEPTORS,
+  provideHttpClient,
+  withInterceptorsFromDi,
+  withXsrfConfiguration,
+} from '@angular/common/http';
+import { provideNgxStripe } from 'ngx-stripe';
 import { routes } from './app.routes';
+import { ApiSecurityInterceptor } from './interceptors/ApiSecurityInterceptor';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withInterceptorsFromDi()),
+    provideHttpClient(
+      withInterceptorsFromDi(),
+      withXsrfConfiguration({
+        cookieName: 'XSRF-TOKEN',
+        headerName: 'X-XSRF-TOKEN',
+      })
+    ),
+    { provide: HTTP_INTERCEPTORS, useClass: ApiSecurityInterceptor, multi: true },
     provideRouter(routes),
+    provideNgxStripe(environment.stripePublishableKey),
   ],
 };

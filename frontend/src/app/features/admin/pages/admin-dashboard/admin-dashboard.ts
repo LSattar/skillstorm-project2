@@ -1,13 +1,14 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { MonthlyRevenue, Alert, Reservation, AdminMetricsService } from '../../services/admin-metrics.service';
 import { Header } from '../../../../shared/header/header';
-import { Footer } from '../../../../shared/footer/footer';
 import { AuthService } from '../../../auth/services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin, map } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+
+import { Alert, MonthlyRevenue, Reservation } from '../../services/admin-metrics.service';
 
 export type OperationalMetrics = {
   totalRooms: number;
@@ -22,7 +23,7 @@ export type OperationalMetrics = {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, Header, Footer],
+  imports: [CommonModule, RouterModule, Header],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.css',
 })
@@ -32,6 +33,20 @@ export class AdminDashboard implements OnInit {
   protected readonly adminMetricsService = inject(AdminMetricsService);
   protected readonly http = inject(HttpClient);
   private readonly api = environment.apiBaseUrl;
+
+  goToSystemSettings() {
+    this.router.navigate(['/admin/system-settings']);
+  }
+
+  // Show Payment Transactions in header if admin
+  get showPaymentTransactions(): boolean {
+    return this.auth.isAdmin();
+  }
+
+  // Navigate to payment transactions page
+  goToPaymentTransactions(): void {
+    this.router.navigate(['/admin/payment-transactions']);
+  }
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
@@ -57,7 +72,21 @@ export class AdminDashboard implements OnInit {
   today = new Date();
 
   ngOnInit(): void {
-    this.loadDashboardData();
+    this.loadMockData();
+    // Scroll to fragment if present
+    this.router.events.subscribe((event: any) => {
+      if (event?.constructor?.name === 'NavigationEnd') {
+        const fragment = this.router.parseUrl(this.router.url).fragment;
+        if (fragment) {
+          setTimeout(() => {
+            const el = document.getElementById(fragment);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 100);
+        }
+      }
+    });
   }
 
   loadDashboardData(): void {
@@ -166,7 +195,7 @@ export class AdminDashboard implements OnInit {
     const max = this.getMaxRevenue();
     if (max === 0) return 0;
     const safeRevenue = Number.isFinite(revenue) ? revenue : 0;
-    return Math.max((safeRevenue / max) * 100, 2); 
+    return Math.max((safeRevenue / max) * 100, 2);
   }
 
   toggleNav() {
@@ -177,20 +206,33 @@ export class AdminDashboard implements OnInit {
     this.isNavOpen = false;
   }
 
-  openBooking() {
-  }
+  openBooking() {}
 
-  openSignIn() {
-  }
+  openSignIn() {}
 
   signOut() {
     this.auth.logout().subscribe({
-      next: () => {},
-      error: () => {},
+      next: () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        this.router.navigate(['/']);
+      },
+      error: () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        this.router.navigate(['/']);
+      },
     });
   }
 
+  isProfileOpen = false;
+
   openProfile() {
+    this.router.navigate(['/profile-settings']);
+  }
+
+  closeProfile() {
+    this.isProfileOpen = false;
+    document.body.style.overflow = '';
   }
 }
-
