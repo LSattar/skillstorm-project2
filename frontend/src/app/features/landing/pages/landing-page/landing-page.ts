@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
 
+import { Router, RouterLink } from '@angular/router';
 import { RoomSearchModal } from '../../components/room-search-modal/room-search-modal';
 import {
   RoomSearchResults,
@@ -14,18 +15,24 @@ import { RoomResponse, RoomSearchParams } from '../../services/room-search.servi
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, RoomSearchModal, RoomSearchResults],
+  imports: [RouterLink, CommonModule, FormsModule, Header, RoomSearchModal, RoomSearchResults],
   templateUrl: './landing-page.html',
   styleUrls: ['./landing-page.css'],
 })
 export class LandingPage {
+  private readonly router = inject(Router);
+
+  goToRooms(): void {
+    this.router.navigate(['/rooms']);
+  }
+  
   // Amenities carousel logic
   amenitiesImages = [
-    '/images/ammenities/exercise.jpg',
-    '/images/ammenities/food.jpg',
-    '/images/ammenities/food2.jpg',
-    '/images/ammenities/pool.jpg',
-    '/images/ammenities/spa.jpg',
+    '/images/amenities/exercise.jpg',
+    '/images/amenities/food.jpg',
+    '/images/amenities/food2.jpg',
+    '/images/amenities/pool.jpg',
+    '/images/amenities/spa.jpg',
   ];
 
   amenitiesCaptions = [
