@@ -8,8 +8,6 @@ import { HttpClient } from '@angular/common/http';
 import { forkJoin, map } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 
-import { Alert, MonthlyRevenue, Reservation } from '../../services/admin-metrics.service';
-
 export type OperationalMetrics = {
   totalRooms: number;
   occupiedRooms: number;
@@ -72,7 +70,7 @@ export class AdminDashboard implements OnInit {
   today = new Date();
 
   ngOnInit(): void {
-    this.loadMockData();
+    this.loadDashboardData();
     // Scroll to fragment if present
     this.router.events.subscribe((event: any) => {
       if (event?.constructor?.name === 'NavigationEnd') {

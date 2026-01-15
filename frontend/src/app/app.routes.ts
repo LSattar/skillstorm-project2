@@ -22,7 +22,6 @@ export const routes: Routes = [
   { path: 'admin/reservations', component: ReservationLookup, canActivate: [adminGuard] },
   { path: 'admin/rooms', component: RoomManagement, canActivate: [adminGuard] },
   { path: 'admin/system-settings', component: SystemSettingsPage, canActivate: [adminGuard] },
-  { path: 'admin/reservations', component: ReservationLookup, canActivate: [adminGuard] },
   {
     path: 'payment-transactions',
     component: PaymentTransactionsPage,

@@ -2,8 +2,10 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Header } from '../../../../shared/header/header';
+import { Footer } from '../../../../shared/footer/footer';
 import { AuthService } from '../../../auth/services/auth.service';
-
+import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
+import { SystemSettingsModal } from '../../../admin/components/system-settings-modal/system-settings-modal';
 import { RoomSearchModal } from '../../components/room-search-modal/room-search-modal';
 import {
   RoomSearchResults,
