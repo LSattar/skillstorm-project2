@@ -183,6 +183,73 @@
   color: var(--muted);
 }
 
+/* ===== Amenities Section (base) ===== */
+.amenities-section {
+  margin-top: 48px;
+  background: rgba(163, 177, 138, 0.08);
+  border-radius: var(--radius);
+  padding: 2.5rem 0;
+}
+
+.amenities-carousel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.carousel-image-wrapper {
+  position: relative;
+  width: 420px;
+  max-width: 90vw;
+  aspect-ratio: 4/3;
+  background: #faf9f6;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.amenity-image {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 18px 18px 0 0;
+  background: var(--border);
+}
+
+.amenity-caption {
+  padding: 1rem;
+  color: var(--primary-2);
+  font-weight: 700;
+  font-size: 1.1rem;
+  background: rgba(250, 249, 246, 0.92);
+  border-radius: 0 0 18px 18px;
+  text-align: center;
+}
+
+.carousel-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-2);
+  font-size: 2rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.carousel-btn:hover {
+  background: var(--primary-2);
+  color: var(--bg);
+}
+
 /* ===== Rewards ===== */
 .rewards-grid {
   grid-template-columns: repeat(3, 1fr);
@@ -440,4 +507,130 @@
   .hero {
     padding: 64px 0 48px;
   }
+}
+
+/* =========================
+   Amenities Carousel – Image-First Labels (Overrides)
+========================= */
+
+.amenities-carousel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 520px) auto;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 12px;
+}
+
+.carousel-image-wrapper {
+  width: 520px;
+  max-width: 92vw;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(250, 249, 246, 0.96);
+  border: 1px solid rgba(52, 78, 65, 0.16);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.amenity-image {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+  background: var(--border);
+  border-radius: 0;
+}
+
+.amenity-caption {
+  padding: 14px 16px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  color: var(--primary-2);
+  background: linear-gradient(to bottom, rgba(250, 249, 246, 0.96), rgba(250, 249, 246, 1));
+  border-top: 1px solid rgba(52, 78, 65, 0.12);
+}
+
+.carousel-btn {
+  background: rgba(250, 249, 246, 0.9);
+  border: 1px solid rgba(52, 78, 65, 0.18);
+  border-radius: 999px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  color: var(--primary-2);
+  cursor: pointer;
+  transition: transform 0.15s, background 0.2s, color 0.2s, border-color 0.2s;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-btn:hover {
+  background: var(--primary-2);
+  color: #faf9f6;
+  border-color: rgba(250, 249, 246, 0.28);
+  transform: translateY(-1px);
+}
+
+.carousel-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 720px) {
+  .amenities-carousel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .carousel-btn.left,
+  .carousel-btn.right {
+    justify-self: center;
+  }
+
+  .carousel-image-wrapper {
+    width: 100%;
+    max-width: 92vw;
+  }
+
+  .amenity-image {
+    height: 280px;
+  }
+
+  .amenity-caption {
+    font-size: 1rem;
+    padding: 12px 14px;
+  }
+}
+
+/* =========================
+   Landing page cleanup
+   Since rooms/contact are not on this page
+========================= */
+
+#rooms,
+#contact {
+  display: none;
+}
+
+/* =========================
+   Footer: correct color + avoid odd spacing
+========================= */
+
+.site-footer {
+  background: #edede6; /* your desired footer color */
+  width: 100%;
+}
+
+/* Prevent any extra bottom spacing above the footer */
+main > section:last-of-type {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* Avoid accidental horizontal overflow (often from 100vw somewhere) */
+body {
+  overflow-x: hidden;
 }
