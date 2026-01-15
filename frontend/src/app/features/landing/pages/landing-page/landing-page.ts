@@ -19,6 +19,13 @@ import { RoomResponse, RoomSearchParams } from '../../services/room-search.servi
   styleUrls: ['./landing-page.css'],
 })
 export class LandingPage {
+  constructor() {
+    // Preload all carousel images to reduce delay when switching
+    this.amenitiesImages.forEach((src) => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }
   goToRooms(): void {
     this.router.navigate(['/rooms']);
   }
