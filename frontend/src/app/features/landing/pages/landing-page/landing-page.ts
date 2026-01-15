@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Header } from '../../../../shared/header/header';
 import { Footer } from '../../../../shared/footer/footer';
 import { AuthService } from '../../../auth/services/auth.service';
-import { UserProfileModal } from '../../../users/components/user-profile-modal/user-profile-modal';
-import { SystemSettingsModal } from '../../../admin/components/system-settings-modal/system-settings-modal';
 import { RoomSearchModal } from '../../components/room-search-modal/room-search-modal';
 import {
   RoomSearchResults,
@@ -16,7 +15,7 @@ import { RoomResponse, RoomSearchParams } from '../../services/room-search.servi
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer, UserProfileModal, SystemSettingsModal, RoomSearchModal, RoomSearchResults],
+  imports: [CommonModule, FormsModule, Header, Footer, RoomSearchModal, RoomSearchResults],
   templateUrl: './landing-page.html',
   styleUrls: ['./landing-page.css'],
 })
@@ -49,6 +48,7 @@ export class LandingPage {
     this.activeAmenity = (this.activeAmenity + 1) % this.amenitiesImages.length;
   }
   protected readonly auth = inject(AuthService);
+  protected readonly router = inject(Router);
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
@@ -138,7 +138,7 @@ export class LandingPage {
   }
 
   openProfile() {
-    this.isProfileOpen = true;
+    this.router.navigate(['/profile-settings']);
   }
 
   closeProfile() {
@@ -147,7 +147,7 @@ export class LandingPage {
   }
 
   openSystemSettings() {
-    this.isSystemSettingsOpen = true;
+    this.router.navigate(['/admin/system-settings']);
   }
 
   closeSystemSettings() {
