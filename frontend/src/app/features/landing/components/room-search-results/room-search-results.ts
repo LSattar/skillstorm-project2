@@ -9,16 +9,25 @@ import {
   SimpleChanges,
   inject,
 } from '@angular/core';
-import { finalize } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { finalize, map } from 'rxjs/operators';
 import { AuthService } from '../../../auth/services/auth.service';
-import { ReservationService, ReservationRequest } from '../../../admin/services/reservation.service';
+import { ReservationService, ReservationRequest, ReservationResponse } from '../../../admin/services/reservation.service';
 import { RoomResponse, RoomSearchParams } from '../../services/room-search.service';
 import { HotelService, HotelResponse } from '../../services/hotel.service';
+import { RoomTypeService, RoomTypeResponse } from '../../services/room-type.service';
 
 export type SearchResultsData = {
   rooms: RoomResponse[];
   searchParams: RoomSearchParams;
   hotel?: HotelResponse;
+};
+
+export type RoomTypeOption = {
+  roomType: RoomTypeResponse;
+  rooms: RoomResponse[];
+  selectedRoom: RoomResponse | null;
 };
 
 @Component({
@@ -32,6 +41,8 @@ export class RoomSearchResults implements OnChanges {
   private readonly auth = inject(AuthService);
   private readonly reservationService = inject(ReservationService);
   private readonly hotelService = inject(HotelService);
+  private readonly roomTypeService = inject(RoomTypeService);
+  private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() resultsData?: SearchResultsData;
@@ -45,10 +56,14 @@ export class RoomSearchResults implements OnChanges {
   booking = false;
   error = '';
   hotel?: HotelResponse;
+  roomTypeOptions: RoomTypeOption[] = [];
+  loadingRoomTypes = false;
+  selectedRoomTypeOption: RoomTypeOption | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['resultsData']?.currentValue && this.resultsData?.searchParams.hotelId) {
       this.loadHotel();
+      this.loadRoomTypes();
     }
   }
 
@@ -57,9 +72,8 @@ export class RoomSearchResults implements OnChanges {
   }
 
   get selectedRoom(): RoomResponse | null {
-    if (!this.hasAvailableRooms) return null;
-    // Just pick the first available room - user doesn't choose specific room
-    return this.resultsData!.rooms[0];
+    if (!this.selectedRoomTypeOption) return null;
+    return this.selectedRoomTypeOption.selectedRoom || this.selectedRoomTypeOption.rooms[0] || null;
   }
 
   close(): void {
@@ -104,14 +118,13 @@ export class RoomSearchResults implements OnChanges {
     this.error = '';
 
     // Calculate number of nights for pricing
-    const startDate = new Date(this.resultsData.searchParams.startDate);
-    const endDate = new Date(this.resultsData.searchParams.endDate);
-    const nights = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const nights = this.getNights();
 
-    // For now, we'll use a placeholder price. In a real app, you'd fetch room type details
-    // to get the actual basePrice and calculate total
-    const basePricePerNight = 100; // TODO: Fetch from room type
-    const totalAmount = basePricePerNight * nights;
+    // Get price from selected room type
+    let totalAmount = 100; // Fallback price
+    if (this.selectedRoomTypeOption) {
+      totalAmount = this.calculateTotalPrice(this.selectedRoomTypeOption.roomType, nights);
+    }
 
     const reservationRequest: ReservationRequest = {
       hotelId: this.resultsData.searchParams.hotelId,
@@ -125,19 +138,6 @@ export class RoomSearchResults implements OnChanges {
       currency: 'USD',
     };
 
-    // Log the request for debugging (remove in production if needed)
-    console.log('Creating reservation with data:', {
-      hotelId: reservationRequest.hotelId,
-      userId: reservationRequest.userId,
-      roomId: reservationRequest.roomId,
-      roomTypeId: reservationRequest.roomTypeId,
-      startDate: reservationRequest.startDate,
-      endDate: reservationRequest.endDate,
-      guestCount: reservationRequest.guestCount,
-      totalAmount: reservationRequest.totalAmount,
-      currency: reservationRequest.currency,
-    });
-
     this.reservationService
       .createReservation(reservationRequest)
       .pipe(
@@ -147,9 +147,11 @@ export class RoomSearchResults implements OnChanges {
         })
       )
       .subscribe({
-        next: () => {
+        next: (reservation: ReservationResponse) => {
+          // Navigate to payment page with the reservation ID
           this.bookingComplete.emit();
           this.close();
+          this.router.navigate(['/payment', reservation.reservationId]);
           this.cdr.markForCheck();
         },
         error: (err) => {
@@ -187,5 +189,105 @@ export class RoomSearchResults implements OnChanges {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  private loadRoomTypes(): void {
+    if (!this.resultsData || !this.resultsData.rooms.length) {
+      this.roomTypeOptions = [];
+      return;
+    }
+
+    this.loadingRoomTypes = true;
+
+    // Group rooms by room type ID
+    const roomsByTypeId = new Map<string, RoomResponse[]>();
+    const uniqueRoomTypeIds = new Set<string>();
+
+    this.resultsData.rooms.forEach((room) => {
+      if (room.roomTypeId) {
+        uniqueRoomTypeIds.add(room.roomTypeId);
+        if (!roomsByTypeId.has(room.roomTypeId)) {
+          roomsByTypeId.set(room.roomTypeId, []);
+        }
+        roomsByTypeId.get(room.roomTypeId)!.push(room);
+      }
+    });
+
+    // Fetch room type details for each unique room type
+    const roomTypeRequests = Array.from(uniqueRoomTypeIds).map((roomTypeId) =>
+      this.roomTypeService.getRoomTypeById(roomTypeId).pipe(
+        map((roomType) => ({
+          roomType,
+          roomTypeId,
+        }))
+      )
+    );
+
+    if (roomTypeRequests.length === 0) {
+      this.loadingRoomTypes = false;
+      this.roomTypeOptions = [];
+      this.cdr.markForCheck();
+      return;
+    }
+
+    forkJoin(roomTypeRequests).subscribe({
+      next: (results) => {
+        this.roomTypeOptions = results.map(({ roomType, roomTypeId }) => ({
+          roomType,
+          rooms: roomsByTypeId.get(roomTypeId) || [],
+          selectedRoom: null,
+        }));
+
+        // Sort by base price (lowest first)
+        this.roomTypeOptions.sort((a, b) => a.roomType.basePrice - b.roomType.basePrice);
+
+        // Auto-select first option if none selected
+        if (!this.selectedRoomTypeOption && this.roomTypeOptions.length > 0) {
+          this.selectRoomType(this.roomTypeOptions[0]);
+        }
+
+        this.loadingRoomTypes = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingRoomTypes = false;
+        // If room types fail to load, still allow booking with first room
+        this.roomTypeOptions = [];
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  selectRoomType(option: RoomTypeOption): void {
+    this.selectedRoomTypeOption = option;
+    // Auto-select first room in this type
+    if (option.rooms.length > 0 && !option.selectedRoom) {
+      option.selectedRoom = option.rooms[0];
+    }
+    this.cdr.markForCheck();
+  }
+
+  formatBedType(bedType: string): string {
+    const bedTypeMap: Record<string, string> = {
+      TWIN: 'Twin',
+      FULL: 'Full',
+      QUEEN: 'Queen',
+      KING: 'King',
+      SOFA: 'Sofa Bed',
+    };
+    return bedTypeMap[bedType] || bedType;
+  }
+
+  calculateTotalPrice(roomType: RoomTypeResponse, nights: number): number {
+    return roomType.basePrice * nights;
+  }
+
+  getNights(): number {
+    if (!this.resultsData?.searchParams.startDate || !this.resultsData?.searchParams.endDate) {
+      return 0;
+    }
+    const startDate = new Date(this.resultsData.searchParams.startDate);
+    const endDate = new Date(this.resultsData.searchParams.endDate);
+    return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   }
 }
