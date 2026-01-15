@@ -1,10 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Header } from '../../../../shared/header/header';
-import { Footer } from '../../../../shared/footer/footer';
-import { AuthService } from '../../../auth/services/auth.service';
 import { Router, RouterLink } from '@angular/router';
+import { Header } from '../../../../shared/header/header';
+import { AuthService } from '../../../auth/services/auth.service';
 import { RoomSearchModal } from '../../components/room-search-modal/room-search-modal';
 import {
   RoomSearchResults,
@@ -15,17 +14,15 @@ import { RoomResponse, RoomSearchParams } from '../../services/room-search.servi
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [RouterLink, CommonModule, FormsModule, Header, Footer, RoomSearchModal, RoomSearchResults],
+  imports: [RouterLink, CommonModule, FormsModule, Header, RoomSearchModal, RoomSearchResults],
   templateUrl: './landing-page.html',
   styleUrls: ['./landing-page.css'],
 })
 export class LandingPage {
-  private readonly router = inject(Router);
-
   goToRooms(): void {
     this.router.navigate(['/rooms']);
   }
-  
+
   // Amenities carousel logic
   amenitiesImages = [
     '/images/amenities/exercise.jpg',
@@ -53,9 +50,8 @@ export class LandingPage {
   nextAmenity() {
     this.activeAmenity = (this.activeAmenity + 1) % this.amenitiesImages.length;
   }
+  private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
-  protected readonly router = inject(Router);
-
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
   protected readonly userLabel = computed(() => {
