@@ -1,5 +1,5 @@
 import { CommonModule, DOCUMENT } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, effect, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Header } from '../../../../shared/header/header';
@@ -57,11 +57,28 @@ export class UserProfilePage implements OnInit, OnDestroy {
   saving = false;
   error = '';
 
-  constructor(
-    private userProfile: UserProfileService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private profileLoaded = false;
+  private readonly userProfile = inject(UserProfileService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  constructor() {
+    // Watch for auth state to become available, then load profile
+    effect(() => {
+      const me = this.auth.meSignal();
+      if (me?.localUserId && !this.profileLoaded) {
+        this.profileLoaded = true;
+        this.loadProfile();
+      }
+    });
+    
+    // Try to load profile immediately if auth is already ready
+    const me = this.auth.meSignal();
+    if (me?.localUserId && !this.profileLoaded) {
+      this.profileLoaded = true;
+      this.loadProfile();
+    }
+  }
 
   ngOnInit(): void {
     // 1) CSS lock

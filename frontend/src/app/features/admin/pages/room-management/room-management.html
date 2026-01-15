@@ -1,0 +1,462 @@
+<app-header
+  [isNavOpen]="isNavOpen"
+  [isAuthenticated]="isAuthenticated()"
+  [roleLabel]="roleLabel()"
+  [userLabel]="userLabel()"
+  [userEmail]="userEmail()"
+  (toggleNav)="toggleNav()"
+  (closeNav)="closeNav()"
+  (openBooking)="openBooking()"
+  (openSignIn)="openSignIn()"
+  (logout)="signOut()"
+  (openProfile)="openProfile()"
+></app-header>
+
+<main>
+  <div class="room-management">
+    <h1>Manage Hotel Rooms</h1>
+
+    @if (loading) {
+      <div class="loading-state">
+        <p>Loading...</p>
+      </div>
+    } @else if (error) {
+      <div class="error-state">
+        <p>{{ error }}</p>
+        <button class="btn btn-secondary" (click)="loadHotels()">Retry</button>
+      </div>
+    }
+
+    <!-- Hotel Selection -->
+    <section class="hotel-selection">
+      <div class="form-group">
+        <label for="hotelSelect">Select Hotel:</label>
+        <select
+          id="hotelSelect"
+          [(ngModel)]="selectedHotelId"
+          (change)="onHotelChange()"
+          class="form-control"
+        >
+          <option value="">-- Select a Hotel --</option>
+          @for (hotel of hotels; track hotel.hotelId) {
+            <option [value]="hotel.hotelId">{{ hotel.name }}</option>
+          }
+        </select>
+      </div>
+
+      @if (selectedHotelId) {
+        <div class="hotel-info">
+          <h2>{{ getCurrentHotelName() }}</h2>
+        </div>
+      }
+    </section>
+
+    @if (selectedHotelId) {
+      <!-- Room Types Section -->
+      <section class="room-types-section">
+        <div class="section-header">
+          <h2>Room Types</h2>
+          <button class="btn btn-primary" (click)="openAddRoomTypeModal()">
+            <span class="material-symbols-outlined">add</span>
+            Add Room Type
+          </button>
+        </div>
+
+        @if (roomTypes.length === 0) {
+          <div class="empty-state">
+            <p>No room types found. Add a room type to get started.</p>
+          </div>
+        } @else {
+          <div class="room-types-grid">
+            @for (roomType of roomTypes; track roomType.roomTypeId) {
+              <div
+                class="room-type-card"
+                [class.selected]="selectedRoomTypeId === roomType.roomTypeId"
+                (click)="selectedRoomTypeId = roomType.roomTypeId; onRoomTypeChange()"
+              >
+                <div class="room-type-header">
+                  <h3>{{ roomType.name }}</h3>
+                  <div class="room-type-actions">
+                    <button
+                      class="btn btn-sm btn-secondary"
+                      (click)="openEditRoomTypeModal(roomType); $event.stopPropagation()"
+                      title="Edit Room Type"
+                    >
+                      <span class="material-symbols-outlined">edit</span>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-danger"
+                      (click)="deleteRoomType(roomType); $event.stopPropagation()"
+                      title="Delete Room Type"
+                    >
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="room-type-details">
+                  <p class="price">{{ formatCurrency(roomType.basePrice) }}/night</p>
+                  <p>Max Guests: {{ roomType.maxGuests }}</p>
+                  @if (roomType.bedCount && roomType.bedType) {
+                    <p>{{ roomType.bedCount }} {{ roomType.bedType }} bed(s)</p>
+                  }
+                  @if (roomType.description) {
+                    <p class="description">{{ roomType.description }}</p>
+                  }
+                  <span
+                    class="status-badge"
+                    [ngClass]="roomType.isActive ? 'status-active' : 'status-inactive'"
+                  >
+                    {{ roomType.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      @if (selectedRoomTypeId) {
+        <!-- Rooms Section -->
+        <section class="rooms-section">
+          <div class="section-header">
+            <h2>Rooms - {{ getCurrentRoomTypeName() }}</h2>
+            <button class="btn btn-primary" (click)="openAddRoomModal()">
+              <span class="material-symbols-outlined">add</span>
+              Add Room
+            </button>
+          </div>
+
+          @if (filteredRooms.length === 0) {
+            <div class="empty-state">
+              <p>No rooms found for this room type. Add a room to get started.</p>
+            </div>
+          } @else {
+            <div class="rooms-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Room Number</th>
+                    <th>Floor</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (room of filteredRooms; track room.roomId) {
+                    <tr>
+                      <td class="room-number">{{ room.roomNumber }}</td>
+                      <td>{{ room.floor || '—' }}</td>
+                      <td>
+                        <span class="status-badge" [ngClass]="getStatusClass(room.status)">
+                          {{ room.status }}
+                        </span>
+                      </td>
+                      <td class="notes">{{ room.notes || '—' }}</td>
+                      <td class="actions">
+                        <button
+                          class="btn btn-sm btn-primary"
+                          (click)="openEditRoomModal(room)"
+                          title="Edit Room"
+                        >
+                          <span class="material-symbols-outlined">edit</span>
+                          Edit
+                        </button>
+                        <button
+                          class="btn btn-sm btn-danger"
+                          (click)="deleteRoom(room)"
+                          title="Delete Room"
+                        >
+                          <span class="material-symbols-outlined">delete</span>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+    }
+  </div>
+</main>
+
+<!-- Room Modal -->
+@if (showRoomModal) {
+  <div class="modal-overlay" (click)="closeRoomModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingRoom ? 'Edit Room' : 'Add Room' }}</h2>
+        <button class="btn btn-icon" (click)="closeRoomModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        @if (error) {
+          <div class="error-message">{{ error }}</div>
+        }
+        <form (ngSubmit)="saveRoom()">
+          <div class="form-group">
+            <label for="roomNumber">Room Number *</label>
+            <input
+              type="text"
+              id="roomNumber"
+              [(ngModel)]="roomForm.roomNumber"
+              name="roomNumber"
+              required
+              class="form-control"
+              placeholder="e.g., 101, 205"
+            />
+          </div>
+          <div class="form-group">
+            <label for="floor">Floor</label>
+            <input
+              type="text"
+              id="floor"
+              [(ngModel)]="roomForm.floor"
+              name="floor"
+              class="form-control"
+              placeholder="e.g., 1, 2, Ground"
+            />
+          </div>
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" [(ngModel)]="roomForm.status" name="status" class="form-control">
+              @for (status of statusOptions; track status) {
+                <option [value]="status">{{ status }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea
+              id="notes"
+              [(ngModel)]="roomForm.notes"
+              name="notes"
+              class="form-control"
+              rows="3"
+              placeholder="Additional notes about the room"
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeRoomModal()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              {{ loading ? 'Saving...' : editingRoom ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Room Type Modal -->
+@if (showRoomTypeModal) {
+  <div class="modal-overlay" (click)="closeRoomTypeModal()">
+    <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingRoomType ? 'Edit Room Type' : 'Add Room Type' }}</h2>
+        <button class="btn btn-icon" (click)="closeRoomTypeModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        @if (error) {
+          <div class="error-message">{{ error }}</div>
+        }
+        <form (ngSubmit)="saveRoomType()">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Room Type Name *</label>
+              <input
+                type="text"
+                id="name"
+                [(ngModel)]="roomTypeForm.name"
+                name="name"
+                required
+                class="form-control"
+                placeholder="e.g., Deluxe King, Standard Double"
+              />
+            </div>
+            <div class="form-group">
+              <label for="basePrice">Base Price (per night) *</label>
+              <input
+                type="number"
+                id="basePrice"
+                [(ngModel)]="roomTypeForm.basePrice"
+                name="basePrice"
+                required
+                min="0"
+                step="0.01"
+                class="form-control"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="maxGuests">Max Guests *</label>
+              <input
+                type="number"
+                id="maxGuests"
+                [(ngModel)]="roomTypeForm.maxGuests"
+                name="maxGuests"
+                required
+                min="1"
+                class="form-control"
+              />
+            </div>
+            <div class="form-group">
+              <label for="bedCount">Bed Count</label>
+              <input
+                type="number"
+                id="bedCount"
+                [(ngModel)]="roomTypeForm.bedCount"
+                name="bedCount"
+                min="1"
+                class="form-control"
+              />
+            </div>
+            <div class="form-group">
+              <label for="bedType">Bed Type</label>
+              <select id="bedType" [(ngModel)]="roomTypeForm.bedType" name="bedType" class="form-control">
+                @for (bedType of bedTypeOptions; track bedType) {
+                  <option [value]="bedType">{{ bedType }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea
+              id="description"
+              [(ngModel)]="roomTypeForm.description"
+              name="description"
+              class="form-control"
+              rows="3"
+              placeholder="Describe the room type"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="roomTypeForm.isActive"
+                name="isActive"
+              />
+              Active
+            </label>
+          </div>
+
+          @if (editingRoomType) {
+            <div class="amenities-section">
+              <div class="section-header">
+                <h3>Amenities</h3>
+                <button type="button" class="btn btn-secondary" (click)="openAmenityModal()">
+                  <span class="material-symbols-outlined">settings</span>
+                  Manage Amenities
+                </button>
+              </div>
+              @if (roomTypeAmenities.length > 0) {
+                <div class="amenities-list">
+                  @for (rta of roomTypeAmenities; track rta.amenityId) {
+                    <span class="amenity-tag">
+                      {{ rta.amenity?.name || 'Unknown' }}
+                      <button
+                        type="button"
+                        class="btn-icon-small"
+                        (click)="removeAmenityFromRoomType(rta.amenityId)"
+                        title="Remove"
+                      >
+                        <span class="material-symbols-outlined">close</span>
+                      </button>
+                    </span>
+                  }
+                </div>
+              } @else {
+                <p class="empty-message">No amenities added yet.</p>
+              }
+            </div>
+          }
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeRoomTypeModal()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              {{ loading ? 'Saving...' : editingRoomType ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Amenity Modal -->
+@if (showAmenityModal && editingRoomType) {
+  <div class="modal-overlay" (click)="closeAmenityModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Manage Amenities - {{ editingRoomType.name }}</h2>
+        <button class="btn btn-icon" (click)="closeAmenityModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="available-amenities">
+          <h3>Available Amenities</h3>
+          @if (getAvailableAmenities().length === 0) {
+            <p>All amenities have been added to this room type.</p>
+          } @else {
+            <div class="amenities-list">
+              @for (amenity of getAvailableAmenities(); track amenity.amenityId) {
+                <button
+                  type="button"
+                  class="btn btn-secondary amenity-btn"
+                  (click)="addAmenityToRoomType(amenity.amenityId)"
+                >
+                  <span class="material-symbols-outlined">add</span>
+                  {{ amenity.name }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+        <div class="added-amenities">
+          <h3>Current Amenities</h3>
+          @if (roomTypeAmenities.length === 0) {
+            <p>No amenities added yet.</p>
+          } @else {
+            <div class="amenities-list">
+              @for (rta of roomTypeAmenities; track rta.amenityId) {
+                <span class="amenity-tag">
+                  {{ rta.amenity?.name || 'Unknown' }}
+                  <button
+                    type="button"
+                    class="btn-icon-small"
+                    (click)="removeAmenityFromRoomType(rta.amenityId)"
+                    title="Remove"
+                  >
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </span>
+              }
+            </div>
+          }
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary" (click)="closeAmenityModal()">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<app-footer [year]="today.getFullYear()"></app-footer>

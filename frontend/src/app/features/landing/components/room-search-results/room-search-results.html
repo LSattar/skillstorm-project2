@@ -26,7 +26,7 @@
     <div class="modal-body">
       @if (error) {
       <p class="auth-error" role="alert">{{ error }}</p>
-      } @if (hasAvailableRooms && resultsData) {
+      }       @if (hasAvailableRooms && resultsData) {
       <div class="results-content">
         <div class="availability-success">
           <p class="success-message">
@@ -54,15 +54,77 @@
                 <span class="summary-label">Guests:</span>
                 <span class="summary-value">{{ resultsData.searchParams.guestCount || 1 }}</span>
               </div>
+              <div class="summary-item">
+                <span class="summary-label">Nights:</span>
+                <span class="summary-value">{{ getNights() }}</span>
+              </div>
             </div>
           </div>
+
+          @if (loadingRoomTypes) {
+          <div class="loading-room-types">
+            <p>Loading room types...</p>
+          </div>
+          } @else if (roomTypeOptions.length > 0) {
+          <div class="room-type-selection">
+            <h3>Select Your Room Type</h3>
+            <div class="room-type-cards">
+              @for (option of roomTypeOptions; track option.roomType.roomTypeId) {
+              <div
+                class="room-type-card"
+                [class.selected]="selectedRoomTypeOption?.roomType?.roomTypeId === option.roomType.roomTypeId"
+                (click)="selectRoomType(option)"
+              >
+                <div class="room-type-header">
+                  <h4>{{ option.roomType.name }}</h4>
+                  <div class="room-type-price">
+                    <span class="price-per-night">${{ option.roomType.basePrice }}/night</span>
+                    <span class="price-total">
+                      ${{ calculateTotalPrice(option.roomType, getNights()) }} total
+                    </span>
+                  </div>
+                </div>
+
+                @if (option.roomType.description) {
+                <p class="room-type-description">{{ option.roomType.description }}</p>
+                }
+
+                <div class="room-type-details">
+                  <div class="detail-item">
+                    <span class="detail-icon">🛏️</span>
+                    <span class="detail-text">
+                      {{ option.roomType.bedCount }} {{ formatBedType(option.roomType.bedType) }}(s)
+                    </span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-icon">👥</span>
+                    <span class="detail-text">Up to {{ option.roomType.maxGuests }} guests</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-icon">🚪</span>
+                    <span class="detail-text">{{ option.rooms.length }} room(s) available</span>
+                  </div>
+                </div>
+
+                <div class="room-type-select-indicator">
+                  @if (selectedRoomTypeOption?.roomType?.roomTypeId === option.roomType.roomTypeId) {
+                  <span class="selected-badge">✓ Selected</span>
+                  } @else {
+                  <span class="select-hint">Click to select</span>
+                  }
+                </div>
+              </div>
+              }
+            </div>
+          </div>
+          }
 
           <div class="modal-actions">
             <button
               class="btn btn-primary btn-block"
               type="button"
               (click)="bookNow()"
-              [disabled]="booking"
+              [disabled]="booking || !selectedRoomTypeOption"
             >
               @if (booking) { Booking... } @else { Book Now }
             </button>

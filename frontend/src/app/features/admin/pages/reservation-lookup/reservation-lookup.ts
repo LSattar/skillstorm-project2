@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
 
@@ -11,6 +12,8 @@ import {
   ReservationStatus,
 } from '../../services/reservation.service';
 import { ReservationEditModal } from './reservation-edit-modal';
+import { forkJoin, map } from 'rxjs';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-reservation-lookup',
@@ -23,6 +26,8 @@ export class ReservationLookup implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly reservationService = inject(ReservationService);
   protected readonly router = inject(Router);
+  protected readonly http = inject(HttpClient);
+  private readonly api = environment.apiBaseUrl;
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
@@ -52,25 +57,8 @@ export class ReservationLookup implements OnInit {
   showEditModal = false;
 
   // Helper maps for hotel and guest names
-  private hotelNames: Record<string, string> = {
-    'hotel-1': 'ReserveOne Downtown',
-    'hotel-2': 'ReserveOne Airport',
-    'hotel-3': 'ReserveOne Beach Resort',
-  };
-
-  private guestNames: Record<string, string> = {
-    'user-101': 'Sarah Johnson',
-    'user-102': 'Michael Chen',
-    'user-103': 'Emily Rodriguez',
-    'user-104': 'David Kim',
-    'user-105': 'Jessica Taylor',
-    'user-106': 'Robert Williams',
-    'user-107': 'Amanda Martinez',
-    'user-108': 'Christopher Lee',
-    'user-109': 'Jennifer Brown',
-    'user-110': 'Daniel Garcia',
-    'user-111': 'Lisa Anderson',
-  };
+  private hotelNames: Record<string, string> = {};
+  private guestNames: Record<string, string> = {};
 
   isNavOpen = false;
   today = new Date();
@@ -84,201 +72,59 @@ export class ReservationLookup implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.loadMockData();
+    this.loadReservations();
   }
 
-  loadMockData(): void {
+  loadReservations(): void {
     this.loading = true;
     this.error = null;
 
-    // Simulate API delay
-    setTimeout(() => {
-      const rawReservations: ReservationResponse[] = [
-        {
-          reservationId: 'res-abc123def456',
-          hotelId: 'hotel-1',
-          userId: 'user-101',
-          roomId: 'room-205',
-          roomTypeId: 'deluxe-king',
-          startDate: '2026-01-15',
-          endDate: '2026-01-18',
-          guestCount: 2,
-          status: 'CONFIRMED',
-          totalAmount: 450,
-          currency: 'USD',
-          specialRequests: 'Late check-in requested',
-          createdAt: '2026-01-05T10:30:00Z',
-          updatedAt: '2026-01-05T10:30:00Z',
-        },
-        {
-          reservationId: 'res-xyz789ghi012',
-          hotelId: 'hotel-2',
-          userId: 'user-102',
-          roomId: 'room-310',
-          roomTypeId: 'suite',
-          startDate: '2026-01-10',
-          endDate: '2026-01-12',
-          guestCount: 3,
-          status: 'CHECKED_IN',
-          totalAmount: 680,
-          currency: 'USD',
-          createdAt: '2026-01-04T14:20:00Z',
-          updatedAt: '2026-01-10T15:00:00Z',
-        },
-        {
-          reservationId: 'res-mno345pqr678',
-          hotelId: 'hotel-1',
-          userId: 'user-103',
-          roomId: 'room-102',
-          roomTypeId: 'standard-double',
-          startDate: '2026-01-20',
-          endDate: '2026-01-23',
-          guestCount: 2,
-          status: 'PENDING',
-          totalAmount: 320,
-          currency: 'USD',
-          createdAt: '2026-01-06T09:15:00Z',
-          updatedAt: '2026-01-06T09:15:00Z',
-        },
-        {
-          reservationId: 'res-stu901vwx234',
-          hotelId: 'hotel-3',
-          userId: 'user-104',
-          roomId: 'room-405',
-          roomTypeId: 'deluxe-double',
-          startDate: '2026-01-08',
-          endDate: '2026-01-11',
-          guestCount: 4,
-          status: 'CHECKED_OUT',
-          totalAmount: 520,
-          currency: 'USD',
-          createdAt: '2025-12-28T16:45:00Z',
-          updatedAt: '2026-01-11T11:00:00Z',
-        },
-        {
-          reservationId: 'res-def567hij890',
-          hotelId: 'hotel-2',
-          userId: 'user-105',
-          roomId: 'room-201',
-          roomTypeId: 'standard-king',
-          startDate: '2026-01-25',
-          endDate: '2026-01-27',
-          guestCount: 1,
-          status: 'CONFIRMED',
-          totalAmount: 280,
-          currency: 'USD',
-          createdAt: '2026-01-06T11:00:00Z',
-          updatedAt: '2026-01-06T11:00:00Z',
-        },
-        {
-          reservationId: 'res-klm234nop567',
-          hotelId: 'hotel-1',
-          userId: 'user-106',
-          roomId: 'room-308',
-          roomTypeId: 'suite',
-          startDate: '2026-02-01',
-          endDate: '2026-02-05',
-          guestCount: 2,
-          status: 'CONFIRMED',
-          totalAmount: 890,
-          currency: 'USD',
-          createdAt: '2026-01-05T13:30:00Z',
-          updatedAt: '2026-01-05T13:30:00Z',
-        },
-        {
-          reservationId: 'res-qrs678tuv901',
-          hotelId: 'hotel-3',
-          userId: 'user-107',
-          roomId: 'room-105',
-          roomTypeId: 'standard-double',
-          startDate: '2026-01-12',
-          endDate: '2026-01-14',
-          guestCount: 2,
-          status: 'CHECKED_IN',
-          totalAmount: 340,
-          currency: 'USD',
-          createdAt: '2026-01-03T08:20:00Z',
-          updatedAt: '2026-01-12T14:00:00Z',
-        },
-        {
-          reservationId: 'res-wxy234zab567',
-          hotelId: 'hotel-2',
-          userId: 'user-108',
-          roomId: 'room-410',
-          roomTypeId: 'deluxe-king',
-          startDate: '2026-01-18',
-          endDate: '2026-01-21',
-          guestCount: 3,
-          status: 'PENDING',
-          totalAmount: 510,
-          currency: 'USD',
-          createdAt: '2026-01-07T10:45:00Z',
-          updatedAt: '2026-01-07T10:45:00Z',
-        },
-        {
-          reservationId: 'res-cde890fgh123',
-          hotelId: 'hotel-1',
-          userId: 'user-109',
-          roomId: 'room-203',
-          roomTypeId: 'standard-king',
-          startDate: '2026-01-05',
-          endDate: '2026-01-07',
-          guestCount: 1,
-          status: 'CHECKED_OUT',
-          totalAmount: 290,
-          currency: 'USD',
-          createdAt: '2025-12-30T15:10:00Z',
-          updatedAt: '2026-01-07T12:00:00Z',
-        },
-        {
-          reservationId: 'res-ijk456lmn789',
-          hotelId: 'hotel-3',
-          userId: 'user-110',
-          roomId: 'room-505',
-          roomTypeId: 'suite',
-          startDate: '2026-02-10',
-          endDate: '2026-02-14',
-          guestCount: 4,
-          status: 'CONFIRMED',
-          totalAmount: 950,
-          currency: 'USD',
-          createdAt: '2026-01-06T17:00:00Z',
-          updatedAt: '2026-01-06T17:00:00Z',
-        },
-        {
-          reservationId: 'res-cancelled123',
-          hotelId: 'hotel-1',
-          userId: 'user-111',
-          roomId: 'room-301',
-          roomTypeId: 'deluxe-king',
-          startDate: '2026-01-22',
-          endDate: '2026-01-24',
-          guestCount: 2,
-          status: 'CANCELLED',
-          totalAmount: 420,
-          currency: 'USD',
-          cancellationReason: 'Guest requested cancellation',
-          cancelledAt: '2026-01-07T14:30:00Z',
-          createdAt: '2026-01-05T16:20:00Z',
-          updatedAt: '2026-01-07T14:30:00Z',
-        },
-      ];
+    forkJoin({
+      reservations: this.reservationService.getAllReservations(),
+      hotels: this.http.get<Array<{ hotelId: string; name: string }>>(`${this.api}/hotels`, {
+        withCredentials: true,
+      }),
+      users: this.http.get<Array<{ userId: string; firstName?: string; lastName?: string; email: string }>>(`${this.api}/users/search?q=&limit=1000`, {
+        withCredentials: true,
+      }),
+    }).subscribe({
+      next: (data) => {
+        // Build hotel name map
+        this.hotelNames = {};
+        data.hotels.forEach((hotel) => {
+          this.hotelNames[hotel.hotelId] = hotel.name;
+        });
 
-      // Add hotel names and guest names to reservations
-      this.reservations = rawReservations.map((reservation) => ({
-        ...reservation,
-        hotelName: this.hotelNames[reservation.hotelId] || reservation.hotelId,
-        guestName: this.guestNames[reservation.userId] || reservation.userId,
-      }));
+        // Build guest name map
+        this.guestNames = {};
+        data.users.forEach((user) => {
+          const name = user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user.firstName || user.email || user.userId;
+          this.guestNames[user.userId] = name;
+        });
 
-      // Apply filters based on search criteria
-      this.applyFilters();
-      this.loading = false;
-    }, 500);
+        // Enrich reservations with hotel and guest names
+        this.reservations = data.reservations.map((reservation) => ({
+          ...reservation,
+          hotelName: this.hotelNames[reservation.hotelId] || reservation.hotelId,
+          guestName: this.guestNames[reservation.userId] || reservation.userId,
+        }));
+
+        // Apply filters
+        this.applyFilters();
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error loading reservations:', err);
+        this.error = 'Failed to load reservations. Please try again.';
+        this.loading = false;
+      },
+    });
   }
 
   onSearch(): void {
-    // For mock data, just reapply filters
+    // Reapply filters on search
     this.applyFilters();
   }
 
@@ -359,17 +205,24 @@ export class ReservationLookup implements OnInit {
 
   onReservationUpdated(updatedReservation?: ReservationResponse): void {
     if (updatedReservation && this.selectedReservation) {
-      // Update the reservation in the mock data
+      // Update the reservation in the list
       const index = this.reservations.findIndex(
         (r) => r.reservationId === this.selectedReservation?.reservationId
       );
       if (index !== -1) {
-        this.reservations[index] = updatedReservation;
+        // Preserve hotel and guest names
+        this.reservations[index] = {
+          ...updatedReservation,
+          hotelName: this.hotelNames[updatedReservation.hotelId] || updatedReservation.hotelId,
+          guestName: this.guestNames[updatedReservation.userId] || updatedReservation.userId,
+        };
       }
     }
     this.closeEditModal();
     // Reapply filters to show updated data
     this.applyFilters();
+    // Optionally reload all reservations to ensure consistency
+    // this.loadReservations();
   }
 
   formatCurrency(amount: number): string {

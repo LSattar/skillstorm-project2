@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AdminDashboard } from './features/admin/pages/admin-dashboard/admin-dashboard';
 import { ReservationLookup } from './features/admin/pages/reservation-lookup/reservation-lookup';
+import { RoomManagement } from './features/admin/pages/room-management/room-management';
 import { ForbiddenPage } from './features/landing/pages/forbidden/forbidden';
 import { LandingPage } from './features/landing/pages/landing-page/landing-page';
 import { NotFoundPage } from './features/landing/pages/not-found/not-found';
@@ -20,9 +21,10 @@ export const routes: Routes = [
   { path: 'my-bookings', component: GuestDashboard },
   { path: 'payment/:id', component: PaymentPage },
   { path: 'admin-dashboard', component: AdminDashboard, canActivate: [adminGuard] },
-  { path: 'admin/system-settings', component: SystemSettingsPage, canActivate: [adminGuard] },
   { path: 'admin/reservations', component: ReservationLookup, canActivate: [adminGuard] },
   { path: 'rooms', component: RoomsPage },
+  { path: 'admin/rooms', component: RoomManagement, canActivate: [adminGuard] },
+  { path: 'admin/system-settings', component: SystemSettingsPage, canActivate: [adminGuard] },
   {
     path: 'payment-transactions',
     component: PaymentTransactionsPage,

@@ -1,10 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
+import { MonthlyRevenue, Alert, Reservation, AdminMetricsService } from '../../services/admin-metrics.service';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
-
-import { Alert, MonthlyRevenue, Reservation } from '../../services/admin-metrics.service';
+import { HttpClient } from '@angular/common/http';
+import { forkJoin, map } from 'rxjs';
+import { environment } from '../../../../../environments/environment';
 
 export type OperationalMetrics = {
   totalRooms: number;
@@ -26,6 +28,9 @@ export type OperationalMetrics = {
 export class AdminDashboard implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly router = inject(Router);
+  protected readonly adminMetricsService = inject(AdminMetricsService);
+  protected readonly http = inject(HttpClient);
+  private readonly api = environment.apiBaseUrl;
 
   goToSystemSettings() {
     this.router.navigate(['/admin/system-settings']);
@@ -65,7 +70,7 @@ export class AdminDashboard implements OnInit {
   today = new Date();
 
   ngOnInit(): void {
-    this.loadMockData();
+    this.loadDashboardData();
     // Scroll to fragment if present
     this.router.events.subscribe((event: any) => {
       if (event?.constructor?.name === 'NavigationEnd') {
@@ -82,234 +87,63 @@ export class AdminDashboard implements OnInit {
     });
   }
 
-  loadMockData(): void {
-    this.operationalMetrics = {
-      totalRooms: 120,
-      occupiedRooms: 87,
-      occupancyRate: 73,
-      checkInsToday: 14,
-      checkInsPending: 6,
-      checkOutsToday: 11,
-      checkOutsPending: 3,
-    };
+  loadDashboardData(): void {
+    this.loading = true;
+    this.error = null;
 
-    this.monthlyRevenue = [
-      { month: 'Feb', year: 2025, revenue: 12500, bookingCount: 28 },
-      { month: 'Mar', year: 2025, revenue: 18200, bookingCount: 35 },
-      { month: 'Apr', year: 2025, revenue: 15800, bookingCount: 31 },
-      { month: 'May', year: 2025, revenue: 24100, bookingCount: 42 },
-      { month: 'Jun', year: 2025, revenue: 31500, bookingCount: 52 },
-      { month: 'Jul', year: 2025, revenue: 38000, bookingCount: 61 },
-      { month: 'Aug', year: 2025, revenue: 35200, bookingCount: 58 },
-      { month: 'Sep', year: 2025, revenue: 22300, bookingCount: 40 },
-      { month: 'Oct', year: 2025, revenue: 19700, bookingCount: 36 },
-      { month: 'Nov', year: 2025, revenue: 16100, bookingCount: 32 },
-      { month: 'Dec', year: 2025, revenue: 28800, bookingCount: 48 },
-      { month: 'Jan', year: 2026, revenue: 26400, bookingCount: 45 },
-    ];
-
-    this.alerts = [
-      {
-        type: 'warning',
-        title: 'Pending Reservations',
-        message: '23 reservations awaiting confirmation',
-        count: 23,
+    forkJoin({
+      operationalMetrics: this.adminMetricsService.getOperationalMetrics(),
+      monthlyRevenue: this.adminMetricsService.getMonthlyRevenue(),
+      alerts: this.adminMetricsService.getAlerts(),
+      recentBookings: this.adminMetricsService.getRecentBookings(10),
+      hotels: this.http.get<Array<{ hotelId: string; name: string }>>(`${this.api}/hotels`, {
+        withCredentials: true,
+      }).pipe(
+        map((hotels) => {
+          const hotelMap: Record<string, string> = {};
+          hotels.forEach((hotel) => {
+            hotelMap[hotel.hotelId] = hotel.name;
+          });
+          return hotelMap;
+        })
+      ),
+      users: this.http.get<Array<{ userId: string; firstName?: string; lastName?: string; email: string }>>(`${this.api}/users/search?q=&limit=1000`, {
+        withCredentials: true,
+      }).pipe(
+        map((users) => {
+          const userMap: Record<string, string> = {};
+          users.forEach((user) => {
+            const name = user.firstName && user.lastName
+              ? `${user.firstName} ${user.lastName}`
+              : user.firstName || user.email || user.userId;
+            userMap[user.userId] = name;
+          });
+          return userMap;
+        })
+      ),
+    }).subscribe({
+      next: (data) => {
+        this.operationalMetrics = data.operationalMetrics;
+        this.monthlyRevenue = data.monthlyRevenue;
+        this.alerts = data.alerts;
+        
+        // Enrich bookings with hotel and guest names
+        this.recentBookings = data.recentBookings.map((booking) => ({
+          ...booking,
+          hotelName: data.hotels[booking.hotelId] || booking.hotelId,
+          guestName: data.users[booking.userId] || booking.userId,
+        }));
+        
+        this.totalRevenueLast12 = this.monthlyRevenue.reduce((sum, m) => sum + m.revenue, 0);
+        this.totalBookingsLast12 = this.monthlyRevenue.reduce((sum, m) => sum + m.bookingCount, 0);
+        this.loading = false;
       },
-      {
-        type: 'info',
-        title: 'Active Check-ins',
-        message: '12 guests currently checked in',
-        count: 12,
+      error: (err) => {
+        console.error('Error loading dashboard data:', err);
+        this.error = 'Failed to load dashboard data. Please try again.';
+        this.loading = false;
       },
-      {
-        type: 'info',
-        title: 'Upcoming Check-ins',
-        message: '8 confirmed reservations in the next 7 days',
-        count: 8,
-      },
-      {
-        type: 'error',
-        title: 'Cancellations',
-        message: '3 cancellations in the last 24 hours',
-        count: 3,
-      },
-    ];
-
-    this.recentBookings = [
-      {
-        reservationId: 'res-abc123def456',
-        hotelId: 'hotel-1',
-        hotelName: 'ReserveOne Downtown',
-        userId: 'user-101',
-        guestName: 'Sarah Johnson',
-        roomId: 'room-205',
-        roomTypeId: 'deluxe-king',
-        startDate: '2026-01-15',
-        endDate: '2026-01-18',
-        guestCount: 2,
-        status: 'CONFIRMED',
-        totalAmount: 450,
-        currency: 'USD',
-        createdAt: '2026-01-05T10:30:00Z',
-        updatedAt: '2026-01-05T10:30:00Z',
-      },
-      {
-        reservationId: 'res-xyz789ghi012',
-        hotelId: 'hotel-2',
-        hotelName: 'ReserveOne Airport',
-        userId: 'user-102',
-        guestName: 'Michael Chen',
-        roomId: 'room-310',
-        roomTypeId: 'suite',
-        startDate: '2026-01-10',
-        endDate: '2026-01-12',
-        guestCount: 3,
-        status: 'CHECKED_IN',
-        totalAmount: 680,
-        currency: 'USD',
-        createdAt: '2026-01-04T14:20:00Z',
-        updatedAt: '2026-01-10T15:00:00Z',
-      },
-      {
-        reservationId: 'res-mno345pqr678',
-        hotelId: 'hotel-1',
-        hotelName: 'ReserveOne Downtown',
-        userId: 'user-103',
-        guestName: 'Emily Rodriguez',
-        roomId: 'room-102',
-        roomTypeId: 'standard-double',
-        startDate: '2026-01-20',
-        endDate: '2026-01-23',
-        guestCount: 2,
-        status: 'PENDING',
-        totalAmount: 320,
-        currency: 'USD',
-        createdAt: '2026-01-06T09:15:00Z',
-        updatedAt: '2026-01-06T09:15:00Z',
-      },
-      {
-        reservationId: 'res-stu901vwx234',
-        hotelId: 'hotel-3',
-        hotelName: 'ReserveOne Beach Resort',
-        userId: 'user-104',
-        guestName: 'David Kim',
-        roomId: 'room-405',
-        roomTypeId: 'deluxe-double',
-        startDate: '2026-01-08',
-        endDate: '2026-01-11',
-        guestCount: 4,
-        status: 'CHECKED_OUT',
-        totalAmount: 520,
-        currency: 'USD',
-        createdAt: '2025-12-28T16:45:00Z',
-        updatedAt: '2026-01-11T11:00:00Z',
-      },
-      {
-        reservationId: 'res-def567hij890',
-        hotelId: 'hotel-2',
-        hotelName: 'ReserveOne Airport',
-        userId: 'user-105',
-        guestName: 'Jessica Taylor',
-        roomId: 'room-201',
-        roomTypeId: 'standard-king',
-        startDate: '2026-01-25',
-        endDate: '2026-01-27',
-        guestCount: 1,
-        status: 'CONFIRMED',
-        totalAmount: 280,
-        currency: 'USD',
-        createdAt: '2026-01-06T11:00:00Z',
-        updatedAt: '2026-01-06T11:00:00Z',
-      },
-      {
-        reservationId: 'res-klm234nop567',
-        hotelId: 'hotel-1',
-        hotelName: 'ReserveOne Downtown',
-        userId: 'user-106',
-        guestName: 'Robert Williams',
-        roomId: 'room-308',
-        roomTypeId: 'suite',
-        startDate: '2026-02-01',
-        endDate: '2026-02-05',
-        guestCount: 2,
-        status: 'CONFIRMED',
-        totalAmount: 890,
-        currency: 'USD',
-        createdAt: '2026-01-05T13:30:00Z',
-        updatedAt: '2026-01-05T13:30:00Z',
-      },
-      {
-        reservationId: 'res-qrs678tuv901',
-        hotelId: 'hotel-3',
-        hotelName: 'ReserveOne Beach Resort',
-        userId: 'user-107',
-        guestName: 'Amanda Martinez',
-        roomId: 'room-105',
-        roomTypeId: 'standard-double',
-        startDate: '2026-01-12',
-        endDate: '2026-01-14',
-        guestCount: 2,
-        status: 'CHECKED_IN',
-        totalAmount: 340,
-        currency: 'USD',
-        createdAt: '2026-01-03T08:20:00Z',
-        updatedAt: '2026-01-12T14:00:00Z',
-      },
-      {
-        reservationId: 'res-wxy234zab567',
-        hotelId: 'hotel-2',
-        hotelName: 'ReserveOne Airport',
-        userId: 'user-108',
-        guestName: 'Christopher Lee',
-        roomId: 'room-410',
-        roomTypeId: 'deluxe-king',
-        startDate: '2026-01-18',
-        endDate: '2026-01-21',
-        guestCount: 3,
-        status: 'PENDING',
-        totalAmount: 510,
-        currency: 'USD',
-        createdAt: '2026-01-07T10:45:00Z',
-        updatedAt: '2026-01-07T10:45:00Z',
-      },
-      {
-        reservationId: 'res-cde890fgh123',
-        hotelId: 'hotel-1',
-        hotelName: 'ReserveOne Downtown',
-        userId: 'user-109',
-        guestName: 'Jennifer Brown',
-        roomId: 'room-203',
-        roomTypeId: 'standard-king',
-        startDate: '2026-01-05',
-        endDate: '2026-01-07',
-        guestCount: 1,
-        status: 'CHECKED_OUT',
-        totalAmount: 290,
-        currency: 'USD',
-        createdAt: '2025-12-30T15:10:00Z',
-        updatedAt: '2026-01-07T12:00:00Z',
-      },
-      {
-        reservationId: 'res-ijk456lmn789',
-        hotelId: 'hotel-3',
-        hotelName: 'ReserveOne Beach Resort',
-        userId: 'user-110',
-        guestName: 'Daniel Garcia',
-        roomId: 'room-505',
-        roomTypeId: 'suite',
-        startDate: '2026-02-10',
-        endDate: '2026-02-14',
-        guestCount: 4,
-        status: 'CONFIRMED',
-        totalAmount: 950,
-        currency: 'USD',
-        createdAt: '2026-01-06T17:00:00Z',
-        updatedAt: '2026-01-06T17:00:00Z',
-      },
-    ];
-
-    this.totalRevenueLast12 = this.monthlyRevenue.reduce((sum, m) => sum + m.revenue, 0);
-    this.totalBookingsLast12 = this.monthlyRevenue.reduce((sum, m) => sum + m.bookingCount, 0);
+    });
   }
 
   formatCurrency(amount: number): string {
