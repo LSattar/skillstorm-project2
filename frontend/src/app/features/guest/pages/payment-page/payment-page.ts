@@ -11,6 +11,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { StripeCardElementOptions, StripeElementsOptions } from '@stripe/stripe-js';
 import { StripeCardComponent, StripeService } from 'ngx-stripe';
 import { Header } from '../../../../shared/header/header';
+import { ToastService } from '../../../../shared/services/toast.service';
 import {
   ReservationResponse,
   ReservationService,
@@ -35,6 +36,7 @@ export class PaymentPage implements OnInit {
   protected readonly router = inject(Router);
   protected readonly route = inject(ActivatedRoute);
   protected readonly fb = inject(FormBuilder);
+  protected readonly toast = inject(ToastService);
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
@@ -134,11 +136,13 @@ export class PaymentPage implements OnInit {
   processPayment(): void {
     if (!this.reservation) {
       this.error = 'Reservation not found';
+      this.toast.error(this.error, 'Payment Failed');
       return;
     }
 
     if (this.paymentForm.invalid) {
       this.error = 'Please fill in all required fields';
+      this.toast.error(this.error, 'Payment Failed');
       return;
     }
 
@@ -169,12 +173,14 @@ export class PaymentPage implements OnInit {
               if (result.error) {
                 this.paymentProcessing = false;
                 this.error = result.error.message || 'Payment method creation failed';
+                this.toast.error(this.error, 'Payment Failed');
                 return;
               }
 
               if (!result.paymentMethod) {
                 this.paymentProcessing = false;
                 this.error = 'Failed to create payment method';
+                this.toast.error(this.error, 'Payment Failed');
                 return;
               }
 
@@ -187,12 +193,14 @@ export class PaymentPage implements OnInit {
                   if (confirmResult.error) {
                     this.paymentProcessing = false;
                     this.error = confirmResult.error.message || 'Payment confirmation failed';
+                    this.toast.error(this.error, 'Payment Failed');
                     return;
                   }
 
                   if (!confirmResult.paymentIntent) {
                     this.paymentProcessing = false;
                     this.error = 'Payment confirmation failed';
+                    this.toast.error(this.error, 'Payment Failed');
                     return;
                   }
 
@@ -200,11 +208,18 @@ export class PaymentPage implements OnInit {
                   this.paymentService
                     .confirmPayment(confirmResult.paymentIntent.id, this.reservation!.reservationId)
                     .subscribe({
-                      next: () => {
-                        // Step 5: Redirect to success page or back to bookings
-                        this.router.navigate(['/my-bookings'], {
-                          queryParams: { payment: 'success' },
-                        });
+                      next: (response) => {
+                        this.paymentProcessing = false;
+                        if (response.status === 'SUCCEEDED') {
+                          this.toast.success('Your payment was successful!', 'Payment Complete');
+                          this.router.navigate(['/my-bookings'], {
+                            queryParams: { payment: 'success' },
+                          });
+                        } else if (response.status === 'CANCELLED') {
+                          this.toast.warning('Payment was cancelled.', 'Payment Cancelled');
+                        } else if (response.status === 'FAILED') {
+                          this.toast.error('Payment failed. Please try again.', 'Payment Failed');
+                        }
                       },
                       error: (err) => {
                         this.paymentProcessing = false;
@@ -215,6 +230,10 @@ export class PaymentPage implements OnInit {
                         } else {
                           this.error = 'Payment confirmation failed. Please contact support.';
                         }
+                        this.toast.error(
+                          this.error ?? 'Payment could not be processed. Please try again.',
+                          'Payment Failed'
+                        );
                       },
                     });
                 });
@@ -229,6 +248,8 @@ export class PaymentPage implements OnInit {
           } else {
             this.error = 'Failed to create payment intent. Please try again.';
           }
+          this.toast.error(this.error ?? 'Payment could not be processed. Please try again.', 'Payment Failed');
+
         },
       });
   }

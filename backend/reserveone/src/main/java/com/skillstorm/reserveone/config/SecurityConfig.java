@@ -269,6 +269,10 @@ public class SecurityConfig {
                                                 .hasAnyRole("MANAGER", "BUSINESS_OWNER", "ADMIN")
                                                 .requestMatchers("/analytics/**").hasAnyRole("BUSINESS_OWNER", "ADMIN")
 
+                                                // Payment Transactions Admin
+                                                .requestMatchers(HttpMethod.GET, "/payment-transactions")
+                                                .hasRole("ADMIN")
+
                                                 .anyRequest().authenticated())
 
                                 .oauth2Login(oauth -> oauth
