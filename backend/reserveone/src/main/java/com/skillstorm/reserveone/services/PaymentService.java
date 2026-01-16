@@ -38,7 +38,9 @@ public class PaymentService {
     }
 
     @Transactional
-    public String createPaymentIntent(UUID reservationId, UUID userId) throws StripeException {
+    public String createPaymentIntent(UUID reservationId, UUID userId)
+            throws StripeException {
+
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found"));
 
@@ -54,55 +56,46 @@ public class PaymentService {
         String currency = reservation.getCurrency();
         long amountMinor = amount.multiply(BigDecimal.valueOf(100)).longValueExact();
 
-        String idempotencyKey = "reservation-" + reservationId;
-
-        PaymentIntent paymentIntent = stripeService.createPaymentIntent(
+        PaymentIntent pi = stripeService.createPaymentIntent(
                 amountMinor,
                 currency,
                 reservationId.toString(),
                 userId.toString(),
-                idempotencyKey);
+                "reservation-" + reservationId);
 
-        // Upsert payment transaction
         Optional<PaymentTransaction> existing = paymentTransactionRepository.findByReservationId(reservationId);
-        PaymentTransaction tx = existing.orElseGet(() -> new PaymentTransaction(UUID.randomUUID(), reservationId,
-                userId, amount, currency, paymentIntent.getId()));
-        tx.setStatus(PaymentTransaction.Status.PROCESSING);
-        tx.setStripePaymentIntentId(paymentIntent.getId());
-        tx.setAmount(amount);
-        tx.setCurrency(currency);
-        paymentTransactionRepository.save(tx);
 
-        return paymentIntent.getClientSecret();
+        PaymentTransaction tx = existing.orElseGet(() -> new PaymentTransaction(
+                UUID.randomUUID(),
+                reservationId,
+                userId,
+                amount,
+                currency,
+                pi.getId()));
+
+        tx.setStatus(PaymentTransaction.Status.PROCESSING);
+        tx.setStripePaymentIntentId(pi.getId());
+
+        paymentTransactionRepository.save(tx);
+        return pi.getClientSecret();
     }
 
-    @Transactional
-    public PaymentTransaction.Status confirmPayment(UUID reservationId, UUID userId, String paymentIntentId)
-            throws StripeException {
-        PaymentTransaction tx = paymentTransactionRepository.findByReservationIdAndUserId(reservationId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment transaction not found"));
+    public PaymentTransaction.Status confirmPayment(
+            UUID reservationId,
+            UUID userId,
+            String paymentIntentId) throws StripeException {
 
-        if (!tx.getStripePaymentIntentId().equals(paymentIntentId)) {
-            throw new ResourceConflictException("PaymentIntent does not match reservation");
-        }
+        PaymentTransaction tx = paymentTransactionRepository
+                .findByReservationIdAndUserId(reservationId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
 
         PaymentIntent pi = stripeService.retrievePaymentIntent(paymentIntentId);
 
-        switch (pi.getStatus()) {
-            case "succeeded":
-                return PaymentTransaction.Status.SUCCEEDED;
-            case "processing":
-            case "requires_capture":
-            case "requires_confirmation":
-                return PaymentTransaction.Status.PROCESSING;
-            case "requires_payment_method":
-            case "canceled":
-            case "requires_action":
-            case "requires_source":
-            case "requires_source_action":
-            case "failed":
-            default:
-                return PaymentTransaction.Status.FAILED;
-        }
+        return switch (pi.getStatus()) {
+            case "succeeded" -> PaymentTransaction.Status.SUCCEEDED;
+            case "processing", "requires_capture", "requires_confirmation" ->
+                PaymentTransaction.Status.PROCESSING;
+            default -> PaymentTransaction.Status.FAILED;
+        };
     }
 }

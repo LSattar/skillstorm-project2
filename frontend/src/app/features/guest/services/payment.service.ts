@@ -5,13 +5,6 @@ import { environment } from '../../../../environments/environment';
 
 export type PaymentIntentResponse = {
   clientSecret: string;
-  paymentIntentId: string;
-};
-
-export type PaymentRequest = {
-  reservationId: string;
-  amount: number;
-  currency: string;
 };
 
 export type PaymentResponse = {
@@ -37,22 +30,26 @@ export class PaymentService {
   }
 
   /**
-   * Create a payment intent for a reservation
-   * This will be called by the backend to create a Stripe PaymentIntent
+   * Create a Stripe PaymentIntent
+   * Amount + currency are resolved by backend from Reservation
    */
-  createPaymentIntent(request: PaymentRequest): Observable<PaymentIntentResponse> {
+  createPaymentIntent(reservationId: string): Observable<PaymentIntentResponse> {
     return this.ensureCsrfToken().pipe(
       switchMap((csrf) =>
-        this.http.post<PaymentIntentResponse>(`${this.api}/payments/create-intent`, request, {
-          withCredentials: true,
-          headers: csrf?.token ? { [csrf.headerName || 'X-XSRF-TOKEN']: csrf.token } : undefined,
-        })
+        this.http.post<PaymentIntentResponse>(
+          `${this.api}/payments/intents`,
+          { reservationId },
+          {
+            withCredentials: true,
+            headers: csrf?.token ? { [csrf.headerName || 'X-XSRF-TOKEN']: csrf.token } : undefined,
+          }
+        )
       )
     );
   }
 
   /**
-   * Confirm a payment after Stripe payment is completed
+   * Confirm payment after Stripe Elements completes
    */
   confirmPayment(paymentIntentId: string, reservationId: string): Observable<PaymentResponse> {
     return this.ensureCsrfToken().pipe(
