@@ -85,6 +85,112 @@
   margin: 0;
 }
 
+.info-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.info-message.checking {
+  background: rgba(163, 177, 138, 0.15);
+  border: 1px solid rgba(163, 177, 138, 0.3);
+  color: var(--primary-2);
+}
+
+.info-message.checking .material-symbols-outlined {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.info-message.available {
+  background: rgba(163, 177, 138, 0.15);
+  border: 1px solid rgba(163, 177, 138, 0.3);
+  color: var(--primary-2);
+}
+
+.info-message.unavailable {
+  background: rgba(221, 190, 169, 0.2);
+  border: 1px solid rgba(221, 190, 169, 0.4);
+  color: var(--primary-2);
+}
+
+.info-message .material-symbols-outlined {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.info-message p {
+  margin: 0;
+}
+
+.price-info {
+  padding: 1rem;
+  background: rgba(250, 249, 246, 0.75);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+}
+
+.price-comparison {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.price-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.price-label {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.price-value {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.price-value.original {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.price-value.new {
+  color: var(--primary-2);
+  font-size: 1.1rem;
+}
+
+.price-difference {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+
+.price-difference.increase .price-value {
+  color: #d32f2f;
+}
+
+.price-difference.decrease .price-value {
+  color: #2e7d32;
+}
+
 .modify-form {
   display: grid;
   gap: 1.25rem;
