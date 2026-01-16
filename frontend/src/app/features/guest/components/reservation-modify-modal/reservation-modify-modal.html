@@ -9,7 +9,7 @@
 
     <div class="modal-body">
       @if (error) {
-      <div class="error-message">
+      <div class="error-message" role="alert">
         <span class="material-symbols-outlined">error</span>
         <p>{{ error }}</p>
       </div>
@@ -28,6 +28,7 @@
             [(ngModel)]="startDate"
             name="startDate"
             [min]="minDate"
+            (input)="clearError()"
             required
           />
         </div>
@@ -40,6 +41,7 @@
             [(ngModel)]="endDate"
             name="endDate"
             [min]="startDate || minDate"
+            (input)="clearError()"
             required
           />
         </div>
@@ -53,6 +55,7 @@
             name="guestCount"
             min="1"
             max="10"
+            (input)="clearError()"
             required
           />
         </div>

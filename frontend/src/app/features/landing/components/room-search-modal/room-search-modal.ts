@@ -91,13 +91,17 @@ export class RoomSearchModal implements OnChanges {
       return;
     }
 
-    // Validate dates
-    const checkin = new Date(this.searchForm.checkin);
-    const checkout = new Date(this.searchForm.checkout);
+    // Validate dates - compare only date parts (year, month, day) to avoid timezone issues
+    const checkin = new Date(this.searchForm.checkin + 'T00:00:00');
+    const checkout = new Date(this.searchForm.checkout + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (checkin < today) {
+    // Compare date components directly (year, month, day) to avoid timezone issues
+    const checkinDate = new Date(checkin.getFullYear(), checkin.getMonth(), checkin.getDate());
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (checkinDate < todayDate) {
       this.error = 'Check-in date cannot be in the past';
       return;
     }

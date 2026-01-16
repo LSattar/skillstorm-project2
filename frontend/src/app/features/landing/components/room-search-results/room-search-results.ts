@@ -10,13 +10,14 @@ import {
   inject,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
-import { finalize, map } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
+import { finalize, map, catchError } from 'rxjs/operators';
 import { AuthService } from '../../../auth/services/auth.service';
 import { ReservationService, ReservationRequest, ReservationResponse } from '../../../admin/services/reservation.service';
 import { RoomResponse, RoomSearchParams } from '../../services/room-search.service';
 import { HotelService, HotelResponse } from '../../services/hotel.service';
 import { RoomTypeService, RoomTypeResponse } from '../../services/room-type.service';
+import { RoomManagementService, AmenityResponse } from '../../../admin/services/room-management.service';
 
 export type SearchResultsData = {
   rooms: RoomResponse[];
@@ -28,6 +29,7 @@ export type RoomTypeOption = {
   roomType: RoomTypeResponse;
   rooms: RoomResponse[];
   selectedRoom: RoomResponse | null;
+  amenities: AmenityResponse[];
 };
 
 @Component({
@@ -42,6 +44,7 @@ export class RoomSearchResults implements OnChanges {
   private readonly reservationService = inject(ReservationService);
   private readonly hotelService = inject(HotelService);
   private readonly roomTypeService = inject(RoomTypeService);
+  private readonly roomManagementService = inject(RoomManagementService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -232,22 +235,69 @@ export class RoomSearchResults implements OnChanges {
 
     forkJoin(roomTypeRequests).subscribe({
       next: (results) => {
+        // Create initial room type options
         this.roomTypeOptions = results.map(({ roomType, roomTypeId }) => ({
           roomType,
           rooms: roomsByTypeId.get(roomTypeId) || [],
           selectedRoom: null,
+          amenities: [],
         }));
 
         // Sort by base price (lowest first)
         this.roomTypeOptions.sort((a, b) => a.roomType.basePrice - b.roomType.basePrice);
 
-        // Auto-select first option if none selected
-        if (!this.selectedRoomTypeOption && this.roomTypeOptions.length > 0) {
-          this.selectRoomType(this.roomTypeOptions[0]);
-        }
+        // Fetch amenities for each room type
+        const amenityRequests = this.roomTypeOptions.map((option) =>
+          this.roomManagementService.getRoomTypeAmenities(option.roomType.roomTypeId).pipe(
+            map((roomTypeAmenities) => ({
+              roomTypeId: option.roomType.roomTypeId,
+              amenities: roomTypeAmenities
+                .map((rta) => rta.amenity)
+                .filter((amenity): amenity is AmenityResponse => amenity !== undefined && amenity !== null),
+            })),
+            catchError(() => of({ roomTypeId: option.roomType.roomTypeId, amenities: [] }))
+          )
+        );
 
-        this.loadingRoomTypes = false;
-        this.cdr.markForCheck();
+        if (amenityRequests.length > 0) {
+          forkJoin(amenityRequests).subscribe({
+            next: (amenityResults) => {
+              // Map amenities to room type options
+              const amenityMap = new Map<string, AmenityResponse[]>();
+              amenityResults.forEach(({ roomTypeId, amenities }) => {
+                amenityMap.set(roomTypeId, amenities);
+              });
+
+              this.roomTypeOptions = this.roomTypeOptions.map((option) => ({
+                ...option,
+                amenities: amenityMap.get(option.roomType.roomTypeId) || [],
+              }));
+
+              // Auto-select first option if none selected
+              if (!this.selectedRoomTypeOption && this.roomTypeOptions.length > 0) {
+                this.selectRoomType(this.roomTypeOptions[0]);
+              }
+
+              this.loadingRoomTypes = false;
+              this.cdr.markForCheck();
+            },
+            error: () => {
+              // If amenities fail to load, continue without them
+              if (!this.selectedRoomTypeOption && this.roomTypeOptions.length > 0) {
+                this.selectRoomType(this.roomTypeOptions[0]);
+              }
+              this.loadingRoomTypes = false;
+              this.cdr.markForCheck();
+            },
+          });
+        } else {
+          // Auto-select first option if none selected
+          if (!this.selectedRoomTypeOption && this.roomTypeOptions.length > 0) {
+            this.selectRoomType(this.roomTypeOptions[0]);
+          }
+          this.loadingRoomTypes = false;
+          this.cdr.markForCheck();
+        }
       },
       error: () => {
         this.loadingRoomTypes = false;
@@ -279,7 +329,11 @@ export class RoomSearchResults implements OnChanges {
   }
 
   calculateTotalPrice(roomType: RoomTypeResponse, nights: number): number {
-    return roomType.basePrice * nights;
+    return Math.round((roomType.basePrice * nights) * 100) / 100;
+  }
+
+  formatPrice(price: number): string {
+    return price.toFixed(2);
   }
 
   getNights(): number {

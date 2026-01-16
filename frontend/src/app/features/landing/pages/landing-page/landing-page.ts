@@ -122,8 +122,9 @@ export class LandingPage {
   }
 
   onBookingComplete() {
-    // Show success message or navigate to confirmation page
-    alert('Booking confirmed! Thank you for your reservation.');
+    // Navigation to payment page is handled in the room-search-results component
+    // This method is kept for potential future use (e.g., analytics, cleanup)
+    this.closeResults();
   }
 
   onSignInRequired() {

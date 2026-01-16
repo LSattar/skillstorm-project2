@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { MonthlyRevenue, Alert, Reservation, AdminMetricsService } from '../../services/admin-metrics.service';
 import { Header } from '../../../../shared/header/header';
@@ -30,6 +30,7 @@ export class AdminDashboard implements OnInit {
   protected readonly router = inject(Router);
   protected readonly adminMetricsService = inject(AdminMetricsService);
   protected readonly http = inject(HttpClient);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly api = environment.apiBaseUrl;
 
   goToSystemSettings() {
@@ -137,11 +138,13 @@ export class AdminDashboard implements OnInit {
         this.totalRevenueLast12 = this.monthlyRevenue.reduce((sum, m) => sum + m.revenue, 0);
         this.totalBookingsLast12 = this.monthlyRevenue.reduce((sum, m) => sum + m.bookingCount, 0);
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading dashboard data:', err);
         this.error = 'Failed to load dashboard data. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }

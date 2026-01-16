@@ -28,11 +28,13 @@
       <p class="auth-error" role="alert">{{ error }}</p>
       }       @if (hasAvailableRooms && resultsData) {
       <div class="results-content">
-        <div class="availability-success">
+
+                <div class="availability-success">
+                          <!-- 
           <p class="success-message">
             ✓ We found {{ resultsData.rooms.length }} room(s) available for your dates!
           </p>
-
+        -->
           <div class="booking-summary">
             <h3>Booking Summary</h3>
             <div class="summary-details">
@@ -78,9 +80,9 @@
                 <div class="room-type-header">
                   <h4>{{ option.roomType.name }}</h4>
                   <div class="room-type-price">
-                    <span class="price-per-night">${{ option.roomType.basePrice }}/night</span>
+                    <span class="price-per-night">${{ formatPrice(option.roomType.basePrice) }}/night</span>
                     <span class="price-total">
-                      ${{ calculateTotalPrice(option.roomType, getNights()) }} total
+                      ${{ calculateTotalPrice(option.roomType, getNights()).toFixed(2) }} total
                     </span>
                   </div>
                 </div>
@@ -91,28 +93,31 @@
 
                 <div class="room-type-details">
                   <div class="detail-item">
-                    <span class="detail-icon">🛏️</span>
                     <span class="detail-text">
-                      {{ option.roomType.bedCount }} {{ formatBedType(option.roomType.bedType) }}(s)
+                      {{ option.roomType.bedCount }} {{ formatBedType(option.roomType.bedType) }}{{ option.roomType.bedCount > 1 ? 's' : '' }}
                     </span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-icon">👥</span>
                     <span class="detail-text">Up to {{ option.roomType.maxGuests }} guests</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-icon">🚪</span>
-                    <span class="detail-text">{{ option.rooms.length }} room(s) available</span>
                   </div>
                 </div>
 
-                <div class="room-type-select-indicator">
-                  @if (selectedRoomTypeOption?.roomType?.roomTypeId === option.roomType.roomTypeId) {
-                  <span class="selected-badge">✓ Selected</span>
-                  } @else {
-                  <span class="select-hint">Click to select</span>
-                  }
+                @if (option.amenities && option.amenities.length > 0) {
+                <div class="room-type-amenities">
+                  <div class="amenities-label">Amenities:</div>
+                  <div class="amenities-list">
+                    @for (amenity of option.amenities; track amenity.amenityId) {
+                    <span class="amenity-badge">{{ amenity.name }}</span>
+                    }
+                  </div>
                 </div>
+                }
+
+                @if (selectedRoomTypeOption?.roomType?.roomTypeId === option.roomType.roomTypeId) {
+                <div class="room-type-select-indicator">
+                  <span class="selected-badge">Selected</span>
+                </div>
+                }
               </div>
               }
             </div>
@@ -120,16 +125,16 @@
           }
 
           <div class="modal-actions">
+            <button class="btn btn-link" type="button" (click)="onModifySearch()">
+              Modify Search
+            </button>
             <button
-              class="btn btn-primary btn-block"
+              class="btn btn-primary"
               type="button"
               (click)="bookNow()"
               [disabled]="booking || !selectedRoomTypeOption"
             >
               @if (booking) { Booking... } @else { Book Now }
-            </button>
-            <button class="btn btn-link" type="button" (click)="onModifySearch()">
-              Modify Search
             </button>
           </div>
         </div>

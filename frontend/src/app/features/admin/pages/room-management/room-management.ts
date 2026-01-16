@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -28,6 +28,7 @@ export class RoomManagement implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly router = inject(Router);
   protected readonly roomService = inject(RoomManagementService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
@@ -99,11 +100,13 @@ export class RoomManagement implements OnInit {
       next: (hotels) => {
         this.hotels = hotels;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading hotels:', err);
         this.error = 'Failed to load hotels. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -134,12 +137,14 @@ export class RoomManagement implements OnInit {
             this.rooms = allRooms.filter((room) => room.hotelId === this.selectedHotelId);
             this.applyRoomTypeFilter();
             this.loading = false;
+            this.cdr.detectChanges();
           },
           error: (err) => {
             console.error('Error loading rooms:', err);
             this.rooms = [];
             this.filteredRooms = [];
             this.loading = false;
+            this.cdr.detectChanges();
           },
         });
       },
@@ -147,6 +152,7 @@ export class RoomManagement implements OnInit {
         console.error('Error loading room types:', err);
         this.error = 'Failed to load room types. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -174,9 +180,11 @@ export class RoomManagement implements OnInit {
     this.roomService.getRoomTypeAmenities(roomTypeId).subscribe({
       next: (amenities) => {
         this.roomTypeAmenities = amenities;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading room type amenities:', err);
+        this.cdr.detectChanges();
       },
     });
   }
@@ -244,11 +252,13 @@ export class RoomManagement implements OnInit {
         this.applyRoomTypeFilter();
         this.closeRoomModal();
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error saving room:', err);
         this.error = err.error?.message || 'Failed to save room. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -266,11 +276,13 @@ export class RoomManagement implements OnInit {
         this.rooms = this.rooms.filter((r) => r.roomId !== room.roomId);
         this.applyRoomTypeFilter();
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error deleting room:', err);
         this.error = err.error?.message || 'Failed to delete room. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -352,11 +364,13 @@ export class RoomManagement implements OnInit {
         }
         this.closeRoomTypeModal();
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error saving room type:', err);
         this.error = err.error?.message || 'Failed to save room type. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -378,11 +392,13 @@ export class RoomManagement implements OnInit {
           this.selectedRoomTypeId = '';
         }
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error deleting room type:', err);
         this.error = err.error?.message || 'Failed to delete room type. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -392,9 +408,11 @@ export class RoomManagement implements OnInit {
     this.roomService.getAllAmenities().subscribe({
       next: (amenities) => {
         this.allAmenities = amenities;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading amenities:', err);
+        this.cdr.detectChanges();
       },
     });
   }
@@ -423,10 +441,12 @@ export class RoomManagement implements OnInit {
     this.roomService.addAmenityToRoomType(this.editingRoomType.roomTypeId, amenityId).subscribe({
       next: (added) => {
         this.roomTypeAmenities.push(added);
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error adding amenity:', err);
         this.error = err.error?.message || 'Failed to add amenity.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -441,10 +461,12 @@ export class RoomManagement implements OnInit {
           this.roomTypeAmenities = this.roomTypeAmenities.filter(
             (rta) => rta.amenityId !== amenityId
           );
+          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Error removing amenity:', err);
           this.error = err.error?.message || 'Failed to remove amenity.';
+          this.cdr.detectChanges();
         },
       });
   }
