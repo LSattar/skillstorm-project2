@@ -76,6 +76,29 @@ public class PaymentTransaction {
     }
 
     // Getters and setters omitted for brevity
+    public java.util.UUID getPaymentId() {
+        return paymentId;
+    }
+
+    public java.util.UUID getReservationId() {
+        return reservationId;
+    }
+
+    public java.util.UUID getUserId() {
+        return userId;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public java.time.OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public java.time.OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
 
     public String getStripePaymentIntentId() {
         return stripePaymentIntentId;

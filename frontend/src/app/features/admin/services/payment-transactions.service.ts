@@ -1,33 +1,36 @@
-import { HttpClient } from '@angular/common/http';
+// payment-transactions.service.ts
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
-export type PaymentTransactionStatus = 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED';
+export type PaymentTransactionStatus =
+  | 'PROCESSING'
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'REFUNDED'
+  | 'CANCELLED';
 
 export interface PaymentTransaction {
   id: string;
   reservationId: string;
   userId: string;
+
   guestName: string;
   guestEmail: string;
+
   checkIn: string;
   checkOut: string;
-  nightlyRate?: number;
-  nights?: number;
-  subtotal: number;
-  taxTotal: number;
-  taxLineItems?: { label: string; amount: number }[];
-  feesTotal?: number;
-  discountTotal?: number;
-  discountLineItems?: { label: string; amount: number }[];
-  rewardsApplied?: number;
-  rewardsEarned?: number;
-  total: number;
+
+  amount: number;
   currency: string;
+
   status: PaymentTransactionStatus;
-  paymentProvider: string;
+
+  provider: string;
   paymentMethodLast4?: string;
   transactionId?: string;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -40,37 +43,53 @@ export interface PaymentTransactionListResponse {
   size: number;
 }
 
+export interface PaymentTransactionQueryParams {
+  query?: string;
+  status?: PaymentTransactionStatus | '';
+  from?: string; // expects YYYY-MM-DD (recommended) OR ISO datetime if your backend uses OffsetDateTime
+  to?: string; // expects YYYY-MM-DD (recommended) OR ISO datetime if your backend uses OffsetDateTime
+  page?: number;
+  size?: number;
+  sort?: string; // e.g. "createdAt,desc"
+}
+
 @Injectable({ providedIn: 'root' })
 export class PaymentTransactionsService {
-  private readonly api = '/api/payment-transactions';
+  private readonly apiUrl = `${environment.apiBaseUrl}/payment-transactions`;
 
   constructor(private http: HttpClient) {}
 
-  getTransactions(params: {
-    query?: string;
-    status?: PaymentTransactionStatus | '';
-    from?: string;
-    to?: string;
-    page?: number;
-    size?: number;
-    sort?: string;
-  }): Observable<PaymentTransactionListResponse> {
-    const queryParams: Record<string, string> = {};
-    if (params.query) queryParams['query'] = params.query;
-    if (params.status) queryParams['status'] = params.status;
-    if (params.from) queryParams['from'] = params.from;
-    if (params.to) queryParams['to'] = params.to;
-    if (params.page !== undefined) queryParams['page'] = String(params.page);
-    if (params.size !== undefined) queryParams['size'] = String(params.size);
-    if (params.sort) queryParams['sort'] = params.sort;
+  getTransactions(
+    params: PaymentTransactionQueryParams
+  ): Observable<PaymentTransactionListResponse> {
+    let httpParams = new HttpParams();
 
-    const queryString = new URLSearchParams(queryParams).toString();
-    return this.http.get<PaymentTransactionListResponse>(
-      `${this.api}${queryString ? `?${queryString}` : ''}`
-    );
+    if (params.query) httpParams = httpParams.set('query', params.query);
+
+    // Only send status if it's a real value (avoid sending empty string)
+    if (params.status && params.status.trim() !== '') {
+      httpParams = httpParams.set('status', params.status);
+    }
+
+    if (params.from) httpParams = httpParams.set('from', params.from);
+    if (params.to) httpParams = httpParams.set('to', params.to);
+
+    if (params.page !== undefined) httpParams = httpParams.set('page', String(params.page));
+    if (params.size !== undefined) httpParams = httpParams.set('size', String(params.size));
+
+    // Default sort if not provided (optional, but nice)
+    httpParams = httpParams.set('sort', params.sort ?? 'createdAt,desc');
+
+    // Important if your backend uses SESSION cookies
+    return this.http.get<PaymentTransactionListResponse>(this.apiUrl, {
+      params: httpParams,
+      withCredentials: true,
+    });
   }
 
   getTransactionById(id: string): Observable<PaymentTransaction> {
-    return this.http.get<PaymentTransaction>(`${this.api}/${id}`);
+    return this.http.get<PaymentTransaction>(`${this.apiUrl}/${encodeURIComponent(id)}`, {
+      withCredentials: true,
+    });
   }
 }

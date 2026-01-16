@@ -11,6 +11,8 @@ import {
   PaymentTransactionsService,
 } from '../../services/payment-transactions.service';
 
+type KpiFilter = 'ALL' | 'SUCCEEDED' | 'PROCESSING' | 'FAILED';
+
 @Component({
   selector: 'app-payment-transactions-page',
   standalone: true,
@@ -19,24 +21,109 @@ import {
   styleUrls: ['./payment-transactions-page.css'],
 })
 export class PaymentTransactionsPage implements OnInit {
-  // Retry handler for error state: show skeleton for 1s, then show error again
-  retryLoadTransactions(): void {
-    this.loading = true;
-    this.skeletonStopped = false;
-    setTimeout(() => {
-      this.skeletonStopped = true;
-      this.loading = false;
-    }, 1000);
+  private readonly api = inject(PaymentTransactionsService);
+  private readonly router = inject(Router);
+  protected readonly auth = inject(AuthService);
+
+  // Header bindings
+  isNavOpen = false;
+
+  get isAuthenticated() {
+    return this.auth.isAuthenticated();
   }
-  skeletonStopped = false;
+  get roleLabel() {
+    return this.auth.primaryRoleLabel();
+  }
+  get userLabel() {
+    const me = this.auth.meSignal();
+    if (!me) return '';
+    const first = me.firstName?.trim();
+    return first || me.email || '';
+  }
+  get userEmail() {
+    return this.auth.meSignal()?.email ?? '';
+  }
+
+  toggleNav() {
+    this.isNavOpen = !this.isNavOpen;
+  }
+  closeNav() {
+    this.isNavOpen = false;
+  }
+  openBooking() {}
+  openSignIn() {}
+
+  signOut() {
+    this.auth.logout().subscribe({
+      next: () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        this.router.navigate(['/']);
+      },
+      error: () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        this.router.navigate(['/']);
+      },
+    });
+  }
+
+  openProfile() {
+    this.router.navigate(['/profile-settings']);
+  }
+
   // KPI filter state
-  activeKpi: 'ALL' | 'PAID' | 'PENDING' | 'FAILED' = 'ALL';
+  activeKpi: KpiFilter = 'ALL';
+
+  // Filters/search/pagination
+  query = '';
+  status: PaymentTransactionStatus | '' = '';
+  fromDate = '';
+  toDate = '';
+  page = 0;
+  size = 20;
+  sort = 'createdAt,desc';
+
+  // Data state
+  loading = false;
+  error: string | null = null;
+  transactions: PaymentTransaction[] = [];
+  total = 0;
+
+  // KPI values (computed from current page results)
+  paidCount = 0;
+  pendingCount = 0;
+  failedCount = 0;
+  summaryRevenue = 0;
+
+  // Skeleton state
+  skeletonStopped = false;
+  get skeletonRows(): number[] {
+    return Array.from({ length: 5 }, (_, i) => i);
+  }
+
+  // Modal state (if you have a modal in the template)
+  selected: PaymentTransaction | null = null;
+  showDetailsModal = false;
+
+  ngOnInit(): void {
+    this.loadTransactions();
+  }
+
+  trackById(index: number, tx: PaymentTransaction) {
+    return tx.id;
+  }
+
+  retryLoadTransactions(): void {
+    this.loadTransactions();
+  }
 
   // Date preset logic
   setDatePreset(preset: 'today' | 'last7' | 'last30' | 'month') {
     const now = new Date();
-    let from = '',
-      to = '';
+    let from = '';
+    let to = '';
+
     if (preset === 'today') {
       from = to = now.toISOString().slice(0, 10);
     } else if (preset === 'last7') {
@@ -53,15 +140,15 @@ export class PaymentTransactionsPage implements OnInit {
       from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
       to = now.toISOString().slice(0, 10);
     }
+
     this.fromDate = from;
     this.toDate = to;
     this.onSearch();
   }
 
   // KPI card click handler
-  onKpiClick(type: 'ALL' | 'PAID' | 'PENDING' | 'FAILED') {
+  onKpiClick(type: KpiFilter) {
     if (this.activeKpi === type) {
-      // Clicking active KPI resets to ALL
       this.activeKpi = 'ALL';
       this.status = '';
     } else {
@@ -71,7 +158,6 @@ export class PaymentTransactionsPage implements OnInit {
     this.onSearch();
   }
 
-  // Override onClearFilters to reset KPI and dates
   onClearFilters(): void {
     this.query = '';
     this.status = '';
@@ -82,142 +168,6 @@ export class PaymentTransactionsPage implements OnInit {
     this.loadTransactions();
   }
 
-  // For skeleton loading rows
-  get skeletonRows(): number[] {
-    return Array.from({ length: 5 }, (_, i) => i);
-  }
-  isProfileOpen = false;
-  protected readonly auth = inject(AuthService);
-
-  // Header bindings
-
-  // Admin header bindings (copied from admin-dashboard)
-  get isAuthenticated() {
-    return this.auth.isAuthenticated();
-  }
-  get roleLabel() {
-    return this.auth.primaryRoleLabel();
-  }
-  get userLabel() {
-    const me = this.auth.meSignal();
-    if (!me) return '';
-    const first = me.firstName?.trim();
-    if (first) return first;
-    return me.email || '';
-  }
-  get userEmail() {
-    return this.auth.meSignal()?.email ?? '';
-  }
-
-  // Admin header actions
-  toggleNav() {
-    this.isNavOpen = !this.isNavOpen;
-  }
-  closeNav() {
-    this.isNavOpen = false;
-  }
-  openBooking() {}
-  openSignIn() {}
-  signOut() {
-    this.auth.logout().subscribe({
-      next: () => {
-        localStorage.clear();
-        sessionStorage.clear();
-        this.router.navigate(['/']);
-      },
-      error: () => {
-        localStorage.clear();
-        sessionStorage.clear();
-        this.router.navigate(['/']);
-      },
-    });
-  }
-  openProfile() {
-    this.router.navigate(['/profile-settings']);
-  }
-
-  closeProfile() {
-    this.isProfileOpen = false;
-    document.body.style.overflow = '';
-  }
-  private readonly api = inject(PaymentTransactionsService);
-  private readonly router = inject(Router);
-
-  // Header bindings
-  isNavOpen = false;
-  today = new Date();
-
-  trackById(index: number, tx: PaymentTransaction) {
-    return tx.id;
-  }
-
-  // Filters/search/sort/pagination
-  query = '';
-  status: PaymentTransactionStatus | '' = '';
-  fromDate = '';
-  toDate = '';
-  page = 0;
-  size = 20;
-  sort = 'createdAt,desc';
-
-  loading = false;
-  error: string | null = null;
-  transactions: PaymentTransaction[] = [];
-  total = 0;
-  paidCount = 0;
-  pendingCount = 0;
-  failedCount = 0;
-  summaryRevenue = 0;
-
-  selected: PaymentTransaction | null = null;
-  showDetailsModal = false;
-
-  ngOnInit(): void {
-    this.loadTransactions();
-  }
-
-  loadTransactions(): void {
-    this.loading = true;
-    this.skeletonStopped = false;
-    this.error = null;
-    const skeletonTimeout = setTimeout(() => {
-      this.skeletonStopped = true;
-    }, 1000);
-    setTimeout(() => {
-      this.api
-        .getTransactions({
-          query: this.query,
-          status: this.status,
-          from: this.fromDate,
-          to: this.toDate,
-          page: this.page,
-          size: this.size,
-          sort: this.sort,
-        })
-        .subscribe({
-          next: (result) => {
-            this.transactions = result.content || [];
-            this.total = result.totalElements || 0;
-            this.paidCount = this.transactions.filter((t) => t.status === 'PAID').length;
-            this.pendingCount = this.transactions.filter((t) => t.status === 'PENDING').length;
-            this.failedCount = this.transactions.filter((t) => t.status === 'FAILED').length;
-            this.summaryRevenue = this.transactions
-              .filter((t) => t.status === 'PAID')
-              .reduce((sum, t) => sum + (t.total || 0), 0);
-            this.loading = false;
-            this.skeletonStopped = true;
-            clearTimeout(skeletonTimeout);
-          },
-          error: () => {
-            this.error = 'Failed to load payment transactions.';
-            this.loading = false;
-            this.skeletonStopped = true;
-            clearTimeout(skeletonTimeout);
-          },
-        });
-    }, 2000);
-  }
-
   onSearch(): void {
     this.page = 0;
     this.loadTransactions();
@@ -226,6 +176,52 @@ export class PaymentTransactionsPage implements OnInit {
   onPageChange(newPage: number): void {
     this.page = newPage;
     this.loadTransactions();
+  }
+
+  loadTransactions(): void {
+    this.loading = true;
+    this.skeletonStopped = false;
+    this.error = null;
+
+    const skeletonTimeout = setTimeout(() => {
+      this.skeletonStopped = true;
+    }, 1000);
+
+    this.api
+      .getTransactions({
+        query: this.query,
+        status: this.status,
+        from: this.fromDate,
+        to: this.toDate,
+        page: this.page,
+        size: this.size,
+        sort: this.sort,
+      })
+      .subscribe({
+        next: (result) => {
+          this.transactions = result.content || [];
+          this.total = result.totalElements || 0;
+
+          // KPIs are computed from the current page results
+          this.paidCount = this.transactions.filter((t) => t.status === 'SUCCEEDED').length;
+          this.pendingCount = this.transactions.filter((t) => t.status === 'PROCESSING').length;
+          this.failedCount = this.transactions.filter((t) => t.status === 'FAILED').length;
+
+          this.summaryRevenue = this.transactions
+            .filter((t) => t.status === 'SUCCEEDED')
+            .reduce((sum, t) => sum + (t.amount ?? 0), 0);
+
+          this.loading = false;
+          this.skeletonStopped = true;
+          clearTimeout(skeletonTimeout);
+        },
+        error: () => {
+          this.error = 'Failed to load payment transactions.';
+          this.loading = false;
+          this.skeletonStopped = true;
+          clearTimeout(skeletonTimeout);
+        },
+      });
   }
 
   openDetailsModal(tx: PaymentTransaction): void {
@@ -267,12 +263,12 @@ export class PaymentTransactionsPage implements OnInit {
   }
 
   getStatusClass(status: PaymentTransactionStatus): string {
-    // Reuse badge classes from reservation pages
-    const statusMap: Record<string, string> = {
-      PAID: 'status-confirmed',
-      PENDING: 'status-pending',
+    const statusMap: Record<PaymentTransactionStatus, string> = {
+      SUCCEEDED: 'status-confirmed',
+      PROCESSING: 'status-pending',
       FAILED: 'status-cancelled',
       REFUNDED: 'status-checked-out',
+      CANCELLED: 'status-default',
     };
     return statusMap[status] || 'status-default';
   }
