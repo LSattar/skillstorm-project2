@@ -9,7 +9,7 @@
 
     <div class="modal-body">
       @if (error) {
-      <div class="error-message">
+      <div class="error-message" role="alert">
         <span class="material-symbols-outlined">error</span>
         <p>{{ error }}</p>
       </div>
@@ -28,6 +28,7 @@
             [(ngModel)]="startDate"
             name="startDate"
             [min]="minDate"
+            (input)="onDateChange()"
             required
           />
         </div>
@@ -40,9 +41,45 @@
             [(ngModel)]="endDate"
             name="endDate"
             [min]="startDate || minDate"
+            (input)="onDateChange()"
             required
           />
         </div>
+
+        @if (checkingAvailability || calculatingPrice) {
+        <div class="info-message checking">
+          <span class="material-symbols-outlined">sync</span>
+          <p>Checking availability and calculating price...</p>
+        </div>
+        }
+
+        @if (availabilityMessage && !checkingAvailability) {
+        <div class="info-message" [class.available]="availabilityMessage.includes('available') && !availabilityMessage.includes('No rooms')" [class.unavailable]="availabilityMessage.includes('No rooms')">
+          <span class="material-symbols-outlined">{{ availabilityMessage.includes('No rooms') ? 'warning' : 'info' }}</span>
+          <p>{{ availabilityMessage }}</p>
+        </div>
+        }
+
+        @if (priceInfo && !calculatingPrice) {
+        <div class="price-info">
+          <div class="price-comparison">
+            <div class="price-item">
+              <span class="price-label">Original Total:</span>
+              <span class="price-value original">{{ formatPrice(priceInfo.originalPrice) }}</span>
+            </div>
+            <div class="price-item">
+              <span class="price-label">New Total ({{ priceInfo.nights }} night{{ priceInfo.nights !== 1 ? 's' : '' }}):</span>
+              <span class="price-value new">{{ formatPrice(priceInfo.newPrice) }}</span>
+            </div>
+            @if (priceInfo.newPrice !== priceInfo.originalPrice) {
+            <div class="price-difference" [class.increase]="priceInfo.newPrice > priceInfo.originalPrice" [class.decrease]="priceInfo.newPrice < priceInfo.originalPrice">
+              <span class="price-label">Difference:</span>
+              <span class="price-value">{{ priceInfo.newPrice > priceInfo.originalPrice ? '+' : '' }}{{ formatPrice(priceInfo.newPrice - priceInfo.originalPrice) }}</span>
+            </div>
+            }
+          </div>
+        </div>
+        }
 
         <div class="form-group">
           <label for="guestCount">Number of Guests</label>
@@ -53,6 +90,7 @@
             name="guestCount"
             min="1"
             max="10"
+            (input)="clearError()"
             required
           />
         </div>

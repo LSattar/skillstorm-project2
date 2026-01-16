@@ -18,7 +18,13 @@
   <div class="guest-dashboard">
     <div class="dashboard-header">
       <h1>My Bookings</h1>
-      <p>Welcome! View and manage your reservations, check in, and review your balances</p>
+      <p>
+        @if (firstName()) {
+        Welcome {{ firstName() }}! Manage your reservations and review your balances
+        } @else {
+        Welcome! Manage your reservations and review your balances
+        }
+      </p>
     </div>
 
     @if (loading) {
@@ -96,10 +102,16 @@
 
           <div class="reservation-details">
             <div class="detail-row">
-              <span class="detail-label">Reservation ID:</span>
-              <span class="detail-value reservation-id"
-                >{{ reservation.reservationId.substring(0, 8) }}...</span
-              >
+              <span class="detail-label">Room Type:</span>
+              <span class="detail-value">{{ getRoomTypeName(reservation.roomTypeId) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Room Number:</span>
+              <span class="detail-value">{{ getRoomNumber(reservation.roomId) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Floor:</span>
+              <span class="detail-value">{{ getRoomFloor(reservation.roomId) }}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Guests:</span>

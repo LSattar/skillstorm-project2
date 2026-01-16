@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -27,6 +27,7 @@ export class ReservationLookup implements OnInit {
   protected readonly reservationService = inject(ReservationService);
   protected readonly router = inject(Router);
   protected readonly http = inject(HttpClient);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly api = environment.apiBaseUrl;
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
@@ -114,11 +115,13 @@ export class ReservationLookup implements OnInit {
         // Apply filters
         this.applyFilters();
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading reservations:', err);
         this.error = 'Failed to load reservations. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -181,6 +184,7 @@ export class ReservationLookup implements OnInit {
     }
 
     this.filteredReservations = filtered;
+    this.cdr.detectChanges();
   }
 
   clearFilters(): void {
@@ -221,6 +225,7 @@ export class ReservationLookup implements OnInit {
     this.closeEditModal();
     // Reapply filters to show updated data
     this.applyFilters();
+    this.cdr.detectChanges();
     // Optionally reload all reservations to ensure consistency
     // this.loadReservations();
   }

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, effect, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { Header } from '../../../../shared/header/header';
 import {
   ReservationResponse,
@@ -10,6 +10,8 @@ import {
 } from '../../../admin/services/reservation.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { HotelResponse, HotelService } from '../../../landing/services/hotel.service';
+import { RoomManagementService } from '../../../admin/services/room-management.service';
+import { RoomTypeService } from '../../../landing/services/room-type.service';
 import { ReservationCancelModal } from '../../components/reservation-cancel-modal/reservation-cancel-modal';
 import { ReservationModifyModal } from '../../components/reservation-modify-modal/reservation-modify-modal';
 
@@ -24,7 +26,10 @@ export class GuestDashboard implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly reservationService = inject(ReservationService);
   protected readonly hotelService = inject(HotelService);
+  protected readonly roomService = inject(RoomManagementService);
+  protected readonly roomTypeService = inject(RoomTypeService);
   protected readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly roleLabel = this.auth.primaryRoleLabel;
@@ -36,6 +41,10 @@ export class GuestDashboard implements OnInit {
     return me.email || '';
   });
   protected readonly userEmail = computed(() => this.auth.meSignal()?.email ?? '');
+  protected readonly firstName = computed(() => {
+    const me = this.auth.meSignal();
+    return me?.firstName?.trim() || '';
+  });
 
   reservations: ReservationResponse[] = [];
   loading = false;
@@ -44,6 +53,8 @@ export class GuestDashboard implements OnInit {
 
   hotels: HotelResponse[] = [];
   hotelMap: Record<string, string> = {};
+  roomMap: Record<string, { roomNumber: string; floor?: string }> = {};
+  roomTypeMap: Record<string, string> = {};
 
   isNavOpen = false;
   showProfileModal = false;
@@ -59,7 +70,10 @@ export class GuestDashboard implements OnInit {
       const me = this.auth.meSignal();
       if (me?.localUserId && !this.reservationsLoaded) {
         this.reservationsLoaded = true;
-        this.loadReservations();
+        // Use setTimeout to ensure change detection runs after effect
+        setTimeout(() => {
+          this.loadReservations();
+        }, 0);
       }
     });
   }
@@ -83,10 +97,12 @@ export class GuestDashboard implements OnInit {
         hotels.forEach((hotel) => {
           this.hotelMap[hotel.hotelId] = hotel.name;
         });
+        this.cdr.detectChanges();
       },
       error: () => {
         // Silently fail - hotel names are not critical
         this.hotelMap = {};
+        this.cdr.detectChanges();
       },
     });
   }
@@ -95,23 +111,66 @@ export class GuestDashboard implements OnInit {
     const me = this.auth.meSignal();
     if (!me?.localUserId) {
       this.error = 'You must be logged in to view your bookings.';
+      this.loading = false;
+      this.cdr.detectChanges();
       return;
     }
 
     this.loading = true;
     this.error = null;
+    this.cdr.detectChanges();
 
     this.reservationService
       .getAllReservations({ userId: me.localUserId })
-      .pipe(finalize(() => (this.loading = false)))
+      .pipe(finalize(() => {
+        this.loading = false;
+        this.cdr.detectChanges();
+      }))
       .subscribe({
         next: (reservations) => {
-          // Sort by creation date (most recent first)
+          // Sort reservations: upcoming > past > cancelled
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
           this.reservations = reservations.sort((a, b) => {
-            const dateA = new Date(a.createdAt).getTime();
-            const dateB = new Date(b.createdAt).getTime();
-            return dateB - dateA;
+            const aEndDate = new Date(a.endDate);
+            aEndDate.setHours(0, 0, 0, 0);
+            const bEndDate = new Date(b.endDate);
+            bEndDate.setHours(0, 0, 0, 0);
+            
+            const aIsCancelled = a.status === 'CANCELLED';
+            const bIsCancelled = b.status === 'CANCELLED';
+            const aIsUpcoming = !aIsCancelled && aEndDate >= today;
+            const bIsUpcoming = !bIsCancelled && bEndDate >= today;
+            const aIsPast = !aIsCancelled && aEndDate < today;
+            const bIsPast = !bIsCancelled && bEndDate < today;
+            
+            // Priority: Upcoming > Past > Cancelled
+            if (aIsUpcoming && !bIsUpcoming) return -1;
+            if (!aIsUpcoming && bIsUpcoming) return 1;
+            if (aIsPast && bIsCancelled) return -1;
+            if (aIsCancelled && bIsPast) return 1;
+            
+            // Within same category, sort by date
+            if (aIsUpcoming && bIsUpcoming) {
+              // Upcoming: sort by startDate ascending (soonest first)
+              const aStartDate = new Date(a.startDate).getTime();
+              const bStartDate = new Date(b.startDate).getTime();
+              return aStartDate - bStartDate;
+            } else if (aIsPast && bIsPast) {
+              // Past: sort by endDate descending (most recent first)
+              return bEndDate.getTime() - aEndDate.getTime();
+            } else if (aIsCancelled && bIsCancelled) {
+              // Cancelled: sort by endDate descending (most recent first)
+              return bEndDate.getTime() - aEndDate.getTime();
+            }
+            
+            // Fallback: by creation date
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
           });
+          
+          // Load room and room type details for all reservations
+          this.loadRoomAndRoomTypeDetails(reservations);
         },
         error: (err) => {
           if (err.error?.detail) {
@@ -232,6 +291,79 @@ export class GuestDashboard implements OnInit {
     return this.hotelMap[hotelId] || `Hotel ${hotelId.substring(0, 8)}`;
   }
 
+  getRoomNumber(roomId: string): string {
+    return this.roomMap[roomId]?.roomNumber || '—';
+  }
+
+  getRoomFloor(roomId: string): string {
+    const floor = this.roomMap[roomId]?.floor;
+    return floor ? `Floor ${floor}` : '—';
+  }
+
+  getRoomTypeName(roomTypeId: string): string {
+    return this.roomTypeMap[roomTypeId] || '—';
+  }
+
+  private loadRoomAndRoomTypeDetails(reservations: ReservationResponse[]): void {
+    // Get unique room IDs and room type IDs
+    const uniqueRoomIds = [...new Set(reservations.map(r => r.roomId).filter(Boolean))];
+    const uniqueRoomTypeIds = [...new Set(reservations.map(r => r.roomTypeId).filter(Boolean))];
+
+    if (uniqueRoomIds.length === 0 && uniqueRoomTypeIds.length === 0) {
+      return;
+    }
+
+    // Create requests for rooms with error handling (return null on error)
+    const roomRequests = uniqueRoomIds.map(roomId =>
+      this.roomService.getRoomById(roomId).pipe(
+        catchError(() => of(null))
+      )
+    );
+
+    // Create requests for room types with error handling (return null on error)
+    const roomTypeRequests = uniqueRoomTypeIds.map(roomTypeId =>
+      this.roomTypeService.getRoomTypeById(roomTypeId).pipe(
+        catchError(() => of(null))
+      )
+    );
+
+    // Fetch all room and room type details in parallel
+    forkJoin({
+      rooms: roomRequests.length > 0 ? forkJoin(roomRequests) : of([]),
+      roomTypes: roomTypeRequests.length > 0 ? forkJoin(roomTypeRequests) : of([]),
+    }).subscribe({
+      next: ({ rooms, roomTypes }) => {
+        // Build room map
+        if (Array.isArray(rooms)) {
+          rooms.forEach((room: any) => {
+            if (room && room.roomId) {
+              this.roomMap[room.roomId] = {
+                roomNumber: room.roomNumber || '—',
+                floor: room.floor,
+              };
+            }
+          });
+        }
+
+        // Build room type map
+        if (Array.isArray(roomTypes)) {
+          roomTypes.forEach((roomType: any) => {
+            if (roomType && roomType.roomTypeId) {
+              this.roomTypeMap[roomType.roomTypeId] = roomType.name || '—';
+            }
+          });
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        // Silently fail - room details are not critical
+        console.error('Error loading room/room type details:', err);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
   hasBalance(reservation: ReservationResponse): boolean {
     // Show pay button for reservations that need payment (PENDING or CONFIRMED status)
     return (
@@ -263,6 +395,7 @@ export class GuestDashboard implements OnInit {
     this.closeModifyModal();
     // Reload reservations to ensure data is fresh
     this.loadReservations();
+    this.cdr.detectChanges();
   }
 
   openCancelModal(reservation: ReservationResponse): void {
@@ -283,6 +416,7 @@ export class GuestDashboard implements OnInit {
     this.closeCancelModal();
     // Reload reservations to ensure data is fresh
     this.loadReservations();
+    this.cdr.detectChanges();
   }
 
   canModify(reservation: ReservationResponse): boolean {
