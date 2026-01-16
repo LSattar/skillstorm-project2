@@ -1,2 +1,102 @@
-# Local debugging artifacts
-/tmp/eb-logs/
+# Consolidated .gitignore for the entire repository
+
+# === Java / Maven / Spring Boot ===
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# === Node / Angular ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# === Environment / Secrets ===
+.env
+.env.*
+application-local.yml
+application-local.yaml
+application-dev.yml
+application-dev.yaml
+application-prod.yml
+application-prod.yaml
+
+# === OS / System ===
+.DS_Store
+Thumbs.db
+
+# === IDEs and Editors ===
+.idea
+*.iws
+*.iml
+*.ipr
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.springBeans
+.sts4-cache
+.apt_generated
+.factorypath
+
+# === NetBeans ===
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# === VS Code ===
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# === Logs ===
+*.log
+logs/
+
+# === Coverage ===
+coverage/
+jacoco/
+*.exec
+/coverage
+
+# === Local DB / Docker (optional) ===
+docker-data/
+.pgdata/
+
+# === Elastic Beanstalk local bundle artifacts ===
+eb-bundle/
+bundle.zip
+
+# === Miscellaneous ===
+/.angular/cache
+.sass-cache/
+/connect.lock
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__/
+
+# === Ignore any sibling backend build output accidentally seen by this repo ===
+../backend/**/target/
+../backend/**/*.class
+**/target/
+**/*.class

@@ -5,5 +5,6 @@ export const environment = {
   // For AWS/prod testing, use:
   apiBaseUrl: 'https://dnyc0q77vtas5.cloudfront.net/api',
   // Stripe publishable key (replace with your actual key)
-  stripePublishableKey: 'pk_test_your_publishable_key_here',
+  stripePublishableKey:
+    'pk_test_51Sq4TlEIJnYCUxBARQiucW6ISxxVBZOUEaFQd2ljZVyKrgTrZizXYH6v6nbzOd2bgfiIoNoFfAYP885dbNVBq0Hx00YlfiDsXs',
 };

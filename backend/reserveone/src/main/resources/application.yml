@@ -1,8 +1,21 @@
+# ============================================================
+# STRIPE CONFIGURATION
+# ============================================================
+# Values are supplied by:
+# - Local dev: .env file
+# - Elastic Beanstalk: Environment Properties
+# Never commit real keys.
+
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  api-version: ${STRIPE_API_VERSION:2023-10-16}
 spring:
   application:
     name: reserveone
 
   config:
+    # Loads .env locally only. EB ignores this and uses Environment Properties instead.
     import: "optional:file:.env[.properties],optional:file:backend/reserveone/.env[.properties]"
 
   devtools:
@@ -17,8 +30,6 @@ spring:
 
   # Persist Spring Security sessions across EB instances (Aurora Postgres)
   # Set SESSION_INIT_SCHEMA=always for one deploy to create tables, then switch back to never
-  # NOTE: 'spring.session.store-type' is valid for Spring Boot with Spring Session JDBC.
-  # If your IDE shows a warning, it is a false positive and can be ignored.
   session:
     store-type: jdbc
     jdbc:
@@ -39,7 +50,7 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format-sql: true
+        format_sql: true
 
   security:
     oauth2:
