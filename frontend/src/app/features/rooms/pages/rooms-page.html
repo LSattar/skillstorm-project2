@@ -1,3 +1,19 @@
+<!-- Search Results Modal -->
+<app-room-search-results
+  [open]="isResultsOpen"
+  [resultsData]="searchResultsData"
+  (closed)="closeResults()"
+  (modifySearch)="onModifySearch()"
+  (bookingComplete)="onBookingComplete()"
+  (signInRequired)="onSignInRequired()"
+></app-room-search-results>
+<!-- Booking Modal -->
+<app-room-search-modal
+  [open]="isBookingOpen"
+  (closed)="closeBooking()"
+  (searchResults)="onSearchResults($event)"
+  (signInRequired)="onSignInRequired()"
+></app-room-search-modal>
 <app-header
   [isNavOpen]="isNavOpen"
   [isAuthenticated]="isAuthenticated()"
@@ -37,7 +53,9 @@
         </div>
         <div class="room-price">$189/night</div>
         <div class="room-actions">
-          <button class="btn btn-primary" type="button">Book Now</button>
+          <button class="btn btn-primary" type="button" (click)="openBooking('King Bed Room')">
+            Book Now
+          </button>
           <button
             class="btn btn-secondary"
             type="button"
@@ -65,7 +83,9 @@
         </div>
         <div class="room-price">$209/night</div>
         <div class="room-actions">
-          <button class="btn btn-primary" type="button">Book Now</button>
+          <button class="btn btn-primary" type="button" (click)="openBooking('Double Queen Room')">
+            Book Now
+          </button>
           <button
             class="btn btn-secondary"
             type="button"
@@ -95,12 +115,33 @@
         </div>
         <div class="room-price">$179–$199/night</div>
         <div class="room-actions">
-          <button class="btn btn-primary" type="button">Book Now</button>
+          <button class="btn btn-primary" type="button" (click)="openBooking('Sofa Room')">
+            Book Now
+          </button>
           <button class="btn btn-secondary" type="button" (click)="openDetailsModal('Sofa Room')">
             Details
           </button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Room Search Modal (global, outside rooms-grid) -->
+<div
+  class="rooms-modal-overlay"
+  *ngIf="showRoomSearchModal"
+  role="dialog"
+  aria-modal="true"
+  (click)="closeRoomSearchModal()"
+>
+  <div class="rooms-modal-panel" (click)="$event.stopPropagation()">
+    <button class="rooms-modal-close" type="button" (click)="closeRoomSearchModal()">
+      &times;
+    </button>
+    <div class="rooms-modal-content">
+      <h2>Room Search</h2>
+      <p>Room search modal goes here. (Implement search form and logic as needed.)</p>
     </div>
   </div>
 </div>

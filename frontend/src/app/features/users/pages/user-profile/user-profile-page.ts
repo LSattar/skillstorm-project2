@@ -1,10 +1,14 @@
 import { CommonModule, DOCUMENT } from '@angular/common';
-import { ChangeDetectorRef, Component, effect, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, effect, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
-import { UserProfile, UserProfileService, UserProfileUpdate } from '../../user-profile.service';
+import {
+  UserProfile,
+  UserProfileService,
+  UserProfileUpdate,
+} from '../../services/user-profile.service';
 import { ToastService } from './../../../../shared/services/toast.service';
 
 @Component({
@@ -71,7 +75,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
         this.loadProfile();
       }
     });
-    
+
     // Try to load profile immediately if auth is already ready
     const me = this.auth.meSignal();
     if (me?.localUserId && !this.profileLoaded) {

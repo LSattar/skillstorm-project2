@@ -4,23 +4,69 @@ import { Router } from '@angular/router';
 
 import { Header } from '../../../shared/header/header'; // <-- adjust path if needed
 import { AuthService } from '../../auth/services/auth.service'; // <-- adjust path if needed
+import { RoomSearchModal } from '../../landing/components/room-search-modal/room-search-modal';
+import { RoomSearchResults } from '../../landing/components/room-search-results/room-search-results';
 import { CarouselComponent } from '../components/carousel';
 
 @Component({
   selector: 'app-rooms-page',
   standalone: true,
-  imports: [CommonModule, CarouselComponent, Header],
+  imports: [CommonModule, CarouselComponent, Header, RoomSearchModal, RoomSearchResults],
   templateUrl: './rooms-page.html',
   styleUrls: ['./rooms-page.css'],
 })
 export class RoomsPage {
-  constructor() {
-    // Preload all room images for instant display
-    const allRoomImages = [...this.kingRoomImages, ...this.queenRoomImages, ...this.sofaRoomImages];
-    allRoomImages.forEach((src) => {
-      const img = new window.Image();
-      img.src = src;
-    });
+  showRoomSearchModal = false;
+
+  openRoomSearchModal() {
+    this.showRoomSearchModal = true;
+    this.lockScroll();
+  }
+
+  closeRoomSearchModal() {
+    this.showRoomSearchModal = false;
+    this.unlockScrollIfNoModal();
+  }
+  bookingRoomType: string | null = null;
+  // isBookingOpen is already declared above, remove duplicate
+  isResultsOpen = false;
+  searchResultsData: any = null;
+
+  closeResults() {
+    this.isResultsOpen = false;
+    this.searchResultsData = null;
+    this.unlockScrollIfNoModal();
+  }
+
+  openBooking(roomType?: string | null) {
+    this.bookingRoomType = roomType ?? null;
+    this.isBookingOpen = true;
+    this.lockScroll();
+  }
+
+  onModifySearch() {
+    this.isResultsOpen = false;
+    this.openBooking(this.bookingRoomType);
+  }
+
+  onBookingComplete() {
+    this.isResultsOpen = false;
+    // Optionally show a confirmation modal or message
+  }
+
+  onSearchResults(event: any) {
+    // Pass the selected room type from booking modal to results modal
+    if (this.bookingRoomType) {
+      event.selectedRoomType = this.bookingRoomType;
+    }
+    this.searchResultsData = event;
+    this.isResultsOpen = true;
+    this.closeBooking();
+  }
+
+  onSignInRequired() {
+    this.closeBooking();
+    // Optionally, implement sign-in modal logic here
   }
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
@@ -52,9 +98,11 @@ export class RoomsPage {
     this.isNavOpen = false;
   }
 
-  openBooking() {
-    // Rooms page doesn't have the booking modal, so just route home and let landing open it (optional)
-    this.router.navigate(['/']);
+  isBookingOpen = false;
+
+  closeBooking() {
+    this.isBookingOpen = false;
+    this.unlockScrollIfNoModal();
   }
 
   openSignIn() {
@@ -63,8 +111,23 @@ export class RoomsPage {
   }
 
   signOut() {
-    this.auth.logout?.(); // if your AuthService has logout(); otherwise call your existing method
-    this.router.navigate(['/']);
+    if (typeof this.auth.logout === 'function') {
+      const result = this.auth.logout();
+      if (result && typeof result.subscribe === 'function') {
+        result.subscribe({
+          next: () => {
+            this.router.navigate(['/']);
+          },
+          error: () => {
+            this.router.navigate(['/']);
+          },
+        });
+      } else {
+        this.router.navigate(['/']);
+      }
+    } else {
+      this.router.navigate(['/']);
+    }
   }
 
   openProfile() {
@@ -137,7 +200,12 @@ export class RoomsPage {
   }
 
   unlockScrollIfNoModal() {
-    if (!this.showDetailsModal && !this.showBathroomModal) {
+    if (
+      !this.showDetailsModal &&
+      !this.showBathroomModal &&
+      !this.isBookingOpen &&
+      !this.isResultsOpen
+    ) {
       document.body.style.overflow = '';
     }
   }
