@@ -7,6 +7,52 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# === General Exclusions (do not commit to git) ===
+.DS_Store
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+*.env
+*.local
+*.secret
+*.bak
+*.old
+*.orig
+*.rej
+*.lock
+
+# === Node / Angular (frontend) ===
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.vscode/
+
+# === IDEs and Editors ===
+.vscode/
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# === Backend build and deployment ===
+backend/reserveone/target/
+backend/reserveone/.env
+backend/reserveone/bundle.zip
+backend/reserveone/eb-bundle/application.jar
+backend/reserveone/eb-bundle/.ebextensions/
+backend/reserveone/eb-bundle/.platform/
+backend/reserveone/.DS_Store
+
+# === System ===
+Thumbs.db
+
 # === Node / Angular ===
 node_modules/
 npm-debug.log*

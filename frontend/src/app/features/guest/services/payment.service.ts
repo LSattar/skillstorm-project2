@@ -33,17 +33,17 @@ export class PaymentService {
    * Create a Stripe PaymentIntent
    * Amount + currency are resolved by backend from Reservation
    */
-  createPaymentIntent(reservationId: string): Observable<PaymentIntentResponse> {
+  createPaymentIntent(params: {
+    reservationId: string;
+    amount: number;
+    currency: string;
+  }): Observable<PaymentIntentResponse> {
     return this.ensureCsrfToken().pipe(
       switchMap((csrf) =>
-        this.http.post<PaymentIntentResponse>(
-          `${this.api}/payments/intents`,
-          { reservationId },
-          {
-            withCredentials: true,
-            headers: csrf?.token ? { [csrf.headerName || 'X-XSRF-TOKEN']: csrf.token } : undefined,
-          }
-        )
+        this.http.post<PaymentIntentResponse>(`${this.api}/payments/intents`, params, {
+          withCredentials: true,
+          headers: csrf?.token ? { [csrf.headerName || 'X-XSRF-TOKEN']: csrf.token } : undefined,
+        })
       )
     );
   }
