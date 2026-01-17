@@ -135,6 +135,24 @@ export class Header implements OnDestroy, AfterViewInit {
     this.closeNav.emit();
   }
 
+  scrollToReports(event: Event): void {
+    event.preventDefault();
+    // Only scroll if we're on the admin dashboard
+    if (this.currentRoute === '/admin-dashboard') {
+      const reportsSection = document.getElementById('reports');
+      if (reportsSection) {
+        reportsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // Navigate to admin dashboard with reports fragment if not already there
+        this.router.navigate(['/admin-dashboard'], { fragment: 'reports' });
+      }
+    } else {
+      // Navigate to admin dashboard with reports fragment
+      this.router.navigate(['/admin-dashboard'], { fragment: 'reports' });
+    }
+    this.closeNav.emit();
+  }
+
   ngOnDestroy(): void {
     this.removeGlobalClickListener();
   }

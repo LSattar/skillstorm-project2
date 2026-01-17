@@ -52,5 +52,23 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
         @Param("statuses") List<Status> statuses,
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate);
+    
+    // Find cancelled reservations within a date range
+    @Query("SELECT r FROM Reservation r WHERE r.status = :status AND " +
+           "r.cancelledAt >= :startDate AND r.cancelledAt < :endDate")
+    List<Reservation> findByStatusAndCancelledAtBetween(
+        @Param("status") Status status,
+        @Param("startDate") java.time.OffsetDateTime startDate,
+        @Param("endDate") java.time.OffsetDateTime endDate);
+    
+    // Find cancelled reservations for a hotel within a date range
+    @Query("SELECT r FROM Reservation r WHERE r.hotel.hotelId = :hotelId AND " +
+           "r.status = :status AND " +
+           "r.cancelledAt >= :startDate AND r.cancelledAt < :endDate")
+    List<Reservation> findByHotel_HotelIdAndStatusAndCancelledAtBetween(
+        @Param("hotelId") UUID hotelId,
+        @Param("status") Status status,
+        @Param("startDate") java.time.OffsetDateTime startDate,
+        @Param("endDate") java.time.OffsetDateTime endDate);
 }
 

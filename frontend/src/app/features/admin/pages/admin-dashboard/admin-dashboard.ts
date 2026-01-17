@@ -66,6 +66,7 @@ export class AdminDashboard implements OnInit {
   error: string | null = null;
   totalRevenueLast12 = 0;
   totalBookingsLast12 = 0;
+  cancellationsPastWeek = 0;
 
   isNavOpen = false;
   today = new Date();
@@ -97,6 +98,7 @@ export class AdminDashboard implements OnInit {
       monthlyRevenue: this.adminMetricsService.getMonthlyRevenue(),
       alerts: this.adminMetricsService.getAlerts(),
       recentBookings: this.adminMetricsService.getRecentBookings(10),
+      cancellationsPastWeek: this.adminMetricsService.getCancellationsInPastWeek(),
       hotels: this.http.get<Array<{ hotelId: string; name: string }>>(`${this.api}/hotels`, {
         withCredentials: true,
       }).pipe(
@@ -127,6 +129,7 @@ export class AdminDashboard implements OnInit {
         this.operationalMetrics = data.operationalMetrics;
         this.monthlyRevenue = data.monthlyRevenue;
         this.alerts = data.alerts;
+        this.cancellationsPastWeek = data.cancellationsPastWeek;
         
         // Enrich bookings with hotel and guest names
         this.recentBookings = data.recentBookings.map((booking) => ({

@@ -64,6 +64,11 @@
                 >{{ operationalMetrics.occupiedRooms }} of
                 {{ operationalMetrics.totalRooms }} rooms</span
               >
+              @if (cancellationsPastWeek > 0) {
+              <span class="stat-subtext stat-warning"
+                >{{ cancellationsPastWeek }} cancellation{{ cancellationsPastWeek !== 1 ? 's' : '' }} in past week</span
+              >
+              }
             </div>
           </div>
 
@@ -179,7 +184,30 @@
           </table>
         </div>
       </section>
-      } }
+      }
+
+      <!-- Reports Section -->
+      <section class="reports-section" id="reports">
+        <div class="section-header">
+          <h2>Reports & Analytics</h2>
+          <p class="section-description">Comprehensive insights into your hotel operations</p>
+        </div>
+        <div class="reports-grid">
+          <div class="report-card">
+            <span class="report-icon material-symbols-outlined" aria-hidden="true">hotel</span>
+            <h3>Occupancy Reports</h3>
+            <p>Occupancy rates by room type, date ranges, and peak period analysis</p>
+            <a routerLink="/admin/occupancy-reports" class="btn btn-primary">View Reports</a>
+          </div>
+          <div class="report-card">
+            <span class="report-icon material-symbols-outlined" aria-hidden="true">payments</span>
+            <h3>Financial Reports</h3>
+            <p>Payment transactions, refunds, outstanding balances, and revenue breakdowns</p>
+            <a routerLink="/payment-transactions" class="btn btn-primary">View Transactions</a>
+          </div>
+        </div>
+      </section>
+      }
     </div>
   </div>
 </main>
