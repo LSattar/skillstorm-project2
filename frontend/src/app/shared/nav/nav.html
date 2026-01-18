@@ -16,19 +16,19 @@
       <ng-container *ngIf="isAdmin && isOnAdminDashboard; else landingNav">
         <li>
           <a
-            href="#reservations"
-            (click)="$event.preventDefault(); scrollToSection('reservations'); close.emit()"
+            href="#revenue"
+            (click)="$event.preventDefault(); scrollToSection('revenue'); close.emit()"
           >
-            Reservations
+            Revenue
           </a>
         </li>
 
         <li>
           <a
-            href="#revenue"
-            (click)="$event.preventDefault(); scrollToSection('revenue'); close.emit()"
+            href="#reservations"
+            (click)="$event.preventDefault(); scrollToSection('reservations'); close.emit()"
           >
-            Revenue
+            Reservations
           </a>
         </li>
 

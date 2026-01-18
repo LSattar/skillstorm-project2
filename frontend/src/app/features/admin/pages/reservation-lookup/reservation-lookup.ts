@@ -44,13 +44,15 @@ export class ReservationLookup implements OnInit {
   // Search form
   searchReservationId = '';
   searchGuestLastName = '';
-  searchHotelName = '';
+  searchHotelId = '';
   searchStatus: ReservationStatus | '' = '';
   searchStartDate = '';
   searchEndDate = '';
 
+  // Hotels for dropdown
+  hotels: Array<{ hotelId: string; name: string }> = [];
+
   // Results
-  reservations: (ReservationResponse & { hotelName?: string; guestName?: string })[] = [];
   filteredReservations: (ReservationResponse & { hotelName?: string; guestName?: string })[] = [];
   loading = false;
   error: string | null = null;
@@ -73,6 +75,32 @@ export class ReservationLookup implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.loadHotels();
+  }
+
+  loadHotels(): void {
+    this.http.get<Array<{ hotelId: string; name: string }>>(`${this.api}/hotels`, {
+      withCredentials: true,
+    }).subscribe({
+      next: (hotels) => {
+        this.hotels = hotels;
+        // Build hotel name map
+        this.hotelNames = {};
+        hotels.forEach((hotel) => {
+          this.hotelNames[hotel.hotelId] = hotel.name;
+        });
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading hotels:', err);
+        this.hotels = [];
+        this.hotelNames = {};
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  onSearch(): void {
     this.loadReservations();
   }
 
@@ -80,22 +108,45 @@ export class ReservationLookup implements OnInit {
     this.loading = true;
     this.error = null;
 
+    // Prepare search parameters
+    const searchParams: {
+      reservationId?: string;
+      guestLastName?: string;
+      hotelId?: string;
+      status?: ReservationStatus | '';
+      startDateFrom?: string;
+      endDateTo?: string;
+    } = {};
+
+    if (this.searchReservationId.trim()) {
+      searchParams.reservationId = this.searchReservationId.trim();
+    }
+    if (this.searchGuestLastName.trim()) {
+      searchParams.guestLastName = this.searchGuestLastName.trim();
+    }
+    if (this.searchHotelId) {
+      searchParams.hotelId = this.searchHotelId;
+    }
+    if (this.searchStatus) {
+      searchParams.status = this.searchStatus;
+    }
+    if (this.searchStartDate) {
+      // Ensure date is in YYYY-MM-DD format
+      searchParams.startDateFrom = this.searchStartDate;
+    }
+    if (this.searchEndDate) {
+      // Ensure date is in YYYY-MM-DD format
+      searchParams.endDateTo = this.searchEndDate;
+    }
+
+    // Load reservations with filters and users for name mapping
     forkJoin({
-      reservations: this.reservationService.getAllReservations(),
-      hotels: this.http.get<Array<{ hotelId: string; name: string }>>(`${this.api}/hotels`, {
-        withCredentials: true,
-      }),
+      reservations: this.reservationService.searchReservations(searchParams),
       users: this.http.get<Array<{ userId: string; firstName?: string; lastName?: string; email: string }>>(`${this.api}/users/search?q=&limit=1000`, {
         withCredentials: true,
       }),
     }).subscribe({
       next: (data) => {
-        // Build hotel name map
-        this.hotelNames = {};
-        data.hotels.forEach((hotel) => {
-          this.hotelNames[hotel.hotelId] = hotel.name;
-        });
-
         // Build guest name map
         this.guestNames = {};
         data.users.forEach((user) => {
@@ -106,14 +157,12 @@ export class ReservationLookup implements OnInit {
         });
 
         // Enrich reservations with hotel and guest names
-        this.reservations = data.reservations.map((reservation) => ({
+        this.filteredReservations = data.reservations.map((reservation) => ({
           ...reservation,
           hotelName: this.hotelNames[reservation.hotelId] || reservation.hotelId,
           guestName: this.guestNames[reservation.userId] || reservation.userId,
         }));
 
-        // Apply filters
-        this.applyFilters();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -126,75 +175,14 @@ export class ReservationLookup implements OnInit {
     });
   }
 
-  onSearch(): void {
-    // Reapply filters on search
-    this.applyFilters();
-  }
-
-  applyFilters(): void {
-    let filtered = [...this.reservations];
-
-    // Filter by reservation ID
-    if (this.searchReservationId.trim()) {
-      const searchId = this.searchReservationId.trim().toLowerCase();
-      filtered = filtered.filter((r) => r.reservationId.toLowerCase().includes(searchId));
-    }
-
-    // Filter by guest last name
-    if (this.searchGuestLastName.trim()) {
-      const searchLastName = this.searchGuestLastName.trim().toLowerCase();
-      filtered = filtered.filter((r) => {
-        if (!r.guestName) return false;
-        // Extract last name from full name (assuming format "FirstName LastName")
-        const parts = r.guestName.trim().split(/\s+/);
-        const lastName = parts.length > 1 ? parts[parts.length - 1] : parts[0];
-        return lastName.toLowerCase().includes(searchLastName);
-      });
-    }
-
-    // Filter by hotel name
-    if (this.searchHotelName.trim()) {
-      const searchHotelName = this.searchHotelName.trim().toLowerCase();
-      filtered = filtered.filter((r) => {
-        if (!r.hotelName) return false;
-        return r.hotelName.toLowerCase().includes(searchHotelName);
-      });
-    }
-
-    // Filter by status
-    if (this.searchStatus) {
-      filtered = filtered.filter((r) => r.status === this.searchStatus);
-    }
-
-    // Filter by date range
-    if (this.searchStartDate) {
-      const startDate = new Date(this.searchStartDate);
-      filtered = filtered.filter((r) => {
-        const rStartDate = new Date(r.startDate);
-        return rStartDate >= startDate;
-      });
-    }
-
-    if (this.searchEndDate) {
-      const endDate = new Date(this.searchEndDate);
-      filtered = filtered.filter((r) => {
-        const rEndDate = new Date(r.endDate);
-        return rEndDate <= endDate;
-      });
-    }
-
-    this.filteredReservations = filtered;
-    this.cdr.detectChanges();
-  }
-
   clearFilters(): void {
     this.searchReservationId = '';
     this.searchGuestLastName = '';
-    this.searchHotelName = '';
+    this.searchHotelId = '';
     this.searchStatus = '';
     this.searchStartDate = '';
     this.searchEndDate = '';
-    this.applyFilters();
+    this.filteredReservations = [];
   }
 
   openEditModal(reservation: ReservationResponse): void {
@@ -208,26 +196,9 @@ export class ReservationLookup implements OnInit {
   }
 
   onReservationUpdated(updatedReservation?: ReservationResponse): void {
-    if (updatedReservation && this.selectedReservation) {
-      // Update the reservation in the list
-      const index = this.reservations.findIndex(
-        (r) => r.reservationId === this.selectedReservation?.reservationId
-      );
-      if (index !== -1) {
-        // Preserve hotel and guest names
-        this.reservations[index] = {
-          ...updatedReservation,
-          hotelName: this.hotelNames[updatedReservation.hotelId] || updatedReservation.hotelId,
-          guestName: this.guestNames[updatedReservation.userId] || updatedReservation.userId,
-        };
-      }
-    }
     this.closeEditModal();
-    // Reapply filters to show updated data
-    this.applyFilters();
-    this.cdr.detectChanges();
-    // Optionally reload all reservations to ensure consistency
-    // this.loadReservations();
+    // Reload reservations with current filters to ensure consistency
+    this.loadReservations();
   }
 
   formatCurrency(amount: number): string {

@@ -1,8 +1,10 @@
 package com.skillstorm.reserveone.controllers;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.skillstorm.reserveone.dto.ReservationRequestDTO;
 import com.skillstorm.reserveone.dto.ReservationResponseDTO;
+import com.skillstorm.reserveone.models.Reservation.Status;
 import com.skillstorm.reserveone.services.ReservationService;
 
 import jakarta.validation.Valid;
@@ -46,7 +49,25 @@ public class ReservationController {
     public List<ReservationResponseDTO> readAll(
             @RequestParam(required = false) UUID userId,
             @RequestParam(required = false) UUID hotelId,
-            @RequestParam(required = false) UUID roomId) {
+            @RequestParam(required = false) UUID roomId,
+            // Search parameters
+            @RequestParam(required = false) String reservationId,
+            @RequestParam(required = false) String guestLastName,
+            @RequestParam(required = false) Status status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDateTo) {
+        
+        // If any search parameters are provided, use search method
+        boolean hasSearchParams = reservationId != null || guestLastName != null || 
+            hotelId != null || status != null || startDateFrom != null || endDateTo != null;
+        
+        if (hasSearchParams) {
+            return service.searchReservations(
+                reservationId, guestLastName, hotelId, status,
+                startDateFrom, null, null, endDateTo);
+        }
+        
+        // Otherwise use simple filters (backward compatibility)
         if (userId != null) {
             return service.readByUserId(userId);
         }

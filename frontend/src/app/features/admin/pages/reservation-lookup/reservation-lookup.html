@@ -25,7 +25,6 @@
               type="text"
               id="searchReservationId"
               [(ngModel)]="searchReservationId"
-              (input)="applyFilters()"
               placeholder="Enter reservation ID"
             />
           </div>
@@ -35,25 +34,23 @@
               type="text"
               id="searchGuestLastName"
               [(ngModel)]="searchGuestLastName"
-              (input)="applyFilters()"
               placeholder="Enter guest's last name"
             />
           </div>
           <div class="form-group">
-            <label for="searchHotelName">Hotel Name</label>
-            <input
-              type="text"
-              id="searchHotelName"
-              [(ngModel)]="searchHotelName"
-              (input)="applyFilters()"
-              placeholder="Enter hotel name"
-            />
+            <label for="searchHotelId">Hotel</label>
+            <select id="searchHotelId" [(ngModel)]="searchHotelId" (change)="onSearch()">
+              <option value="">All Hotels</option>
+              @for (hotel of hotels; track hotel.hotelId) {
+              <option [value]="hotel.hotelId">{{ hotel.name }}</option>
+              }
+            </select>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label for="searchStatus">Status</label>
-            <select id="searchStatus" [(ngModel)]="searchStatus" (change)="applyFilters()">
+            <select id="searchStatus" [(ngModel)]="searchStatus" (change)="onSearch()">
               <option value="">All Statuses</option>
               @for (status of statusOptions; track status) {
               <option [value]="status">{{ status }}</option>
@@ -66,7 +63,6 @@
               type="date"
               id="searchStartDate"
               [(ngModel)]="searchStartDate"
-              (change)="applyFilters()"
             />
           </div>
           <div class="form-group">
@@ -75,7 +71,6 @@
               type="date"
               id="searchEndDate"
               [(ngModel)]="searchEndDate"
-              (change)="applyFilters()"
             />
           </div>
         </div>
@@ -108,10 +103,6 @@
           <p>{{ error }}</p>
           <button class="btn btn-primary" (click)="loadReservations()">Retry</button>
         </div>
-      <div class="error-state">
-        <p>{{ error }}</p>
-        <button class="btn btn-primary" (click)="loadReservations()">Retry</button>
-      </div>
       } @else if (filteredReservations.length === 0) {
       <div class="empty-state">
         <span class="material-symbols-outlined">search_off</span>

@@ -240,15 +240,4 @@ export class OccupancyReportsPage implements OnInit {
   formatPercent(value: number): string {
     return `${value.toFixed(1)}%`;
   }
-
-  getMaxOccupancyRate(): number {
-    if (this.occupancyData.length === 0) return 100;
-    return Math.max(...this.occupancyData.map((d) => d.occupancyRate), 0);
-  }
-
-  getBarHeight(rate: number): number {
-    const max = this.getMaxOccupancyRate();
-    if (max === 0) return 0;
-    return Math.max((rate / max) * 100, 2);
-  }
 }

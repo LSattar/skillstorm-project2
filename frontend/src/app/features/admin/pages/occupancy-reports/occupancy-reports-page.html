@@ -18,7 +18,6 @@
     <div class="page-content occupancy-reports-page">
       <div class="page-header">
         <h1>Occupancy Reports</h1>
-        <p class="subtitle">Analyze room occupancy rates, check-ins, and check-outs over time.</p>
       </div>
 
       <!-- Current Metrics -->
@@ -100,7 +99,7 @@
       </section>
       }
 
-      <!-- Occupancy Chart -->
+      <!-- Detailed Table -->
       @if (loading) {
       <div class="loading-state">
         <p>Loading occupancy data...</p>
@@ -111,27 +110,6 @@
         <button class="btn btn-primary" (click)="loadData()">Retry</button>
       </div>
       } @else if (occupancyData.length > 0) {
-      <section class="chart-section">
-        <h2>Occupancy Rate Over Time</h2>
-        <div class="occupancy-chart">
-          <div class="chart-bars">
-            @for (data of occupancyData; track data.date) {
-            <div class="chart-bar-container">
-              <div class="chart-bar-wrapper">
-                <div class="chart-bar" [style.height.%]="getBarHeight(data.occupancyRate)">
-                  <span class="bar-value">{{ formatPercent(data.occupancyRate) }}</span>
-                </div>
-              </div>
-              <div class="bar-label">
-                <span class="date-day">{{ formatDate(data.date) }}</span>
-              </div>
-            </div>
-            }
-          </div>
-        </div>
-      </section>
-
-      <!-- Detailed Table -->
       <section class="table-section">
         <h2>Daily Occupancy Details</h2>
         <div class="occupancy-table">

@@ -36,12 +36,6 @@ export class ReservationEditModal implements OnInit {
     specialRequests: '',
   };
 
-  // Editable form fields (display-friendly)
-  selectedHotelId = '';
-  selectedUserId = '';
-  roomNumberInput = '';
-  selectedRoomTypeId = '';
-
   loading = false;
   error: string | null = null;
   showCancelConfirm = false;
@@ -49,94 +43,9 @@ export class ReservationEditModal implements OnInit {
 
   statusOptions: ReservationStatus[] = ['PENDING', 'CONFIRMED', 'CANCELLED', 'CHECKED_IN', 'CHECKED_OUT'];
 
-  // Helper maps for hotel and guest names
-  hotelNames: Record<string, string> = {
-    'hotel-1': 'ReserveOne Downtown',
-    'hotel-2': 'ReserveOne Airport',
-    'hotel-3': 'ReserveOne Beach Resort',
-  };
-
-  guestNames: Record<string, string> = {
-    'user-101': 'Sarah Johnson',
-    'user-102': 'Michael Chen',
-    'user-103': 'Emily Rodriguez',
-    'user-104': 'David Kim',
-    'user-105': 'Jessica Taylor',
-    'user-106': 'Robert Williams',
-    'user-107': 'Amanda Martinez',
-    'user-108': 'Christopher Lee',
-    'user-109': 'Jennifer Brown',
-    'user-110': 'Daniel Garcia',
-    'user-111': 'Lisa Anderson',
-  };
-
-  roomTypes: Record<string, string> = {
-    'standard-double': 'Standard Double',
-    'standard-king': 'Standard King',
-    'deluxe-double': 'Deluxe Double',
-    'deluxe-king': 'Deluxe King',
-    'suite': 'Suite',
-  };
-
-  // Get arrays for dropdowns
-  get hotelOptions(): { id: string; name: string }[] {
-    return Object.entries(this.hotelNames).map(([id, name]) => ({ id, name }));
-  }
-
-  get guestOptions(): { id: string; name: string }[] {
-    return Object.entries(this.guestNames).map(([id, name]) => ({ id, name }));
-  }
-
-  get roomTypeOptions(): { id: string; name: string }[] {
-    return Object.entries(this.roomTypes).map(([id, name]) => ({ id, name }));
-  }
-
-  getCurrentHotelName(): string {
-    return this.hotelNames[this.selectedHotelId] || this.selectedHotelId;
-  }
-
-  getCurrentGuestName(): string {
-    return this.guestNames[this.selectedUserId] || this.selectedUserId;
-  }
-
-  getCurrentRoomTypeName(): string {
-    return this.roomTypes[this.selectedRoomTypeId] || this.selectedRoomTypeId;
-  }
-
-  onHotelChange(): void {
-    this.editForm.hotelId = this.selectedHotelId;
-  }
-
-  onGuestChange(): void {
-    this.editForm.userId = this.selectedUserId;
-  }
-
-  onRoomNumberChange(): void {
-    // Update roomId from room number
-    if (this.roomNumberInput) {
-      const roomNum = this.roomNumberInput.replace(/\D/g, ''); // Extract only digits
-      if (roomNum) {
-        this.editForm.roomId = `room-${roomNum}`;
-      }
-    }
-  }
-
-  onRoomTypeChange(): void {
-    this.editForm.roomTypeId = this.selectedRoomTypeId;
-  }
-
   ngOnInit(): void {
     if (this.reservation) {
-      // Extract room number from roomId
-      const roomId = this.reservation.roomId || '';
-      const roomMatch = roomId.match(/room-?(\d+)/i) || roomId.match(/(\d+)/);
-      this.roomNumberInput = roomMatch ? roomMatch[1] : '';
-
-      // Set selected values for dropdowns
-      this.selectedHotelId = this.reservation.hotelId;
-      this.selectedUserId = this.reservation.userId;
-      this.selectedRoomTypeId = this.reservation.roomTypeId;
-
+      // Initialize form with all required fields (some are read-only but still sent to backend)
       this.editForm = {
         hotelId: this.reservation.hotelId,
         userId: this.reservation.userId,
@@ -159,19 +68,6 @@ export class ReservationEditModal implements OnInit {
 
   onSave(): void {
     if (!this.reservation) return;
-
-    // Ensure all form values are synced from the editable fields
-    this.editForm.hotelId = this.selectedHotelId;
-    this.editForm.userId = this.selectedUserId;
-    this.editForm.roomTypeId = this.selectedRoomTypeId;
-    
-    // Update roomId from room number
-    if (this.roomNumberInput) {
-      const roomNum = this.roomNumberInput.replace(/\D/g, ''); // Extract only digits
-      if (roomNum) {
-        this.editForm.roomId = `room-${roomNum}`;
-      }
-    }
 
     this.loading = true;
     this.error = null;
