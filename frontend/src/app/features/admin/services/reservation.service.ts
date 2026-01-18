@@ -73,6 +73,46 @@ export class ReservationService {
   }
 
   /**
+   * Search reservations with filters
+   */
+  searchReservations(params: {
+    reservationId?: string;
+    guestLastName?: string;
+    hotelId?: string;
+    status?: ReservationStatus | '';
+    startDateFrom?: string; // ISO date string YYYY-MM-DD
+    endDateTo?: string; // ISO date string YYYY-MM-DD
+  }): Observable<ReservationResponse[]> {
+    const queryParams: Record<string, string> = {};
+    
+    if (params.reservationId?.trim()) {
+      queryParams['reservationId'] = params.reservationId.trim();
+    }
+    if (params.guestLastName?.trim()) {
+      queryParams['guestLastName'] = params.guestLastName.trim();
+    }
+    if (params.hotelId) {
+      queryParams['hotelId'] = params.hotelId;
+    }
+    if (params.status) {
+      queryParams['status'] = params.status;
+    }
+    if (params.startDateFrom) {
+      queryParams['startDateFrom'] = params.startDateFrom;
+    }
+    if (params.endDateTo) {
+      queryParams['endDateTo'] = params.endDateTo;
+    }
+
+    const queryString = new URLSearchParams(queryParams).toString();
+    const url = `${this.api}/reservations${queryString ? `?${queryString}` : ''}`;
+
+    return this.http.get<ReservationResponse[]>(url, {
+      withCredentials: true,
+    });
+  }
+
+  /**
    * Get a single reservation by ID
    */
   getReservationById(id: string): Observable<ReservationResponse> {

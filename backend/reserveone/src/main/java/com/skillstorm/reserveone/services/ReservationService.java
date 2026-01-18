@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -131,6 +132,95 @@ public class ReservationService {
         return reservationRepository.findByRoom_RoomId(roomId).stream()
             .map(mapper::toResponse)
             .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponseDTO> searchReservations(
+            String reservationId,
+            String guestLastName,
+            UUID hotelId,
+            Status status,
+            LocalDate startDateFrom,
+            LocalDate startDateTo,
+            LocalDate endDateFrom,
+            LocalDate endDateTo) {
+        
+        Specification<Reservation> spec = buildSearchSpecification(
+            reservationId, guestLastName, hotelId, status,
+            startDateFrom, startDateTo, endDateFrom, endDateTo);
+        
+        return reservationRepository.findAll(spec).stream()
+            .map(mapper::toResponse)
+            .collect(Collectors.toList());
+    }
+
+    private Specification<Reservation> buildSearchSpecification(
+            String reservationId,
+            String guestLastName,
+            UUID hotelId,
+            Status status,
+            LocalDate startDateFrom,
+            LocalDate startDateTo,
+            LocalDate endDateFrom,
+            LocalDate endDateTo) {
+        
+        return (root, query, cb) -> {
+            var predicates = cb.conjunction();
+
+            // Filter by reservation ID (partial match on UUID string)
+            if (reservationId != null && !reservationId.isBlank()) {
+                String searchId = reservationId.trim().toLowerCase();
+                predicates = cb.and(predicates, 
+                    cb.like(cb.lower(root.get("reservationId").as(String.class)), 
+                        "%" + searchId + "%"));
+            }
+
+            // Filter by guest last name (from User entity)
+            if (guestLastName != null && !guestLastName.isBlank()) {
+                String searchLastName = guestLastName.trim().toLowerCase();
+                predicates = cb.and(predicates,
+                    cb.like(cb.lower(root.get("user").get("lastName")), 
+                        "%" + searchLastName + "%"));
+            }
+
+            // Filter by hotel ID
+            if (hotelId != null) {
+                predicates = cb.and(predicates, 
+                    cb.equal(root.get("hotel").get("hotelId"), hotelId));
+            }
+
+            // Filter by status
+            if (status != null) {
+                predicates = cb.and(predicates, 
+                    cb.equal(root.get("status"), status));
+            }
+
+            // Filter by start date range (check-in from)
+            if (startDateFrom != null) {
+                predicates = cb.and(predicates, 
+                    cb.greaterThanOrEqualTo(root.get("startDate"), startDateFrom));
+            }
+
+            // Filter by start date range (check-in to)
+            if (startDateTo != null) {
+                predicates = cb.and(predicates, 
+                    cb.lessThanOrEqualTo(root.get("startDate"), startDateTo));
+            }
+
+            // Filter by end date range (check-out from)
+            if (endDateFrom != null) {
+                predicates = cb.and(predicates, 
+                    cb.greaterThanOrEqualTo(root.get("endDate"), endDateFrom));
+            }
+
+            // Filter by end date range (check-out to)
+            if (endDateTo != null) {
+                predicates = cb.and(predicates, 
+                    cb.lessThanOrEqualTo(root.get("endDate"), endDateTo));
+            }
+
+            return predicates;
+        };
     }
 
     public ReservationResponseDTO updateOne(UUID id, ReservationRequestDTO dto) {
