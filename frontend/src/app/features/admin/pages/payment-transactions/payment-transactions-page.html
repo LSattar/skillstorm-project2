@@ -11,7 +11,6 @@
   (openSignIn)="openSignIn()"
   (logout)="signOut()"
   (openProfile)="openProfile()"
-  (openReport)="openReportsModal()"
 ></app-header>
 
 <main>
@@ -209,12 +208,14 @@
                 <td>{{ formatDate(tx.createdAt) || '—' }}</td>
 
                 <td>
-                  <span class="guest-name">{{ tx.guestName || '—' }}</span><br />
+                  <span class="guest-name">{{ tx.guestName || '—' }}</span
+                  ><br />
                   <span class="guest-email">{{ tx.guestEmail || '—' }}</span>
                 </td>
 
                 <td>
-                  <span class="reservation-id">{{ tx.reservationId || '—' }}</span><br />
+                  <span class="reservation-id">{{ tx.reservationId || '—' }}</span
+                  ><br />
                   <span>
                     {{ formatDate(tx.checkIn) || '—' }} - {{ formatDate(tx.checkOut) || '—' }}
                   </span>
@@ -299,7 +300,6 @@
     </div>
   </div>
 </main>
-
 
 <main>
   <div class="container">
