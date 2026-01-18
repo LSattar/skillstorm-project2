@@ -1,12 +1,21 @@
+// admin-dashboard.ts (FULL FILE)
+
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
-import { MonthlyRevenue, Alert, Reservation, AdminMetricsService } from '../../services/admin-metrics.service';
-import { Header } from '../../../../shared/header/header';
-import { AuthService } from '../../../auth/services/auth.service';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, map } from 'rxjs';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { filter, forkJoin, map } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { Header } from '../../../../shared/header/header';
+import { ModalComponent } from '../../../../shared/modal';
+import { AuthService } from '../../../auth/services/auth.service';
+import {
+  AdminMetricsService,
+  Alert,
+  MonthlyRevenue,
+  Reservation,
+} from '../../services/admin-metrics.service';
+import { ReportsService } from '../../services/reports.service';
 
 export type OperationalMetrics = {
   totalRooms: number;
@@ -21,42 +30,21 @@ export type OperationalMetrics = {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, Header],
+  imports: [CommonModule, RouterModule, Header, ModalComponent],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.css',
 })
 export class AdminDashboard implements OnInit {
+  showReportsModal = false;
+
   protected readonly auth = inject(AuthService);
   protected readonly router = inject(Router);
   protected readonly adminMetricsService = inject(AdminMetricsService);
   protected readonly http = inject(HttpClient);
+
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly api = environment.apiBaseUrl;
-
-  goToSystemSettings() {
-    this.router.navigate(['/admin/system-settings']);
-  }
-
-  // Show Payment Transactions in header if admin
-  get showPaymentTransactions(): boolean {
-    return this.auth.isAdmin();
-  }
-
-  // Navigate to payment transactions page
-  goToPaymentTransactions(): void {
-    this.router.navigate(['/admin/payment-transactions']);
-  }
-
-  protected readonly isAuthenticated = this.auth.isAuthenticated;
-  protected readonly roleLabel = this.auth.primaryRoleLabel;
-  protected readonly userLabel = computed(() => {
-    const me = this.auth.meSignal();
-    if (!me) return '';
-    const first = me.firstName?.trim();
-    if (first) return first;
-    return me.email || '';
-  });
-  protected readonly userEmail = computed(() => this.auth.meSignal()?.email ?? '');
+  private readonly reportsService = inject(ReportsService);
 
   operationalMetrics: OperationalMetrics | null = null;
   monthlyRevenue: MonthlyRevenue[] = [];
@@ -71,21 +59,66 @@ export class AdminDashboard implements OnInit {
   isNavOpen = false;
   today = new Date();
 
+  protected readonly isAuthenticated = this.auth.isAuthenticated;
+  protected readonly roleLabel = this.auth.primaryRoleLabel;
+  protected readonly userLabel = computed(() => {
+    const me = this.auth.meSignal();
+    if (!me) return '';
+    const first = me.firstName?.trim();
+    if (first) return first;
+    return me.email || '';
+  });
+  protected readonly userEmail = computed(() => this.auth.meSignal()?.email ?? '');
+
   ngOnInit(): void {
     this.loadDashboardData();
-    // Scroll to fragment if present
-    this.router.events.subscribe((event: any) => {
-      if (event?.constructor?.name === 'NavigationEnd') {
+
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe(() => {
         const fragment = this.router.parseUrl(this.router.url).fragment;
         if (fragment) {
           setTimeout(() => {
             const el = document.getElementById(fragment);
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }, 100);
         }
-      }
+      });
+  }
+
+  goToSystemSettings(): void {
+    this.router.navigate(['/admin/system-settings']);
+  }
+
+  goToPaymentTransactions(): void {
+    // FIX: keep consistent with the rest of your app and header menu
+    this.router.navigate(['/payment-transactions']);
+  }
+
+  onOpenReport(): void {
+    this.showReportsModal = true;
+  }
+
+  generatePaymentReport(): void {
+    // 2026-01-01 to 2027-12-31
+    const from = '2026-01-01';
+    const to = '2027-12-31';
+
+    this.reportsService.generatePaymentTransactionReport(from, to).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `payment-transactions-report-${from}_to_${to}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        this.showReportsModal = false;
+      },
+      error: () => {
+        alert('Failed to generate report.');
+      },
     });
   }
 
@@ -99,47 +132,52 @@ export class AdminDashboard implements OnInit {
       alerts: this.adminMetricsService.getAlerts(),
       recentBookings: this.adminMetricsService.getRecentBookings(10),
       cancellationsPastWeek: this.adminMetricsService.getCancellationsInPastWeek(),
-      hotels: this.http.get<Array<{ hotelId: string; name: string }>>(`${this.api}/hotels`, {
-        withCredentials: true,
-      }).pipe(
-        map((hotels) => {
-          const hotelMap: Record<string, string> = {};
-          hotels.forEach((hotel) => {
-            hotelMap[hotel.hotelId] = hotel.name;
-          });
-          return hotelMap;
-        })
-      ),
-      users: this.http.get<Array<{ userId: string; firstName?: string; lastName?: string; email: string }>>(`${this.api}/users/search?q=&limit=1000`, {
-        withCredentials: true,
-      }).pipe(
-        map((users) => {
-          const userMap: Record<string, string> = {};
-          users.forEach((user) => {
-            const name = user.firstName && user.lastName
-              ? `${user.firstName} ${user.lastName}`
-              : user.firstName || user.email || user.userId;
-            userMap[user.userId] = name;
-          });
-          return userMap;
-        })
-      ),
+      hotels: this.http
+        .get<
+          Array<{ hotelId: string; name: string }>
+        >(`${this.api}/hotels`, { withCredentials: true })
+        .pipe(
+          map((hotels) => {
+            const hotelMap: Record<string, string> = {};
+            hotels.forEach((hotel) => {
+              hotelMap[hotel.hotelId] = hotel.name;
+            });
+            return hotelMap;
+          }),
+        ),
+      users: this.http
+        .get<
+          Array<{ userId: string; firstName?: string; lastName?: string; email: string }>
+        >(`${this.api}/users/search?q=&limit=1000`, { withCredentials: true })
+        .pipe(
+          map((users) => {
+            const userMap: Record<string, string> = {};
+            users.forEach((user) => {
+              const name =
+                user.firstName && user.lastName
+                  ? `${user.firstName} ${user.lastName}`
+                  : user.firstName || user.email || user.userId;
+              userMap[user.userId] = name;
+            });
+            return userMap;
+          }),
+        ),
     }).subscribe({
       next: (data) => {
         this.operationalMetrics = data.operationalMetrics;
         this.monthlyRevenue = data.monthlyRevenue;
         this.alerts = data.alerts;
         this.cancellationsPastWeek = data.cancellationsPastWeek;
-        
-        // Enrich bookings with hotel and guest names
+
         this.recentBookings = data.recentBookings.map((booking) => ({
           ...booking,
           hotelName: data.hotels[booking.hotelId] || booking.hotelId,
           guestName: data.users[booking.userId] || booking.userId,
         }));
-        
+
         this.totalRevenueLast12 = this.monthlyRevenue.reduce((sum, m) => sum + m.revenue, 0);
         this.totalBookingsLast12 = this.monthlyRevenue.reduce((sum, m) => sum + m.bookingCount, 0);
+
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -154,21 +192,16 @@ export class AdminDashboard implements OnInit {
 
   formatCurrency(amount: number): string {
     const safeAmount = Number.isFinite(amount) ? amount : 0;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(safeAmount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+      safeAmount,
+    );
   }
 
   formatDate(dateString: string): string {
     if (!dateString) return '—';
     const d = new Date(dateString);
     if (!Number.isFinite(d.getTime())) return '—';
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
   getStatusClass(status: string): string {
@@ -182,16 +215,10 @@ export class AdminDashboard implements OnInit {
     return statusMap[status] || 'status-default';
   }
 
-  formatBookingId(id: string): string {
-    const s = id ? String(id) : '';
-    if (!s) return '—';
-    return s.length > 8 ? `${s.substring(0, 8)}...` : s;
-  }
-
   getMaxRevenue(): number {
     if (this.monthlyRevenue.length === 0) return 0;
     return Math.max(
-      ...this.monthlyRevenue.map((m) => (Number.isFinite(m?.revenue) ? m.revenue : 0))
+      ...this.monthlyRevenue.map((m) => (Number.isFinite(m?.revenue) ? m.revenue : 0)),
     );
   }
 
@@ -202,19 +229,19 @@ export class AdminDashboard implements OnInit {
     return Math.max((safeRevenue / max) * 100, 2);
   }
 
-  toggleNav() {
+  toggleNav(): void {
     this.isNavOpen = !this.isNavOpen;
   }
 
-  closeNav() {
+  closeNav(): void {
     this.isNavOpen = false;
   }
 
-  openBooking() {}
+  openBooking(): void {}
 
-  openSignIn() {}
+  openSignIn(): void {}
 
-  signOut() {
+  signOut(): void {
     this.auth.logout().subscribe({
       next: () => {
         localStorage.clear();
@@ -229,14 +256,7 @@ export class AdminDashboard implements OnInit {
     });
   }
 
-  isProfileOpen = false;
-
-  openProfile() {
+  openProfile(): void {
     this.router.navigate(['/profile-settings']);
-  }
-
-  closeProfile() {
-    this.isProfileOpen = false;
-    document.body.style.overflow = '';
   }
 }

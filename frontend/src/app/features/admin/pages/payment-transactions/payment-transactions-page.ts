@@ -11,6 +11,8 @@ import {
   PaymentTransactionsService,
 } from '../../services/payment-transactions.service';
 
+import { ReportsService } from '../../services/reports.service';
+
 type KpiFilter = 'ALL' | 'SUCCEEDED' | 'PROCESSING' | 'FAILED';
 
 @Component({
@@ -24,6 +26,7 @@ export class PaymentTransactionsPage implements OnInit {
   private readonly api = inject(PaymentTransactionsService);
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
+  private readonly reportsService = inject(ReportsService);
 
   // Header bindings
   isNavOpen = false;
@@ -105,6 +108,10 @@ export class PaymentTransactionsPage implements OnInit {
   // Modal state (if you have a modal in the template)
   selected: PaymentTransaction | null = null;
   showDetailsModal = false;
+
+  // Report download state
+  reportLoading = false;
+  reportError: string | null = null;
 
   ngOnInit(): void {
     this.loadTransactions();
@@ -271,5 +278,48 @@ export class PaymentTransactionsPage implements OnInit {
       CANCELLED: 'status-default',
     };
     return statusMap[status] || 'status-default';
+  }
+
+  // Bottom-of-page button calls this
+  downloadAnnualPaymentReport(): void {
+    if (this.reportLoading) return;
+
+    this.reportLoading = true;
+    this.reportError = null;
+
+    // Rolling past 12 months
+    const toDate = new Date();
+    const fromDate = new Date();
+    fromDate.setFullYear(toDate.getFullYear() - 1);
+
+    const from = this.formatIsoDate(fromDate);
+    const to = this.formatIsoDate(toDate);
+
+    this.reportsService.generatePaymentTransactionReport(from, to).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `payment-transactions-report-${from}_to_${to}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        this.reportLoading = false;
+      },
+      error: (err) => {
+        console.error('Failed to generate annual payment report:', err);
+        this.reportError = 'Failed to generate report. Please try again.';
+        this.reportLoading = false;
+      },
+    });
+  }
+
+  private formatIsoDate(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
