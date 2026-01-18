@@ -1,0 +1,173 @@
+<app-header
+  [isNavOpen]="isNavOpen"
+  [isAuthenticated]="isAuthenticated"
+  [roleLabel]="roleLabel"
+  [userLabel]="userLabel"
+  [userEmail]="userEmail"
+  [showSystemSettings]="auth.isAdmin()"
+  (toggleNav)="toggleNav()"
+  (closeNav)="closeNav()"
+  (openBooking)="openBooking()"
+  (openSignIn)="openSignIn()"
+  (logout)="signOut()"
+  (openProfile)="openProfile()"
+></app-header>
+
+<main>
+  <div class="container">
+    <div class="page-content occupancy-reports-page">
+      <div class="page-header">
+        <h1>Occupancy Reports</h1>
+        <p class="subtitle">Analyze room occupancy rates, check-ins, and check-outs over time.</p>
+      </div>
+
+      <!-- Current Metrics -->
+      @if (currentMetrics) {
+      <section class="current-metrics-section">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-icon material-symbols-outlined" aria-hidden="true">hotel</span>
+            <div class="metric-content">
+              <h3>Current Occupancy</h3>
+              <p class="metric-value">{{ formatPercent(currentMetrics.occupancyRate) }}</p>
+              <span class="metric-subtext"
+                >{{ currentMetrics.occupiedRooms }} of {{ currentMetrics.totalRooms }} rooms</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+      }
+
+      <!-- Filters -->
+      <section class="filters-section">
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label for="hotel-select">Hotel</label>
+            <select id="hotel-select" [(ngModel)]="selectedHotelId" (change)="onHotelChange()">
+              <option value="">All Hotels</option>
+              @for (hotel of hotels; track hotel.hotelId) {
+              <option [value]="hotel.hotelId">{{ hotel.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="from-date">From Date</label>
+            <input type="date" id="from-date" [(ngModel)]="fromDate" (change)="onDateRangeChange()" />
+          </div>
+
+          <div class="filter-group">
+            <label for="to-date">To Date</label>
+            <input type="date" id="to-date" [(ngModel)]="toDate" (change)="onDateRangeChange()" />
+          </div>
+
+          <div class="filter-group">
+            <label>Quick Presets</label>
+            <div class="preset-buttons">
+              <button type="button" class="btn btn-ghost" (click)="setDatePreset('last7')">Last 7 Days</button>
+              <button type="button" class="btn btn-ghost" (click)="setDatePreset('last30')">Last 30 Days</button>
+              <button type="button" class="btn btn-ghost" (click)="setDatePreset('last90')">Last 90 Days</button>
+              <button type="button" class="btn btn-ghost" (click)="setDatePreset('thisMonth')">This Month</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Summary Stats -->
+      @if (occupancyData.length > 0) {
+      <section class="summary-section">
+        <h2>Summary Statistics</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <h3>Average Occupancy Rate</h3>
+            <p class="summary-value">{{ formatPercent(averageOccupancyRate) }}</p>
+          </div>
+          <div class="summary-card">
+            <h3>Peak Occupancy</h3>
+            <p class="summary-value">{{ formatPercent(peakOccupancyRate) }}</p>
+            <span class="summary-subtext">{{ formatDate(peakOccupancyDate) }}</span>
+          </div>
+          <div class="summary-card">
+            <h3>Total Check-ins</h3>
+            <p class="summary-value">{{ totalCheckIns }}</p>
+          </div>
+          <div class="summary-card">
+            <h3>Total Check-outs</h3>
+            <p class="summary-value">{{ totalCheckOuts }}</p>
+          </div>
+        </div>
+      </section>
+      }
+
+      <!-- Occupancy Chart -->
+      @if (loading) {
+      <div class="loading-state">
+        <p>Loading occupancy data...</p>
+      </div>
+      } @else if (error) {
+      <div class="error-state">
+        <p>{{ error }}</p>
+        <button class="btn btn-primary" (click)="loadData()">Retry</button>
+      </div>
+      } @else if (occupancyData.length > 0) {
+      <section class="chart-section">
+        <h2>Occupancy Rate Over Time</h2>
+        <div class="occupancy-chart">
+          <div class="chart-bars">
+            @for (data of occupancyData; track data.date) {
+            <div class="chart-bar-container">
+              <div class="chart-bar-wrapper">
+                <div class="chart-bar" [style.height.%]="getBarHeight(data.occupancyRate)">
+                  <span class="bar-value">{{ formatPercent(data.occupancyRate) }}</span>
+                </div>
+              </div>
+              <div class="bar-label">
+                <span class="date-day">{{ formatDate(data.date) }}</span>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Detailed Table -->
+      <section class="table-section">
+        <h2>Daily Occupancy Details</h2>
+        <div class="occupancy-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Occupied Rooms</th>
+                <th>Total Rooms</th>
+                <th>Occupancy Rate</th>
+                <th>Check-ins</th>
+                <th>Check-outs</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (data of occupancyData; track data.date) {
+              <tr>
+                <td class="date-cell">{{ formatDate(data.date) }}</td>
+                <td>{{ data.occupiedRooms }}</td>
+                <td>{{ data.totalRooms }}</td>
+                <td>
+                  <span class="rate-badge">{{ formatPercent(data.occupancyRate) }}</span>
+                </td>
+                <td>{{ data.checkIns }}</td>
+                <td>{{ data.checkOuts }}</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+      } @else if (!loading && !error) {
+      <div class="empty-state">
+        <p>No occupancy data available for the selected date range.</p>
+      </div>
+      }
+    </div>
+  </div>
+</main>

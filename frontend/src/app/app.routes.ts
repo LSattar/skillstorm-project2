@@ -13,6 +13,7 @@ import { PaymentPage } from './features/guest/pages/payment-page/payment-page';
 import { UserProfilePage } from './features/users/pages/user-profile/user-profile-page';
 
 import { PaymentTransactionsPage } from './features/admin/pages/payment-transactions/payment-transactions-page';
+import { OccupancyReportsPage } from './features/admin/pages/occupancy-reports/occupancy-reports-page';
 
 import { RoomsPage } from './features/rooms/pages/rooms-page';
 
@@ -28,6 +29,11 @@ export const routes: Routes = [
   {
     path: 'payment-transactions',
     component: PaymentTransactionsPage,
+    canActivate: [adminGuard],
+  },
+  {
+    path: 'admin/occupancy-reports',
+    component: OccupancyReportsPage,
     canActivate: [adminGuard],
   },
   { path: 'profile-settings', component: UserProfilePage },

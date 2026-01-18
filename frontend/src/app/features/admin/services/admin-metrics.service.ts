@@ -203,27 +203,27 @@ export class AdminMetricsService {
             });
           });
 
-        return Array.from(revenueMap.entries())
-          .map(([key, data]) => {
-            const [year, month] = key.split('-');
-            const yearNum = this.toFiniteNumber(year, NaN);
-            const monthNum = this.toFiniteNumber(month, NaN);
-            const date = new Date(yearNum, monthNum - 1);
-            return {
-              month: Number.isFinite(date.getTime())
-                ? date.toLocaleDateString('en-US', { month: 'short' })
-                : '—',
-              year: Number.isFinite(yearNum) ? yearNum : 0,
-              revenue: this.toFiniteNumber(data.revenue, 0),
-              bookingCount: Math.max(0, Math.floor(this.toFiniteNumber(data.count, 0))),
-            };
-          })
-          .sort((a, b) => {
-            if (a.year !== b.year) return a.year - b.year;
-            const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            return monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month);
-          })
-          .slice(-12); 
+        // Generate all 12 months from the past year
+        const now = new Date();
+        const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const result: MonthlyRevenue[] = [];
+        
+        for (let i = 11; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const year = date.getFullYear();
+          const month = date.getMonth();
+          const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+          const data = revenueMap.get(monthKey) || { revenue: 0, count: 0 };
+          
+          result.push({
+            month: monthOrder[month],
+            year: year,
+            revenue: this.toFiniteNumber(data.revenue, 0),
+            bookingCount: Math.max(0, Math.floor(this.toFiniteNumber(data.count, 0))),
+          });
+        }
+
+        return result;
       })
     );
   }
@@ -346,6 +346,18 @@ export class AdminMetricsService {
         checkOutsToday: this.toFiniteNumber(metrics?.checkOutsToday, 0),
         checkOutsPending: this.toFiniteNumber(metrics?.checkOutsPending, 0),
       }))
+    );
+  }
+
+  getCancellationsInPastWeek(hotelId?: string): Observable<number> {
+    const url = hotelId 
+      ? `${this.api}/admin/metrics/cancellations-past-week?hotelId=${encodeURIComponent(hotelId)}`
+      : `${this.api}/admin/metrics/cancellations-past-week`;
+    
+    return this.http.get<number>(url, {
+      withCredentials: true,
+    }).pipe(
+      map((count) => this.toFiniteNumber(count, 0))
     );
   }
 }
