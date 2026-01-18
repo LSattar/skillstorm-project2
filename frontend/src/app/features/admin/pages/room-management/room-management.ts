@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Header } from '../../../../shared/header/header';
-import { Footer } from '../../../../shared/footer/footer';
 import { AuthService } from '../../../auth/services/auth.service';
 import {
   RoomManagementService,
@@ -20,7 +19,7 @@ import {
 @Component({
   selector: 'app-room-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, Header, Footer],
+  imports: [CommonModule, FormsModule, Header],
   templateUrl: './room-management.html',
   styleUrl: './room-management.css',
 })

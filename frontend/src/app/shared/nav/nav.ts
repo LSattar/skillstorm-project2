@@ -55,7 +55,11 @@ export class NavComponent implements OnInit, OnDestroy {
 
   private setRouteFlags(url: string): void {
     const clean = url.split('?')[0].split('#')[0];
-    this.isOnAdminDashboard = clean === '/admin-dashboard';
+    // Show admin nav on all admin routes: /admin-dashboard, /admin/*, /payment-transactions
+    this.isOnAdminDashboard = 
+      clean === '/admin-dashboard' || 
+      clean.startsWith('/admin/') || 
+      clean === '/payment-transactions';
     this.moreOpen = false;
   }
 
