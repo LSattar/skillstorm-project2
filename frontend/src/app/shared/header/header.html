@@ -1,3 +1,4 @@
+<!-- header.html (FULL FILE) -->
 <header class="site-header">
   <div class="container header-inner">
     <!-- Brand -->
@@ -25,6 +26,7 @@
       [isAdmin]="isAdmin"
       (toggle)="toggleNav.emit()"
       (close)="closeNav.emit()"
+      (report)="onOpenReport()"
     ></app-nav>
 
     <!-- Actions -->
@@ -32,63 +34,95 @@
       <button class="btn btn-ghost" type="button" (click)="openBooking.emit()">Search</button>
 
       @if (!isAuthenticated) {
-      <button class="btn btn-primary" type="button" (click)="openSignIn.emit(); closeNav.emit()">
-        Sign in
-      </button>
-      } @else {
-      <div class="user-menu">
-        <button
-          class="avatar-btn"
-          type="button"
-          aria-label="Open user menu"
-          (click)="toggleUserMenu()"
-        >
-          <span class="avatar">{{ avatarText }}</span>
+        <button class="btn btn-primary" type="button" (click)="openSignIn.emit(); closeNav.emit()">
+          Sign in
         </button>
-
-        @if (userMenuOpen) {
-        <div class="menu-backdrop" (click)="closeUserMenu()"></div>
-        <div
-          class="menu-panel"
-          role="menu"
-          aria-label="User menu"
-          (click)="$event.stopPropagation()"
-        >
-          @if (roleLabel) {
-          <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
-          } @if (isAdmin) { @if (currentRoute !== '/admin-dashboard') {
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenAdminDashboard()">
-            Admin Dashboard
-          </button>
-          } @if (showSystemSettings && currentRoute !== '/admin/system-settings') {
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenSystemSettings()">
-            System settings
-          </button>
-          } @if (currentRoute !== '/payment-transactions') {
+      } @else {
+        <div class="user-menu">
           <button
-            class="menu-item"
+            class="avatar-btn"
             type="button"
-            role="menuitem"
-            (click)="onOpenPaymentTransactions()"
+            aria-label="Open user menu"
+            (click)="toggleUserMenu()"
           >
-            Payment Transactions
+            <span class="avatar">{{ avatarText }}</span>
           </button>
-          } } @else {
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenMyBookings()">
-            My Bookings
-          </button>
-          } @if (currentRoute !== '/profile-settings') {
-          <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
-            Profile settings
-          </button>
-          }
 
-          <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
-            Log out
-          </button>
+          @if (userMenuOpen) {
+            <div class="menu-backdrop" (click)="closeUserMenu()"></div>
+            <div
+              class="menu-panel"
+              role="menu"
+              aria-label="User menu"
+              (click)="$event.stopPropagation()"
+            >
+              @if (roleLabel) {
+                <div class="menu-role" aria-label="Current role">{{ roleLabel }}</div>
+              }
+
+              @if (isAdmin) {
+                @if (currentRoute !== '/admin-dashboard') {
+                  <button
+                    class="menu-item"
+                    type="button"
+                    role="menuitem"
+                    (click)="onOpenAdminDashboard()"
+                  >
+                    Admin Dashboard
+                  </button>
+                }
+
+                @if (showSystemSettings && currentRoute !== '/admin/system-settings') {
+                  <button
+                    class="menu-item"
+                    type="button"
+                    role="menuitem"
+                    (click)="onOpenSystemSettings()"
+                  >
+                    System settings
+                  </button>
+                }
+
+                @if (showPaymentTransactions && currentRoute !== '/payment-transactions') {
+                  <button
+                    class="menu-item"
+                    type="button"
+                    role="menuitem"
+                    (click)="onOpenPaymentTransactions()"
+                  >
+                    Payment Transactions
+                  </button>
+                }
+
+                <!-- NEW: Generate report from header menu only on /payment-transactions -->
+                @if (currentRoute === '/payment-transactions') {
+                  <button
+                    class="menu-item"
+                    type="button"
+                    role="menuitem"
+                    (click)="onOpenReport()"
+                  >
+                    Generate Report
+                  </button>
+                }
+              } @else {
+                <button class="menu-item" type="button" role="menuitem" (click)="onOpenMyBookings()">
+                  My Bookings
+                </button>
+              }
+
+              @if (currentRoute !== '/profile-settings') {
+                <button class="menu-item" type="button" role="menuitem" (click)="onOpenProfile()">
+                  Profile settings
+                </button>
+              }
+
+              <button class="menu-item danger" type="button" role="menuitem" (click)="onLogout()">
+                Log out
+              </button>
+            </div>
+          }
         </div>
-        }
-      </div>
       }
     </div>
   </div>

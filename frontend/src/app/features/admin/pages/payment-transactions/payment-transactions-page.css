@@ -1,11 +1,14 @@
 /* Improve visibility of the Clear button in the search form */
 .search-section .btn-secondary {
   color: var(--primary-2);
-  border: 1.5px solid rgba(52, 78, 65, 0.32); /* Slightly darker border */
+  border: 1.5px solid rgba(52, 78, 65, 0.32);
   background: var(--card);
   font-weight: 500;
   box-shadow: none;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 .search-section .btn-secondary:hover,
 .search-section .btn-secondary:focus {
@@ -24,6 +27,7 @@
   border-color: rgba(52, 78, 65, 0.32) !important;
   box-shadow: none !important;
 }
+
 .transactions-table .skeleton-row.stopped {
   animation: none !important;
   background: var(--border) !important;
@@ -59,11 +63,6 @@
 }
 
 /* KPI Cards as buttons */
-.summary-section .summary-grid {
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
 .kpi-card {
   background: var(--card);
   border-radius: var(--radius);
@@ -72,7 +71,9 @@
   min-width: 180px;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
   outline: none;
   text-align: left;
   position: relative;
@@ -103,6 +104,7 @@
   font-weight: 700;
   color: var(--primary);
 }
+
 .date-presets {
   display: flex;
   gap: 0.5rem;
@@ -126,6 +128,7 @@
 .date-preset:hover {
   background: var(--border);
 }
+
 .skeleton-row {
   height: 1.5rem;
   background: var(--border);
@@ -300,6 +303,48 @@
   margin-top: 1rem;
 }
 
+/* Bottom report CTA */
+.report-footer-cta {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+}
+.report-footer-card {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+.report-footer-text h2 {
+  margin: 0 0 0.5rem;
+  color: var(--primary-2);
+  font-size: 1.25rem;
+}
+.report-footer-text p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 48rem;
+  line-height: 1.5;
+}
+.report-footer-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 15rem;
+}
+.report-hint {
+  margin: 0;
+  color: var(--primary-2);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
 @media (max-width: 768px) {
   .payment-transactions-page {
     padding: 1rem;
@@ -310,5 +355,12 @@
   }
   .transactions-table table {
     min-width: 900px;
+  }
+  .report-footer-card {
+    flex-direction: column;
+  }
+  .report-footer-actions {
+    align-items: flex-start;
+    width: 100%;
   }
 }

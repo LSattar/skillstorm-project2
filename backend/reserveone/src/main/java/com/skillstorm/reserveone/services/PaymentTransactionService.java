@@ -113,4 +113,11 @@ public class PaymentTransactionService {
             return predicates;
         };
     }
+
+    public List<PaymentTransaction> findByDateRange(LocalDate from, LocalDate to) {
+        OffsetDateTime fromInclusive = (from == null) ? null : from.atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime toExclusive = (to == null) ? null : to.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+        Specification<PaymentTransaction> spec = buildSpec(null, null, fromInclusive, toExclusive);
+        return repository.findAll(spec);
+    }
 }

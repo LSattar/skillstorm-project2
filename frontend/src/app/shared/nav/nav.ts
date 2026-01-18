@@ -30,12 +30,20 @@ export class NavComponent implements OnInit, OnDestroy {
   @Output() toggle = new EventEmitter<void>();
   @Output() close = new EventEmitter<void>();
 
+  // NEW: emit when user wants to generate a report (on /payment-transactions)
+  @Output() report = new EventEmitter<void>();
+
   isOnAdminDashboard = false;
+  isOnPaymentTransactions = false;
+
   moreOpen = false;
 
   private destroy$ = new Subject<void>();
 
-  constructor(private router: Router, private host: ElementRef<HTMLElement>) {}
+  constructor(
+    private router: Router,
+    private host: ElementRef<HTMLElement>,
+  ) {}
 
   ngOnInit(): void {
     this.setRouteFlags(this.router.url);
@@ -43,7 +51,7 @@ export class NavComponent implements OnInit, OnDestroy {
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-        takeUntil(this.destroy$)
+        takeUntil(this.destroy$),
       )
       .subscribe((e) => this.setRouteFlags(e.urlAfterRedirects));
   }
@@ -55,11 +63,10 @@ export class NavComponent implements OnInit, OnDestroy {
 
   private setRouteFlags(url: string): void {
     const clean = url.split('?')[0].split('#')[0];
-    // Show admin nav on all admin routes: /admin-dashboard, /admin/*, /payment-transactions
-    this.isOnAdminDashboard = 
-      clean === '/admin-dashboard' || 
-      clean.startsWith('/admin/') || 
-      clean === '/payment-transactions';
+
+    this.isOnAdminDashboard = clean === '/admin-dashboard';
+    this.isOnPaymentTransactions = clean === '/payment-transactions';
+
     this.moreOpen = false;
   }
 

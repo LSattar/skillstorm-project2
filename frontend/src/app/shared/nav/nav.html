@@ -12,34 +12,79 @@
 
   <ul class="nav-list" [class.open]="isOpen" [class.nav-list--empty]="hideAllNavItems">
     <ng-container *ngIf="!hideAllNavItems">
-      <!-- ADMIN: show only on /admin-dashboard -->
-      <ng-container *ngIf="isAdmin && isOnAdminDashboard; else landingNav">
-        <li>
-          <a
-            href="#revenue"
-            (click)="$event.preventDefault(); scrollToSection('revenue'); close.emit()"
-          >
-            Revenue
-          </a>
-        </li>
+      <!-- ADMIN -->
+      <ng-container *ngIf="isAdmin; else landingNav">
+        <!-- ADMIN: show anchor links only on /admin-dashboard -->
+        <ng-container *ngIf="isOnAdminDashboard; else adminRouteNav">
+          <li>
+            <a
+              href="#revenue"
+              (click)="$event.preventDefault(); scrollToSection('revenue'); close.emit()"
+            >
+              Revenue
+            </a>
+          </li>
 
-        <li>
-          <a
-            href="#reservations"
-            (click)="$event.preventDefault(); scrollToSection('reservations'); close.emit()"
-          >
-            Reservations
-          </a>
-        </li>
+          <li>
+            <a
+              href="#reservations"
+              (click)="$event.preventDefault(); scrollToSection('reservations'); close.emit()"
+            >
+              Reservations
+            </a>
+          </li>
 
-        <li>
-          <a
-            href="#reports"
-            (click)="$event.preventDefault(); scrollToSection('reports'); close.emit()"
-          >
-            Reports
-          </a>
-        </li>
+          <li>
+            <a
+              href="#reports"
+              (click)="$event.preventDefault(); scrollToSection('reports'); close.emit()"
+            >
+              Reports
+            </a>
+          </li>
+        </ng-container>
+
+        <!-- ADMIN: all other admin pages show route links -->
+        <ng-template #adminRouteNav>
+          <li>
+            <a [routerLink]="['/admin-dashboard']" routerLinkActive="active" (click)="close.emit()">
+              Dashboard
+            </a>
+          </li>
+
+          <li>
+            <a
+              [routerLink]="['/payment-transactions']"
+              routerLinkActive="active"
+              (click)="close.emit()"
+            >
+              Payments
+            </a>
+          </li>
+
+          <li>
+            <a
+              [routerLink]="['/admin/reservations']"
+              routerLinkActive="active"
+              (click)="close.emit()"
+            >
+              Reservations
+            </a>
+          </li>
+
+          <li>
+            <a [routerLink]="['/admin/rooms']" routerLinkActive="active" (click)="close.emit()">
+              Rooms
+            </a>
+          </li>
+
+          <!-- Only show on /payment-transactions -->
+          <li *ngIf="isOnPaymentTransactions">
+            <a href="#" (click)="$event.preventDefault(); report.emit(); close.emit()">
+              Generate Report
+            </a>
+          </li>
+        </ng-template>
       </ng-container>
 
       <!-- LANDING -->
@@ -61,10 +106,7 @@
           </li>
 
           <li>
-            <a
-              href="#rewards"
-              (click)="$event.preventDefault(); scrollToSection('rewards'); close.emit()"
-            >
+            <a href="#rewards" (click)="$event.preventDefault(); scrollToSection('rewards'); close.emit()">
               Rewards
             </a>
           </li>

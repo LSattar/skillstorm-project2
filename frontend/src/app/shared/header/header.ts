@@ -1,3 +1,4 @@
+// header.ts (FULL FILE)
 import {
   AfterViewInit,
   Component,
@@ -39,6 +40,10 @@ export class Header implements OnDestroy, AfterViewInit {
   @Output() logout = new EventEmitter<void>();
   @Output() openProfile = new EventEmitter<void>();
   @Output() openSystemSettings = new EventEmitter<void>();
+  @Output() openPaymentTransactions = new EventEmitter<void>();
+
+  // NEW: bubble up "open report modal" to the page
+  @Output() openReport = new EventEmitter<void>();
 
   userMenuOpen = false;
   private globalClickListener?: (event: MouseEvent) => void;
@@ -131,6 +136,13 @@ export class Header implements OnDestroy, AfterViewInit {
 
   onOpenPaymentTransactions(): void {
     this.router.navigate(['/payment-transactions']);
+    this.closeUserMenu();
+    this.closeNav.emit();
+  }
+
+  // NEW: called from nav (Generate Report) and from user menu item
+  onOpenReport(): void {
+    this.openReport.emit();
     this.closeUserMenu();
     this.closeNav.emit();
   }

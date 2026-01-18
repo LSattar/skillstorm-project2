@@ -1,3 +1,24 @@
+/* Report Modal Styles */
+.report-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-accent {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-accent:hover {
+  background: #125ea2;
+}
 .admin-dashboard {
   /* Padding moved to .page-content for alignment */
 }
