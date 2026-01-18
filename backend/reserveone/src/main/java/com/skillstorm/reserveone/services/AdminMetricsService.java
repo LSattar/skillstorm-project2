@@ -200,10 +200,12 @@ public class AdminMetricsService {
             }
             
             // Count occupied rooms for each day of the stay
+            // Room is occupied from startDate up to (but not including) resEnd (check-out day)
             LocalDate day = resStart.isBefore(startDate) ? startDate : resStart;
-            LocalDate lastDay = resEnd.isAfter(endDate) ? endDate : resEnd;
             
-            while (!day.isAfter(lastDay)) {
+            // Room is occupied while day < resEnd (check-out day is not occupied)
+            // But also limit to the report date range (day <= endDate)
+            while (day.isBefore(resEnd) && !day.isAfter(endDate)) {
                 DailyOccupancyDTO dayData = dailyDataMap.get(day);
                 if (dayData != null) {
                     dailyDataMap.put(day, new DailyOccupancyDTO(
