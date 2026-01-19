@@ -27,6 +27,17 @@ import com.skillstorm.reserveone.repositories.UserRepository;
 import com.skillstorm.reserveone.exceptions.ResourceConflictException;
 import com.skillstorm.reserveone.exceptions.ResourceNotFoundException;
 
+/**
+ * Service for managing hotel reservations, including creation, updates, cancellations,
+ * and check-in/check-out operations.
+ * 
+ * <p>This service handles the complete reservation lifecycle and enforces business rules
+ * such as date validation, room availability checks, guest capacity limits, and status
+ * transitions. All write operations are transactional to ensure data consistency.
+ * 
+ * @author ReserveOne Team
+ * @since 1.0
+ */
 @Service
 @Transactional
 public class ReservationService {
@@ -39,6 +50,17 @@ public class ReservationService {
     private final UserRepository userRepository;
     private final EmailService emailService;
 
+    /**
+     * Constructs a new ReservationService with the required dependencies.
+     * 
+     * @param reservationRepository the repository for reservation data access
+     * @param hotelRepository the repository for hotel data access
+     * @param roomRepository the repository for room data access
+     * @param roomTypeRepository the repository for room type data access
+     * @param mapper the mapper for converting between DTOs and entities
+     * @param userRepository the repository for user data access
+     * @param emailService the service for sending email notifications
+     */
     public ReservationService(
             ReservationRepository reservationRepository,
             HotelRepository hotelRepository,
@@ -56,6 +78,37 @@ public class ReservationService {
         this.emailService = emailService;
     }
 
+    /**
+     * Creates a new reservation with comprehensive validation and business rule enforcement.
+     * 
+     * <p>This method performs the following validations and operations:
+     * <ol>
+     *   <li><b>Date Validation:</b>
+     *     <ul>
+     *       <li>End date must be after start date</li>
+     *       <li>Start date cannot be in the past</li>
+     *     </ul>
+     *   </li>
+     *   <li><b>Entity Validation:</b> Verifies existence of hotel, user, room, and room type</li>
+     *   <li><b>Availability Check:</b> Ensures no overlapping reservations exist for the room
+     *       with statuses PENDING, CONFIRMED, or CHECKED_IN</li>
+     *   <li><b>Capacity Check:</b> Validates guest count does not exceed room type maximum capacity</li>
+     *   <li><b>Reservation Creation:</b> Saves the new reservation to the database</li>
+     *   <li><b>Email Notification:</b> Sends confirmation email (non-blocking)</li>
+     * </ol>
+     * 
+     * <p><b>Overlap Detection:</b> Uses a half-open interval check [startDate, endDate)
+     * to find reservations where:
+     * <pre>
+     *   reservation.startDate &lt; dto.endDate AND reservation.endDate &gt; dto.startDate
+     * </pre>
+     * 
+     * @param dto the reservation request containing all reservation details
+     * @return ReservationResponseDTO representing the created reservation
+     * @throws IllegalArgumentException if date validation fails or guest count exceeds capacity
+     * @throws ResourceNotFoundException if any referenced entity (hotel, user, room, room type) is not found
+     * @throws ResourceConflictException if the room is already reserved for the date range
+     */
     public ReservationResponseDTO createOne(ReservationRequestDTO dto) {
         // Validate dates
         if (dto.endDate().isBefore(dto.startDate()) || dto.endDate().equals(dto.startDate())) {
@@ -140,6 +193,32 @@ public class ReservationService {
             .collect(Collectors.toList());
     }
 
+    /**
+     * Searches reservations using flexible criteria with dynamic query building.
+     * 
+     * <p>This method supports multi-criteria searching with the following filters:
+     * <ul>
+     *   <li><b>Reservation ID:</b> Partial match (case-insensitive) on UUID string representation</li>
+     *   <li><b>Guest Last Name:</b> Partial match (case-insensitive) on user's last name</li>
+     *   <li><b>Hotel ID:</b> Exact match on hotel UUID</li>
+     *   <li><b>Status:</b> Exact match on reservation status</li>
+     *   <li><b>Start Date Range:</b> Reservations with startDate between startDateFrom and startDateTo (inclusive)</li>
+     *   <li><b>End Date Range:</b> Reservations with endDate between endDateFrom and endDateTo (inclusive)</li>
+     * </ul>
+     * 
+     * <p>All filters are optional and combined with AND logic. If a filter parameter is null,
+     * it is not applied. The search uses JPA Specifications for type-safe dynamic query building.
+     * 
+     * @param reservationId partial UUID string to search for (case-insensitive)
+     * @param guestLastName partial last name to search for (case-insensitive)
+     * @param hotelId exact hotel UUID to filter by
+     * @param status exact reservation status to filter by
+     * @param startDateFrom minimum start date (inclusive)
+     * @param startDateTo maximum start date (inclusive)
+     * @param endDateFrom minimum end date (inclusive)
+     * @param endDateTo maximum end date (inclusive)
+     * @return list of matching reservations as DTOs
+     */
     @Transactional(readOnly = true)
     public List<ReservationResponseDTO> searchReservations(
             String reservationId,
@@ -160,6 +239,30 @@ public class ReservationService {
             .collect(Collectors.toList());
     }
 
+    /**
+     * Builds a JPA Specification for dynamic reservation queries.
+     * 
+     * <p>This private helper method constructs a type-safe query specification using
+     * JPA Criteria API. It combines multiple optional predicates using AND logic.
+     * 
+     * <p>The method handles:
+     * <ul>
+     *   <li>String filtering with LIKE operations (case-insensitive)</li>
+     *   <li>UUID equality checks</li>
+     *   <li>Enum equality checks</li>
+     *   <li>Date range comparisons (greater than or equal, less than or equal)</li>
+     * </ul>
+     * 
+     * @param reservationId partial UUID string filter
+     * @param guestLastName partial last name filter
+     * @param hotelId hotel UUID filter
+     * @param status reservation status filter
+     * @param startDateFrom minimum start date
+     * @param startDateTo maximum start date
+     * @param endDateFrom minimum end date
+     * @param endDateTo maximum end date
+     * @return JPA Specification combining all non-null filters
+     */
     private Specification<Reservation> buildSearchSpecification(
             String reservationId,
             String guestLastName,
@@ -303,6 +406,29 @@ public class ReservationService {
         return mapper.toResponse(updated);
     }
 
+    /**
+     * Processes a guest check-in for a confirmed reservation.
+     * 
+     * <p>This method performs the check-in operation with the following validations:
+     * <ul>
+     *   <li>Reservation must be in CONFIRMED status</li>
+     *   <li>Check-in date cannot be before the reservation start date</li>
+     *   <li>Room must not already be marked as OCCUPIED</li>
+     * </ul>
+     * 
+     * <p>Upon successful validation:
+     * <ol>
+     *   <li>Updates reservation status to CHECKED_IN</li>
+     *   <li>Updates room status to OCCUPIED</li>
+     *   <li>Persists both changes in a single transaction</li>
+     * </ol>
+     * 
+     * @param id the UUID of the reservation to check in
+     * @return ReservationResponseDTO representing the updated reservation
+     * @throws ResourceNotFoundException if the reservation is not found
+     * @throws ResourceConflictException if reservation is not in CONFIRMED status or room is already occupied
+     * @throws IllegalArgumentException if attempting to check in before the reservation start date
+     */
     public ReservationResponseDTO checkIn(UUID id) {
         Reservation reservation = reservationRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
@@ -329,6 +455,26 @@ public class ReservationService {
         return mapper.toResponse(updated);
     }
 
+    /**
+     * Processes a guest check-out for a checked-in reservation.
+     * 
+     * <p>This method performs the check-out operation with the following validations:
+     * <ul>
+     *   <li>Reservation must be in CHECKED_IN status</li>
+     * </ul>
+     * 
+     * <p>Upon successful validation:
+     * <ol>
+     *   <li>Updates reservation status to CHECKED_OUT</li>
+     *   <li>Updates room status to AVAILABLE</li>
+     *   <li>Persists both changes in a single transaction</li>
+     * </ol>
+     * 
+     * @param id the UUID of the reservation to check out
+     * @return ReservationResponseDTO representing the updated reservation
+     * @throws ResourceNotFoundException if the reservation is not found
+     * @throws ResourceConflictException if reservation is not in CHECKED_IN status
+     */
     public ReservationResponseDTO checkOut(UUID id) {
         Reservation reservation = reservationRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
