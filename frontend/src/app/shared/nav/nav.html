@@ -14,7 +14,7 @@
     <ng-container *ngIf="!hideAllNavItems">
       <!-- ADMIN -->
       <ng-container *ngIf="isAdmin; else landingNav">
-        <!-- ADMIN: show anchor links only on /admin-dashboard -->
+        <!-- Admin dashboard: anchor links -->
         <ng-container *ngIf="isOnAdminDashboard; else adminRouteNav">
           <li>
             <a
@@ -44,7 +44,7 @@
           </li>
         </ng-container>
 
-        <!-- ADMIN: all other admin pages show route links -->
+        <!-- Other admin pages: route links -->
         <ng-template #adminRouteNav>
           <li>
             <a [routerLink]="['/admin-dashboard']" routerLinkActive="active" (click)="close.emit()">
@@ -78,78 +78,72 @@
             </a>
           </li>
 
-          <!-- Only show on /payment-transactions -->
-          <li *ngIf="isOnPaymentTransactions">
-            <a href="#" (click)="$event.preventDefault(); report.emit(); close.emit()">
-              Generate Report
-            </a>
-          </li>
+          <!-- Removed: Generate Report link in header/nav -->
         </ng-template>
       </ng-container>
 
       <!-- LANDING -->
       <ng-template #landingNav>
-        <ng-container *ngIf="!isAdmin">
-          <li>
-            <a [routerLink]="['/rooms']" routerLinkActive="active" (click)="close.emit()">
-              Rooms
-            </a>
-          </li>
+        <li>
+          <a [routerLink]="['/rooms']" routerLinkActive="active" (click)="close.emit()">Rooms</a>
+        </li>
 
-          <li>
+        <li>
+          <a
+            href="#amenities"
+            (click)="$event.preventDefault(); scrollToSection('amenities'); close.emit()"
+          >
+            Amenities
+          </a>
+        </li>
+
+        <li>
+          <a
+            href="#rewards"
+            (click)="$event.preventDefault(); scrollToSection('rewards'); close.emit()"
+          >
+            Rewards
+          </a>
+        </li>
+
+        <!-- More -->
+        <li class="more">
+          <button
+            type="button"
+            class="more-btn"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="moreOpen"
+            (click)="toggleMore()"
+          >
+            More <span aria-hidden="true">▾</span>
+          </button>
+
+          <div class="more-menu" *ngIf="moreOpen" role="menu" aria-label="More navigation">
             <a
-              href="#amenities"
-              (click)="$event.preventDefault(); scrollToSection('amenities'); close.emit()"
+              href="#offers"
+              role="menuitem"
+              (click)="$event.preventDefault(); scrollToSection('offers'); closeAllMenus()"
             >
-              Amenities
+              Offers
             </a>
-          </li>
 
-          <li>
-            <a href="#rewards" (click)="$event.preventDefault(); scrollToSection('rewards'); close.emit()">
-              Rewards
-            </a>
-          </li>
-
-          <!-- More -->
-          <li class="more">
-            <button
-              type="button"
-              class="more-btn"
-              aria-haspopup="menu"
-              [attr.aria-expanded]="moreOpen"
-              (click)="toggleMore()"
+            <a
+              href="#faq"
+              role="menuitem"
+              (click)="$event.preventDefault(); scrollToSection('faq'); closeAllMenus()"
             >
-              More <span aria-hidden="true">▾</span>
-            </button>
+              FAQ
+            </a>
 
-            <div class="more-menu" *ngIf="moreOpen" role="menu" aria-label="More navigation">
-              <a
-                href="#offers"
-                role="menuitem"
-                (click)="$event.preventDefault(); scrollToSection('offers'); closeAllMenus()"
-              >
-                Offers
-              </a>
-
-              <a
-                href="#faq"
-                role="menuitem"
-                (click)="$event.preventDefault(); scrollToSection('faq'); closeAllMenus()"
-              >
-                FAQ
-              </a>
-
-              <a
-                href="#contact"
-                role="menuitem"
-                (click)="$event.preventDefault(); scrollToSection('contact'); closeAllMenus()"
-              >
-                Contact
-              </a>
-            </div>
-          </li>
-        </ng-container>
+            <a
+              href="#contact"
+              role="menuitem"
+              (click)="$event.preventDefault(); scrollToSection('contact'); closeAllMenus()"
+            >
+              Contact
+            </a>
+          </div>
+        </li>
       </ng-template>
     </ng-container>
   </ul>
