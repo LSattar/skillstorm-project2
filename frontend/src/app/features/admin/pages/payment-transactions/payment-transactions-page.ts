@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Header } from '../../../../shared/header/header';
@@ -23,7 +23,7 @@ type KpiFilter = 'ALL' | 'SUCCEEDED' | 'PROCESSING' | 'FAILED';
   templateUrl: './payment-transactions-page.html',
   styleUrls: ['./payment-transactions-page.css'],
 })
-export class PaymentTransactionsPage implements OnInit {
+export class PaymentTransactionsPage implements OnInit, OnDestroy {
   private pollingSubscription: Subscription | null = null;
   private readonly api = inject(PaymentTransactionsService);
   private readonly router = inject(Router);
@@ -107,7 +107,7 @@ export class PaymentTransactionsPage implements OnInit {
     return Array.from({ length: 5 }, (_, i) => i);
   }
 
-  // Modal state (if you have a modal in the template)
+  // Modal state
   selected: PaymentTransaction | null = null;
   showDetailsModal = false;
 
@@ -117,6 +117,7 @@ export class PaymentTransactionsPage implements OnInit {
 
   ngOnInit(): void {
     this.loadTransactions();
+    // NOTE: polling will only run when user is actively viewing pending
     this.startPolling();
   }
 
@@ -162,6 +163,9 @@ export class PaymentTransactionsPage implements OnInit {
 
   // KPI card click handler
   public onKpiClick(type: KpiFilter) {
+    // IMPORTANT: reset polling when filters change
+    this.stopPolling();
+
     if (this.activeKpi === type) {
       this.activeKpi = 'ALL';
       this.status = '';
@@ -169,10 +173,14 @@ export class PaymentTransactionsPage implements OnInit {
       this.activeKpi = type;
       this.status = type === 'ALL' ? '' : type;
     }
+
     this.onSearch();
   }
 
   public onClearFilters(): void {
+    // IMPORTANT: reset polling when filters change
+    this.stopPolling();
+
     this.query = '';
     this.status = '';
     this.fromDate = '';
@@ -183,11 +191,17 @@ export class PaymentTransactionsPage implements OnInit {
   }
 
   public onSearch(): void {
+    // IMPORTANT: reset polling when filters change
+    this.stopPolling();
+
     this.page = 0;
     this.loadTransactions();
   }
 
   public onPageChange(newPage: number): void {
+    // IMPORTANT: reset polling when paging
+    this.stopPolling();
+
     this.page = newPage;
     this.loadTransactions();
   }
@@ -229,12 +243,8 @@ export class PaymentTransactionsPage implements OnInit {
           this.skeletonStopped = true;
           clearTimeout(skeletonTimeout);
 
-          // If no more PROCESSING transactions, stop polling
-          if (this.pendingCount === 0) {
-            this.stopPolling();
-          } else {
-            this.startPolling();
-          }
+          // IMPORTANT: only poll when user is viewing pending
+          this.startPolling();
         },
         error: () => {
           this.error = 'Failed to load payment transactions.';
@@ -245,12 +255,29 @@ export class PaymentTransactionsPage implements OnInit {
       });
   }
 
-  // Polling logic: refresh every 5 seconds if any PROCESSING transactions
+  // Polling logic:
+  // Refresh every 5 seconds ONLY when the user is viewing PROCESSING.
+  // This prevents infinite polling when you are looking at ALL or PAID, etc.
   private startPolling(): void {
+    const userIsViewingPending = this.activeKpi === 'PROCESSING' || this.status === 'PROCESSING';
+
+    if (!userIsViewingPending) {
+      this.stopPolling();
+      return;
+    }
+
+    // If there are no pending rows on the current page, no need to poll
+    if (this.pendingCount === 0) {
+      this.stopPolling();
+      return;
+    }
+
     if (this.pollingSubscription) return;
+
     this.pollingSubscription = interval(5000).subscribe(() => {
-      // Only poll if there are PROCESSING transactions
-      if (this.pendingCount > 0) {
+      const stillViewingPending = this.activeKpi === 'PROCESSING' || this.status === 'PROCESSING';
+
+      if (stillViewingPending && this.pendingCount > 0) {
         this.loadTransactions();
       } else {
         this.stopPolling();
