@@ -21,6 +21,17 @@ import com.skillstorm.reserveone.models.Room;
 import com.skillstorm.reserveone.repositories.ReservationRepository;
 import com.skillstorm.reserveone.repositories.RoomRepository;
 
+/**
+ * Service for calculating administrative metrics and operational statistics
+ * for hotel management, including occupancy rates, check-ins, and check-outs.
+ * 
+ * <p>This service provides real-time operational metrics that help administrators
+ * monitor hotel performance and manage daily operations. All methods are read-only
+ * and use transactional queries for data consistency.
+ * 
+ * @author ReserveOne Team
+ * @since 1.0
+ */
 @Service
 @Transactional(readOnly = true)
 public class AdminMetricsService {
@@ -28,6 +39,12 @@ public class AdminMetricsService {
     private final RoomRepository roomRepository;
     private final ReservationRepository reservationRepository;
 
+    /**
+     * Constructs a new AdminMetricsService with the required repositories.
+     * 
+     * @param roomRepository the repository for room data access
+     * @param reservationRepository the repository for reservation data access
+     */
     public AdminMetricsService(
             RoomRepository roomRepository,
             ReservationRepository reservationRepository) {
@@ -35,6 +52,27 @@ public class AdminMetricsService {
         this.reservationRepository = reservationRepository;
     }
 
+    /**
+     * Calculates real-time operational metrics for a hotel or all hotels.
+     * 
+     * <p>This method computes several key metrics:
+     * <ul>
+     *   <li><b>Total Rooms:</b> Count of all rooms excluding OUT_OF_SERVICE status</li>
+     *   <li><b>Occupied Rooms:</b> Maximum of rooms marked OCCUPIED or rooms with CHECKED_IN reservations</li>
+     *   <li><b>Occupancy Rate:</b> Percentage of occupied rooms (occupied/total * 100)</li>
+     *   <li><b>Check-ins Today:</b> Reservations with CHECKED_IN status and startDate = today</li>
+     *   <li><b>Check-ins Pending:</b> CONFIRMED reservations scheduled to check in today</li>
+     *   <li><b>Check-outs Today:</b> Reservations with CHECKED_OUT status and endDate = today</li>
+     *   <li><b>Check-outs Pending:</b> CHECKED_IN reservations scheduled to check out today</li>
+     * </ul>
+     * 
+     * <p>The occupancy calculation uses a dual approach: it considers both rooms
+     * explicitly marked as OCCUPIED and rooms with active CHECKED_IN reservations,
+     * taking the maximum to ensure accuracy even if room status is out of sync.
+     * 
+     * @param hotelId the UUID of the hotel to calculate metrics for, or null for all hotels
+     * @return OperationalMetricsDTO containing all calculated metrics
+     */
     public OperationalMetricsDTO getOperationalMetrics(UUID hotelId) {
         LocalDate today = LocalDate.now();
         
@@ -115,6 +153,23 @@ public class AdminMetricsService {
         );
     }
 
+    /**
+     * Counts the number of cancelled reservations in the past 7 days.
+     * 
+     * <p>This method queries for reservations that:
+     * <ul>
+     *   <li>Have status CANCELLED</li>
+     *   <li>Were cancelled between 7 days ago and now</li>
+     *   <li>Optionally filtered by hotelId if provided</li>
+     * </ul>
+     * 
+     * <p>The time range uses OffsetDateTime to ensure accurate timezone-aware
+     * calculations. The cancellation timestamp (cancelledAt) must be within
+     * the 7-day window.
+     * 
+     * @param hotelId the UUID of the hotel to filter by, or null for all hotels
+     * @return the count of cancellations in the past week
+     */
     public int getCancellationsInPastWeek(UUID hotelId) {
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime weekAgo = now.minusDays(7);
@@ -131,6 +186,48 @@ public class AdminMetricsService {
         return cancellations.size();
     }
 
+    /**
+     * Generates a detailed occupancy report for a specified date range.
+     * 
+     * <p>This method performs complex calculations to produce daily occupancy statistics
+     * including:
+     * <ul>
+     *   <li>Daily occupied room counts</li>
+     *   <li>Daily occupancy rates (percentage)</li>
+     *   <li>Check-in and check-out counts per day</li>
+     *   <li>Average and peak occupancy rates for the period</li>
+     * </ul>
+     * 
+     * <p><b>Algorithm:</b>
+     * <ol>
+     *   <li>Initializes a map with zero occupancy for each day in the range</li>
+     *   <li>Processes all active (non-cancelled) reservations that overlap the date range</li>
+     *   <li>For each reservation:
+     *     <ul>
+     *       <li>Increments check-in count on the reservation start date (if in range)</li>
+     *       <li>Increments check-out count on the reservation end date (if in range)</li>
+     *       <li>Increments occupied room count for each day from startDate to endDate-1
+     *           (check-out day is not counted as occupied)</li>
+     *     </ul>
+     *   </li>
+     *   <li>Calculates occupancy rates for each day (occupied/total * 100)</li>
+     *   <li>Computes aggregate statistics (average, peak, totals)</li>
+     * </ol>
+     * 
+     * <p><b>Important Notes:</b>
+     * <ul>
+     *   <li>Rooms are considered occupied from startDate up to (but not including) endDate</li>
+     *   <li>Only non-cancelled reservations are included in calculations</li>
+     *   <li>Reservations that partially overlap the date range are included</li>
+     *   <li>Peak occupancy date is the day with the highest occupancy rate</li>
+     * </ul>
+     * 
+     * @param hotelId the UUID of the hotel to generate the report for, or null for all hotels
+     * @param startDate the start date of the report range (inclusive)
+     * @param endDate the end date of the report range (inclusive)
+     * @return OccupancyReportDTO containing daily data and aggregate statistics
+     * @throws IllegalArgumentException if startDate is after endDate
+     */
     public OccupancyReportDTO getOccupancyReport(UUID hotelId, LocalDate startDate, LocalDate endDate) {
         // Get total rooms
         List<Room> allRooms;
