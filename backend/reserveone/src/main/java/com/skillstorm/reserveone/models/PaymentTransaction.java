@@ -60,6 +60,17 @@ public class PaymentTransaction {
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "transaction_id", length = 120)
+    private String transactionId;
+
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
+
     protected PaymentTransaction() {
     }
 
