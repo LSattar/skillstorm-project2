@@ -291,15 +291,9 @@ public class StripeWebhookController {
     }
 
     private Optional<PaymentTransaction> findTxByPaymentIntentId(String piId) {
-        if (!org.springframework.util.StringUtils.hasText(piId))
+        if (!StringUtils.hasText(piId)) {
             return Optional.empty();
-
-        // Prefer the explicit Stripe column
-        Optional<PaymentTransaction> byStripeCol = paymentTransactionRepository.findByStripePaymentIntentId(piId);
-        if (byStripeCol.isPresent())
-            return byStripeCol;
-
-        // Fallback to the legacy/general transaction_id column
-        return paymentTransactionRepository.findByTransactionId(piId);
+        }
+        return paymentTransactionRepository.findByStripePaymentIntentId(piId);
     }
 }
