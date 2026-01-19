@@ -53,26 +53,31 @@ public class StripeWebhookController {
     @Transactional
     public ResponseEntity<?> handleStripeWebhook(
             @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader,
+            // CloudFront Function will copy Stripe-Signature into this safe header:
+            @RequestHeader(value = "X-Stripe-Signature", required = false) String xStripeSigHeader,
             @RequestBody String payload,
             HttpServletRequest req,
             HttpServletResponse res) {
 
         res.setHeader("X-Webhook-Reached", "YES");
 
+        // If CloudFront stripped the original header, use the injected one
+        if (!StringUtils.hasText(sigHeader) && StringUtils.hasText(xStripeSigHeader)) {
+            sigHeader = xStripeSigHeader;
+            log.info("Using X-Stripe-Signature fallback header for verification");
+        }
+
         // ---- DEBUG: log what CloudFront/ALB actually sends ----
         try {
             log.info("WEBHOOK DEBUG start: method={}, uri={}, remoteAddr={}",
                     req.getMethod(), req.getRequestURI(), req.getRemoteAddr());
 
-            // Common proxy headers
             log.info("WEBHOOK DEBUG x-forwarded-for={}", req.getHeader("X-Forwarded-For"));
             log.info("WEBHOOK DEBUG x-forwarded-proto={}", req.getHeader("X-Forwarded-Proto"));
             log.info("WEBHOOK DEBUG x-forwarded-host={}", req.getHeader("X-Forwarded-Host"));
             log.info("WEBHOOK DEBUG host={}", req.getHeader("Host"));
             log.info("WEBHOOK DEBUG content-type={}", req.getHeader("Content-Type"));
 
-            // IMPORTANT: print ALL headers to see if stripe-signature is present under any
-            // casing
             Enumeration<String> names = req.getHeaderNames();
             while (names != null && names.hasMoreElements()) {
                 String name = names.nextElement();
@@ -80,10 +85,12 @@ public class StripeWebhookController {
                 log.info("WEBHOOK HDR {} = {}", name, value);
             }
 
-            // Compare direct lookup via Servlet API vs Spring @RequestHeader binding
             log.info("WEBHOOK DEBUG Spring-bound Stripe-Signature={}", sigHeader);
+            log.info("WEBHOOK DEBUG Spring-bound X-Stripe-Signature={}", xStripeSigHeader);
             log.info("WEBHOOK DEBUG Servlet getHeader('Stripe-Signature')={}", req.getHeader("Stripe-Signature"));
             log.info("WEBHOOK DEBUG Servlet getHeader('stripe-signature')={}", req.getHeader("stripe-signature"));
+            log.info("WEBHOOK DEBUG Servlet getHeader('X-Stripe-Signature')={}", req.getHeader("X-Stripe-Signature"));
+            log.info("WEBHOOK DEBUG Servlet getHeader('x-stripe-signature')={}", req.getHeader("x-stripe-signature"));
             log.info("WEBHOOK DEBUG payloadLength={}", payload == null ? 0 : payload.length());
         } catch (Exception e) {
             log.warn("WEBHOOK DEBUG logging failed: {}", e.getMessage());
@@ -96,7 +103,7 @@ public class StripeWebhookController {
         }
 
         if (!StringUtils.hasText(sigHeader)) {
-            log.warn("Missing Stripe-Signature header (check CloudFront forwarding)");
+            log.warn("Missing Stripe-Signature header (check CloudFront forwarding and function injection)");
             return ResponseEntity.ok(Map.of("status", "ignored", "reason", "missing_signature_header"));
         }
 
