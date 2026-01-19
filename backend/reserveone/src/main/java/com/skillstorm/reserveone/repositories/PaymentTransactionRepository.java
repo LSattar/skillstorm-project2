@@ -10,7 +10,10 @@ import com.skillstorm.reserveone.models.PaymentTransaction;
 
 public interface PaymentTransactionRepository
         extends JpaRepository<PaymentTransaction, UUID>, JpaSpecificationExecutor<PaymentTransaction> {
+
     Optional<PaymentTransaction> findByStripePaymentIntentId(String paymentIntentId);
+
+    Optional<PaymentTransaction> findByTransactionId(String transactionId);
 
     Optional<PaymentTransaction> findByReservationId(UUID reservationId);
 

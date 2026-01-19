@@ -4,16 +4,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.skillstorm.reserveone.models.PaymentTransaction;
-import com.skillstorm.reserveone.models.Reservation;
-import com.skillstorm.reserveone.repositories.PaymentTransactionRepository;
-import com.skillstorm.reserveone.repositories.ReservationRepository;
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Charge;
-import com.stripe.model.Event;
-import com.stripe.model.PaymentIntent;
-import com.stripe.net.Webhook;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +15,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.skillstorm.reserveone.models.PaymentTransaction;
+import com.skillstorm.reserveone.models.Reservation;
+import com.skillstorm.reserveone.repositories.PaymentTransactionRepository;
+import com.skillstorm.reserveone.repositories.ReservationRepository;
+import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Charge;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.net.Webhook;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -168,14 +168,18 @@ public class StripeWebhookController {
             return "ignored:missing_payment_intent_id";
         }
 
-        return paymentTransactionRepository.findByStripePaymentIntentId(piId)
+        return findTxByPaymentIntentId(piId)
                 .map(tx -> {
-                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
+                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED)
                         return "already_succeeded";
-                    }
 
                     tx.setStatus(PaymentTransaction.Status.SUCCEEDED);
+
+                    // (Optional but recommended) keep both columns aligned
                     tx.setStripePaymentIntentId(piId);
+                    // If you have a setter for transactionId, set it too:
+                    // tx.setTransactionId(piId);
+
                     paymentTransactionRepository.save(tx);
 
                     UUID reservationId = tx.getReservationId();
@@ -189,7 +193,7 @@ public class StripeWebhookController {
                     }
                     return "succeeded_by_pi";
                 })
-                .orElse("ignored:tx_not_found");
+                .orElse("tx_not_found");
     }
 
     private String handlePaymentIntentFailed(Event event) {
@@ -203,9 +207,9 @@ public class StripeWebhookController {
             return "ignored:missing_payment_intent_id";
         }
 
-        return paymentTransactionRepository.findByStripePaymentIntentId(piId)
+        return findTxByPaymentIntentId(piId)
                 .map(tx -> {
-                    // If you already marked SUCCEEDED, do not downgrade it
+                    // Idempotency: if it already succeeded, do not downgrade it
                     if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
                         return "already_succeeded";
                     }
@@ -214,9 +218,10 @@ public class StripeWebhookController {
                     tx.setStripePaymentIntentId(piId);
                     tx.setFailureReason(extractFailureMessage(pi));
                     paymentTransactionRepository.save(tx);
+
                     return "failed";
                 })
-                .orElse("ignored:tx_not_found");
+                .orElse("tx_not_found");
     }
 
     private String handleChargeRefunded(Event event) {
@@ -227,16 +232,37 @@ public class StripeWebhookController {
 
         String paymentIntentId = charge.getPaymentIntent();
         if (!StringUtils.hasText(paymentIntentId)) {
-            return "ignored:missing_payment_intent";
+            return "ignored:missing_payment_intent_id";
         }
 
-        return paymentTransactionRepository.findByStripePaymentIntentId(paymentIntentId)
+        return findTxByPaymentIntentId(paymentIntentId)
                 .map(tx -> {
                     tx.setStatus(PaymentTransaction.Status.REFUNDED);
+
+                    // Optional: store Stripe charge id / receipt if your entity has fields for it
+                    // tx.setStripeChargeId(charge.getId());
+                    // tx.setReceiptUrl(charge.getReceiptUrl());
+
                     paymentTransactionRepository.save(tx);
+
+                    // IMPORTANT:
+                    // Your reservations.status constraint does NOT include REFUNDED.
+                    // So do NOT set reservation status to REFUNDED unless you update DB + enum.
+                    // A common approach is to CANCELLED the reservation on refund (if that matches
+                    // your business rules).
+                    UUID reservationId = tx.getReservationId();
+                    if (reservationId != null) {
+                        reservationRepository.findById(reservationId).ifPresent(res -> {
+                            if (res.getStatus() != Reservation.Status.CANCELLED) {
+                                res.setStatus(Reservation.Status.CANCELLED);
+                                reservationRepository.save(res);
+                            }
+                        });
+                    }
+
                     return "refunded";
                 })
-                .orElse("ignored:tx_not_found");
+                .orElse("tx_not_found");
     }
 
     private String getMetadata(PaymentIntent pi, String key) {
@@ -262,5 +288,18 @@ public class StripeWebhookController {
                     clazz.getSimpleName(), e.getMessage());
             return null;
         }
+    }
+
+    private Optional<PaymentTransaction> findTxByPaymentIntentId(String piId) {
+        if (!org.springframework.util.StringUtils.hasText(piId))
+            return Optional.empty();
+
+        // Prefer the explicit Stripe column
+        Optional<PaymentTransaction> byStripeCol = paymentTransactionRepository.findByStripePaymentIntentId(piId);
+        if (byStripeCol.isPresent())
+            return byStripeCol;
+
+        // Fallback to the legacy/general transaction_id column
+        return paymentTransactionRepository.findByTransactionId(piId);
     }
 }
