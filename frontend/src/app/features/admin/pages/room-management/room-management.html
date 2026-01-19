@@ -365,7 +365,7 @@
                 <div class="amenities-list">
                   @for (rta of roomTypeAmenities; track rta.amenityId) {
                     <span class="amenity-tag">
-                      {{ rta.amenity?.name || 'Unknown' }}
+                      {{ getAmenityName(rta.amenityId) }}
                       <button
                         type="button"
                         class="btn-icon-small"
@@ -435,7 +435,7 @@
             <div class="amenities-list">
               @for (rta of roomTypeAmenities; track rta.amenityId) {
                 <span class="amenity-tag">
-                  {{ rta.amenity?.name || 'Unknown' }}
+                  {{ getAmenityName(rta.amenityId) }}
                   <button
                     type="button"
                     class="btn-icon-small"
