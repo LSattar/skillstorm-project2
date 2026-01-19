@@ -4,6 +4,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.skillstorm.reserveone.models.PaymentTransaction;
+import com.skillstorm.reserveone.models.Reservation;
+import com.skillstorm.reserveone.repositories.PaymentTransactionRepository;
+import com.skillstorm.reserveone.repositories.ReservationRepository;
+import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Charge;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.net.Webhook;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,16 +25,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.skillstorm.reserveone.models.PaymentTransaction;
-import com.skillstorm.reserveone.models.Reservation;
-import com.skillstorm.reserveone.repositories.PaymentTransactionRepository;
-import com.skillstorm.reserveone.repositories.ReservationRepository;
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Charge;
-import com.stripe.model.Event;
-import com.stripe.model.PaymentIntent;
-import com.stripe.net.Webhook;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -58,25 +58,30 @@ public class StripeWebhookController {
 
         res.setHeader("X-Webhook-Reached", "YES");
 
+        // If misconfigured, acknowledge to avoid Stripe retry storms, but log loudly
         if (!StringUtils.hasText(webhookSecret)) {
             log.error("Stripe webhook secret not configured (stripe.webhook-secret is blank)");
-            return ResponseEntity.status(500).body("Webhook misconfigured");
+            return ResponseEntity.ok(Map.of("status", "ignored", "reason", "webhook_secret_missing"));
         }
 
+        // If signature header missing (CloudFront header forwarding), acknowledge but
+        // log
         if (!StringUtils.hasText(sigHeader)) {
             log.warn("Missing Stripe-Signature header (check CloudFront forwarding)");
-            return ResponseEntity.badRequest().body("Missing Stripe-Signature");
+            return ResponseEntity.ok(Map.of("status", "ignored", "reason", "missing_signature_header"));
         }
 
         final Event event;
         try {
             event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
         } catch (SignatureVerificationException e) {
+            // Invalid signature can be malicious or misconfigured secret; acknowledge but
+            // log
             log.warn("Stripe signature verification failed: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Invalid signature");
+            return ResponseEntity.ok(Map.of("status", "ignored", "reason", "invalid_signature"));
         } catch (Exception e) {
             log.warn("Stripe webhook parse/verify failed: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Invalid payload");
+            return ResponseEntity.ok(Map.of("status", "ignored", "reason", "invalid_payload"));
         }
 
         String result;
@@ -85,43 +90,59 @@ public class StripeWebhookController {
                 case "payment_intent.succeeded" -> handlePaymentIntentSucceeded(event);
                 case "payment_intent.payment_failed" -> handlePaymentIntentFailed(event);
                 case "charge.refunded" -> handleChargeRefunded(event);
-                default -> "ignored";
+                default -> "ignored:" + event.getType();
             };
         } catch (Exception e) {
+            // For reliability: log error but ACK so Stripe doesn't retry forever
             log.error("Stripe webhook processing error: id={}, type={}",
                     event.getId(), event.getType(), e);
-            return ResponseEntity.status(500).body("Webhook processing error");
+            return ResponseEntity.ok(Map.of("status", "ignored", "reason", "processing_error"));
         }
 
         log.info("Stripe webhook handled: id={}, type={}, result={}",
                 event.getId(), event.getType(), result);
 
-        // Always return 200 for handled events so Stripe does not retry
+        // Always return 200 for all webhook deliveries so Stripe does not retry
         return ResponseEntity.ok(Map.of("status", "ok", "result", result));
     }
 
     private String handlePaymentIntentSucceeded(Event event) {
         PaymentIntent pi = deserialize(event, PaymentIntent.class);
-        if (pi == null)
-            return "missing_payment_intent";
+        if (pi == null) {
+            return "ignored:missing_payment_intent";
+        }
 
         String reservationIdStr = getMetadata(pi, "reservation_id");
         String userIdStr = getMetadata(pi, "user_id");
 
         // Preferred path: metadata present
         if (StringUtils.hasText(reservationIdStr) && StringUtils.hasText(userIdStr)) {
-            UUID reservationId = UUID.fromString(reservationIdStr);
-            UUID userId = UUID.fromString(userIdStr);
+            UUID reservationId;
+            UUID userId;
+
+            try {
+                reservationId = UUID.fromString(reservationIdStr);
+                userId = UUID.fromString(userIdStr);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid metadata UUID(s): reservation_id={}, user_id={}, pi={}",
+                        reservationIdStr, userIdStr, pi.getId());
+                return "ignored:invalid_metadata_uuid";
+            }
 
             Optional<PaymentTransaction> txOpt = paymentTransactionRepository
                     .findByReservationIdAndUserId(reservationId, userId);
 
-            if (txOpt.isEmpty())
-                return "tx_not_found";
+            if (txOpt.isEmpty()) {
+                log.warn("No payment transaction found for reservation_id={}, user_id={}, pi={}",
+                        reservationId, userId, pi.getId());
+                return "ignored:tx_not_found";
+            }
 
             PaymentTransaction tx = txOpt.get();
-            if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED)
+            if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
+                // Idempotent success
                 return "already_succeeded";
+            }
 
             tx.setStatus(PaymentTransaction.Status.SUCCEEDED);
             tx.setStripePaymentIntentId(pi.getId());
@@ -143,13 +164,15 @@ public class StripeWebhookController {
 
     private String handleSucceededByPaymentIntentId(PaymentIntent pi) {
         String piId = pi.getId();
-        if (!StringUtils.hasText(piId))
-            return "missing_metadata";
+        if (!StringUtils.hasText(piId)) {
+            return "ignored:missing_payment_intent_id";
+        }
 
         return paymentTransactionRepository.findByStripePaymentIntentId(piId)
                 .map(tx -> {
-                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED)
+                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
                         return "already_succeeded";
+                    }
 
                     tx.setStatus(PaymentTransaction.Status.SUCCEEDED);
                     tx.setStripePaymentIntentId(piId);
@@ -166,22 +189,26 @@ public class StripeWebhookController {
                     }
                     return "succeeded_by_pi";
                 })
-                .orElse("tx_not_found");
+                .orElse("ignored:tx_not_found");
     }
 
     private String handlePaymentIntentFailed(Event event) {
         PaymentIntent pi = deserialize(event, PaymentIntent.class);
-        if (pi == null)
-            return "missing_payment_intent";
+        if (pi == null) {
+            return "ignored:missing_payment_intent";
+        }
 
         String piId = pi.getId();
-        if (!StringUtils.hasText(piId))
-            return "missing_metadata";
+        if (!StringUtils.hasText(piId)) {
+            return "ignored:missing_payment_intent_id";
+        }
 
         return paymentTransactionRepository.findByStripePaymentIntentId(piId)
                 .map(tx -> {
-                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED)
+                    // If you already marked SUCCEEDED, do not downgrade it
+                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
                         return "already_succeeded";
+                    }
 
                     tx.setStatus(PaymentTransaction.Status.FAILED);
                     tx.setStripePaymentIntentId(piId);
@@ -189,17 +216,19 @@ public class StripeWebhookController {
                     paymentTransactionRepository.save(tx);
                     return "failed";
                 })
-                .orElse("tx_not_found");
+                .orElse("ignored:tx_not_found");
     }
 
     private String handleChargeRefunded(Event event) {
         Charge charge = deserialize(event, Charge.class);
-        if (charge == null)
-            return "missing_charge";
+        if (charge == null) {
+            return "ignored:missing_charge";
+        }
 
         String paymentIntentId = charge.getPaymentIntent();
-        if (!StringUtils.hasText(paymentIntentId))
-            return "missing_payment_intent";
+        if (!StringUtils.hasText(paymentIntentId)) {
+            return "ignored:missing_payment_intent";
+        }
 
         return paymentTransactionRepository.findByStripePaymentIntentId(paymentIntentId)
                 .map(tx -> {
@@ -207,26 +236,26 @@ public class StripeWebhookController {
                     paymentTransactionRepository.save(tx);
                     return "refunded";
                 })
-                .orElse("tx_not_found");
+                .orElse("ignored:tx_not_found");
     }
 
     private String getMetadata(PaymentIntent pi, String key) {
-        return pi.getMetadata() == null ? null : pi.getMetadata().get(key);
+        return (pi.getMetadata() == null) ? null : pi.getMetadata().get(key);
     }
 
     private String extractFailureMessage(PaymentIntent pi) {
-        return (pi.getLastPaymentError() != null
-                && pi.getLastPaymentError().getMessage() != null)
-                        ? pi.getLastPaymentError().getMessage()
-                        : "Unknown";
+        return (pi.getLastPaymentError() != null && pi.getLastPaymentError().getMessage() != null)
+                ? pi.getLastPaymentError().getMessage()
+                : "Unknown";
     }
 
     @SuppressWarnings("unchecked")
     private <T> T deserialize(Event event, Class<T> clazz) {
         try {
             Object obj = event.getDataObjectDeserializer().getObject().orElse(null);
-            if (obj == null || !clazz.isInstance(obj))
+            if (obj == null || !clazz.isInstance(obj)) {
                 return null;
+            }
             return (T) obj;
         } catch (Exception e) {
             log.warn("Stripe event deserialization failed for {}: {}",
