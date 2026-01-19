@@ -7,7 +7,6 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, forkJoin, map } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { Header } from '../../../../shared/header/header';
-import { ModalComponent } from '../../../../shared/modal';
 import { AuthService } from '../../../auth/services/auth.service';
 import {
   AdminMetricsService,
@@ -30,7 +29,7 @@ export type OperationalMetrics = {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, Header, ModalComponent],
+  imports: [CommonModule, RouterModule, Header],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.css',
 })

@@ -11,6 +11,7 @@ import {
   PaymentTransactionsService,
 } from '../../services/payment-transactions.service';
 
+import { Subscription, interval } from 'rxjs';
 import { ReportsService } from '../../services/reports.service';
 
 type KpiFilter = 'ALL' | 'SUCCEEDED' | 'PROCESSING' | 'FAILED';
@@ -23,6 +24,7 @@ type KpiFilter = 'ALL' | 'SUCCEEDED' | 'PROCESSING' | 'FAILED';
   styleUrls: ['./payment-transactions-page.css'],
 })
 export class PaymentTransactionsPage implements OnInit {
+  private pollingSubscription: Subscription | null = null;
   private readonly api = inject(PaymentTransactionsService);
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
@@ -115,18 +117,23 @@ export class PaymentTransactionsPage implements OnInit {
 
   ngOnInit(): void {
     this.loadTransactions();
+    this.startPolling();
   }
 
-  trackById(index: number, tx: PaymentTransaction) {
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
+
+  public trackById(index: number, tx: PaymentTransaction) {
     return tx.id;
   }
 
-  retryLoadTransactions(): void {
+  public retryLoadTransactions(): void {
     this.loadTransactions();
   }
 
   // Date preset logic
-  setDatePreset(preset: 'today' | 'last7' | 'last30' | 'month') {
+  public setDatePreset(preset: 'today' | 'last7' | 'last30' | 'month') {
     const now = new Date();
     let from = '';
     let to = '';
@@ -154,7 +161,7 @@ export class PaymentTransactionsPage implements OnInit {
   }
 
   // KPI card click handler
-  onKpiClick(type: KpiFilter) {
+  public onKpiClick(type: KpiFilter) {
     if (this.activeKpi === type) {
       this.activeKpi = 'ALL';
       this.status = '';
@@ -165,7 +172,7 @@ export class PaymentTransactionsPage implements OnInit {
     this.onSearch();
   }
 
-  onClearFilters(): void {
+  public onClearFilters(): void {
     this.query = '';
     this.status = '';
     this.fromDate = '';
@@ -175,12 +182,12 @@ export class PaymentTransactionsPage implements OnInit {
     this.loadTransactions();
   }
 
-  onSearch(): void {
+  public onSearch(): void {
     this.page = 0;
     this.loadTransactions();
   }
 
-  onPageChange(newPage: number): void {
+  public onPageChange(newPage: number): void {
     this.page = newPage;
     this.loadTransactions();
   }
@@ -221,6 +228,13 @@ export class PaymentTransactionsPage implements OnInit {
           this.loading = false;
           this.skeletonStopped = true;
           clearTimeout(skeletonTimeout);
+
+          // If no more PROCESSING transactions, stop polling
+          if (this.pendingCount === 0) {
+            this.stopPolling();
+          } else {
+            this.startPolling();
+          }
         },
         error: () => {
           this.error = 'Failed to load payment transactions.';
@@ -231,19 +245,39 @@ export class PaymentTransactionsPage implements OnInit {
       });
   }
 
-  openDetailsModal(tx: PaymentTransaction): void {
+  // Polling logic: refresh every 5 seconds if any PROCESSING transactions
+  private startPolling(): void {
+    if (this.pollingSubscription) return;
+    this.pollingSubscription = interval(5000).subscribe(() => {
+      // Only poll if there are PROCESSING transactions
+      if (this.pendingCount > 0) {
+        this.loadTransactions();
+      } else {
+        this.stopPolling();
+      }
+    });
+  }
+
+  private stopPolling(): void {
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
+    }
+  }
+
+  public openDetailsModal(tx: PaymentTransaction): void {
     this.selected = tx;
     this.showDetailsModal = true;
     document.body.style.overflow = 'hidden';
   }
 
-  closeDetailsModal(): void {
+  public closeDetailsModal(): void {
     this.showDetailsModal = false;
     this.selected = null;
     document.body.style.overflow = '';
   }
 
-  formatCurrency(amount: number, currency = 'USD'): string {
+  public formatCurrency(amount: number, currency = 'USD'): string {
     const safeAmount = Number.isFinite(amount) ? amount : 0;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -251,7 +285,7 @@ export class PaymentTransactionsPage implements OnInit {
     }).format(safeAmount);
   }
 
-  formatDate(dateString: string): string {
+  public formatDate(dateString: string): string {
     if (!dateString) return '—';
     const d = new Date(dateString);
     if (!Number.isFinite(d.getTime())) return '—';
@@ -262,14 +296,14 @@ export class PaymentTransactionsPage implements OnInit {
     });
   }
 
-  computeNights(checkIn: string, checkOut: string): number {
+  public computeNights(checkIn: string, checkOut: string): number {
     const start = new Date(checkIn);
     const end = new Date(checkOut);
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return 0;
     return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
   }
 
-  getStatusClass(status: PaymentTransactionStatus): string {
+  public getStatusClass(status: PaymentTransactionStatus): string {
     const statusMap: Record<PaymentTransactionStatus, string> = {
       SUCCEEDED: 'status-confirmed',
       PROCESSING: 'status-pending',
@@ -281,7 +315,7 @@ export class PaymentTransactionsPage implements OnInit {
   }
 
   // Bottom-of-page button calls this
-  downloadAnnualPaymentReport(): void {
+  public downloadAnnualPaymentReport(): void {
     if (this.reportLoading) return;
 
     this.reportLoading = true;

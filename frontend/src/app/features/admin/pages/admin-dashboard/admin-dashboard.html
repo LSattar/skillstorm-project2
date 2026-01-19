@@ -1,5 +1,3 @@
-<!-- admin-dashboard.html (FULL FILE) -->
-
 <app-header
   [isNavOpen]="isNavOpen"
   [isAuthenticated]="isAuthenticated()"
@@ -16,21 +14,7 @@
   (openProfile)="openProfile()"
   (openSystemSettings)="goToSystemSettings()"
   (openPaymentTransactions)="goToPaymentTransactions()"
-  (openReport)="onOpenReport()"
 ></app-header>
-
-<!-- Reports Modal -->
-@if (showReportsModal) {
-  <app-modal (close)="showReportsModal = false">
-    <h2>Generate Report</h2>
-    <div class="report-options">
-      <button class="btn btn-primary" (click)="generatePaymentReport()">
-        Payment Transaction Report
-      </button>
-      <button class="btn btn-secondary" disabled>Metrics Report (Coming Soon)</button>
-    </div>
-  </app-modal>
-}
 
 <main>
   <div class="container">
@@ -77,13 +61,17 @@
                 <div class="stat-content">
                   <h3>Occupancy Rate</h3>
                   <p class="stat-value">{{ operationalMetrics.occupancyRate }}%</p>
-                  <span class="stat-subtext">
-                    {{ operationalMetrics.occupiedRooms }} of {{ operationalMetrics.totalRooms }} rooms
-                  </span>
+                  <span class="stat-subtext"
+                    >{{ operationalMetrics.occupiedRooms }} of
+                    {{ operationalMetrics.totalRooms }} rooms</span
+                  >
                   @if (cancellationsPastWeek > 0) {
-                    <span class="stat-subtext stat-warning">
-                      {{ cancellationsPastWeek }} cancellation{{ cancellationsPastWeek !== 1 ? 's' : '' }} in past week
-                    </span>
+                    <span class="stat-subtext stat-warning"
+                      >{{ cancellationsPastWeek }} cancellation{{
+                        cancellationsPastWeek !== 1 ? 's' : ''
+                      }}
+                      in past week</span
+                    >
                   }
                 </div>
               </div>
@@ -93,9 +81,9 @@
                 <div class="stat-content">
                   <h3>Check-ins Today</h3>
                   <p class="stat-value">{{ operationalMetrics.checkInsToday }}</p>
-                  <span class="stat-subtext">
-                    {{ operationalMetrics.checkInsPending }} still pending
-                  </span>
+                  <span class="stat-subtext"
+                    >{{ operationalMetrics.checkInsPending }} still pending</span
+                  >
                 </div>
               </div>
 
@@ -104,9 +92,9 @@
                 <div class="stat-content">
                   <h3>Check-outs Today</h3>
                   <p class="stat-value">{{ operationalMetrics.checkOutsToday }}</p>
-                  <span class="stat-subtext">
-                    {{ operationalMetrics.checkOutsPending }} still pending
-                  </span>
+                  <span class="stat-subtext"
+                    >{{ operationalMetrics.checkOutsPending }} still pending</span
+                  >
                 </div>
               </div>
             </div>
@@ -134,7 +122,6 @@
                 }
               </div>
             </div>
-
             <div class="chart-summary">
               <p>
                 <strong>Total Revenue:</strong>
@@ -159,10 +146,6 @@
               <span class="material-symbols-outlined">hotel</span>
               Manage Hotel Rooms
             </a>
-            <button class="btn btn-accent" type="button" (click)="onOpenReport()">
-              <span class="material-symbols-outlined">description</span>
-              Reports
-            </button>
           </div>
         </section>
 
