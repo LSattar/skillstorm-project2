@@ -16,6 +16,14 @@ public class StripeService {
     @Value("${stripe.secret-key:}")
     private String secretKey;
 
+    // Optional but useful for debugging and tracing in Stripe metadata
+    @Value("${app.name:reserveone}")
+    private String appName;
+
+    // Optional; set via env var or EB config if you want (prod, staging, dev, etc.)
+    @Value("${app.env:prod}")
+    private String appEnv;
+
     @PostConstruct
     public void validateConfig() {
         if (secretKey == null || secretKey.isBlank()) {
@@ -36,15 +44,21 @@ public class StripeService {
             String userId,
             String idempotencyKey) throws StripeException {
 
+        String safeReservationId = reservationId == null ? "" : reservationId.trim();
+        String safeUserId = userId == null ? "" : userId.trim();
+        String safeCurrency = currency == null ? "usd" : currency.trim().toLowerCase();
+
         PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                 .setAmount(amount)
-                .setCurrency(currency)
+                .setCurrency(safeCurrency)
                 .setAutomaticPaymentMethods(
                         PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                                 .setEnabled(true)
                                 .build())
-                .putMetadata("reservation_id", reservationId)
-                .putMetadata("user_id", userId)
+                .putMetadata("reservation_id", safeReservationId)
+                .putMetadata("user_id", safeUserId)
+                .putMetadata("app", appName == null ? "reserveone" : appName.trim())
+                .putMetadata("env", appEnv == null ? "prod" : appEnv.trim())
                 .build();
 
         RequestOptions options = baseOptions().toBuilder()

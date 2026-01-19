@@ -27,6 +27,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -138,92 +141,134 @@ public class StripeWebhookController {
         return ResponseEntity.ok(Map.of("status", "ok", "result", result));
     }
 
+    // =========================
+    // FIX: Robust deserialization
+    // =========================
+
+    private PaymentIntent getPaymentIntent(Event event) {
+        try {
+            // Attempt Stripe SDK typed deserialization first
+            Object obj = event.getDataObjectDeserializer().getObject().orElse(null);
+            if (obj instanceof PaymentIntent pi) {
+                return pi;
+            }
+
+            // Fallback: parse raw JSON
+            JsonObject dataObj = extractEventDataObject(event);
+            if (dataObj == null) {
+                return null;
+            }
+
+            // Stripe model classes include a configured GSON instance
+            return PaymentIntent.GSON.fromJson(dataObj, PaymentIntent.class);
+        } catch (Exception e) {
+            log.warn("Failed to parse PaymentIntent from event {}: {}", safeEventId(event), e.getMessage());
+            return null;
+        }
+    }
+
+    private Charge getCharge(Event event) {
+        try {
+            Object obj = event.getDataObjectDeserializer().getObject().orElse(null);
+            if (obj instanceof Charge ch) {
+                return ch;
+            }
+
+            JsonObject dataObj = extractEventDataObject(event);
+            if (dataObj == null) {
+                return null;
+            }
+
+            return Charge.GSON.fromJson(dataObj, Charge.class);
+        } catch (Exception e) {
+            log.warn("Failed to parse Charge from event {}: {}", safeEventId(event), e.getMessage());
+            return null;
+        }
+    }
+
+    private JsonObject extractEventDataObject(Event event) {
+        try {
+            // event.toJson() gives the complete event JSON as received/parsed
+            JsonObject root = JsonParser.parseString(event.toJson()).getAsJsonObject();
+            if (root == null) {
+                return null;
+            }
+
+            JsonObject data = root.getAsJsonObject("data");
+            if (data == null) {
+                return null;
+            }
+
+            JsonObject obj = data.getAsJsonObject("object");
+            return obj;
+        } catch (Exception e) {
+            log.warn("Failed to extract event.data.object for event {}: {}", safeEventId(event), e.getMessage());
+            return null;
+        }
+    }
+
+    private String safeEventId(Event event) {
+        try {
+            return event == null ? "unknown" : String.valueOf(event.getId());
+        } catch (Exception e) {
+            return "unknown";
+        }
+    }
+
+    // =========================
+    // Handlers
+    // =========================
+
     private String handlePaymentIntentSucceeded(Event event) {
-        PaymentIntent pi = deserialize(event, PaymentIntent.class);
+        PaymentIntent pi = getPaymentIntent(event);
         if (pi == null) {
+            // This was your current failure. The new getPaymentIntent should prevent it.
             return "ignored:missing_payment_intent";
         }
 
+        // Prefer exact PI lookup first (most deterministic)
+        String piId = pi.getId();
+        if (StringUtils.hasText(piId)) {
+            Optional<PaymentTransaction> byPi = findTxByPaymentIntentId(piId);
+            if (byPi.isPresent()) {
+                return markSucceeded(byPi.get(), piId);
+            }
+        }
+
+        // Metadata fallback
         String reservationIdStr = getMetadata(pi, "reservation_id");
         String userIdStr = getMetadata(pi, "user_id");
 
-        if (StringUtils.hasText(reservationIdStr) && StringUtils.hasText(userIdStr)) {
-            UUID reservationId;
-            UUID userId;
-
-            try {
-                reservationId = UUID.fromString(reservationIdStr);
-                userId = UUID.fromString(userIdStr);
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid metadata UUID(s): reservation_id={}, user_id={}, pi={}",
-                        reservationIdStr, userIdStr, pi.getId());
-                return "ignored:invalid_metadata_uuid";
-            }
-
-            Optional<PaymentTransaction> txOpt = paymentTransactionRepository
-                    .findByReservationIdAndUserId(reservationId, userId);
-
-            if (txOpt.isEmpty()) {
-                log.warn("No payment transaction found for reservation_id={}, user_id={}, pi={}",
-                        reservationId, userId, pi.getId());
-                return "ignored:tx_not_found";
-            }
-
-            PaymentTransaction tx = txOpt.get();
-            if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
-                return "already_succeeded";
-            }
-
-            tx.setStatus(PaymentTransaction.Status.SUCCEEDED);
-            tx.setStripePaymentIntentId(pi.getId());
-            paymentTransactionRepository.save(tx);
-
-            reservationRepository.findById(reservationId).ifPresent(res -> {
-                if (res.getStatus() != Reservation.Status.CONFIRMED) {
-                    res.setStatus(Reservation.Status.CONFIRMED);
-                    reservationRepository.save(res);
-                }
-            });
-
-            return "succeeded";
+        if (!StringUtils.hasText(reservationIdStr) || !StringUtils.hasText(userIdStr)) {
+            return "tx_not_found";
         }
 
-        return handleSucceededByPaymentIntentId(pi);
-    }
+        UUID reservationId;
+        UUID userId;
 
-    private String handleSucceededByPaymentIntentId(PaymentIntent pi) {
-        String piId = pi.getId();
-        if (!StringUtils.hasText(piId)) {
-            return "ignored:missing_payment_intent_id";
+        try {
+            reservationId = UUID.fromString(reservationIdStr.trim());
+            userId = UUID.fromString(userIdStr.trim());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid metadata UUID(s): reservation_id={}, user_id={}, pi={}",
+                    reservationIdStr, userIdStr, piId);
+            return "ignored:invalid_metadata_uuid";
         }
 
-        return findTxByPaymentIntentId(piId)
-                .map(tx -> {
-                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
-                        return "already_succeeded";
-                    }
+        Optional<PaymentTransaction> txOpt = paymentTransactionRepository
+                .findByReservationIdAndUserId(reservationId, userId);
 
-                    tx.setStatus(PaymentTransaction.Status.SUCCEEDED);
-                    tx.setStripePaymentIntentId(piId);
+        if (txOpt.isEmpty()) {
+            log.warn("No payment transaction found for reservation_id={}, user_id={}, pi={}",
+                    reservationId, userId, piId);
+            return "tx_not_found";
+        }
 
-                    paymentTransactionRepository.save(tx);
-
-                    UUID reservationId = tx.getReservationId();
-                    if (reservationId != null) {
-                        reservationRepository.findById(reservationId).ifPresent(res -> {
-                            if (res.getStatus() != Reservation.Status.CONFIRMED) {
-                                res.setStatus(Reservation.Status.CONFIRMED);
-                                reservationRepository.save(res);
-                            }
-                        });
-                    }
-                    return "succeeded_by_pi";
-                })
-                .orElse("tx_not_found");
+        return markSucceeded(txOpt.get(), piId);
     }
 
     private String handlePaymentIntentFailed(Event event) {
-        PaymentIntent pi = deserialize(event, PaymentIntent.class);
+        PaymentIntent pi = getPaymentIntent(event);
         if (pi == null) {
             return "ignored:missing_payment_intent";
         }
@@ -250,7 +295,7 @@ public class StripeWebhookController {
     }
 
     private String handleChargeRefunded(Event event) {
-        Charge charge = deserialize(event, Charge.class);
+        Charge charge = getCharge(event);
         if (charge == null) {
             return "ignored:missing_charge";
         }
@@ -280,6 +325,32 @@ public class StripeWebhookController {
                 .orElse("tx_not_found");
     }
 
+    // =========================
+    // Shared helpers
+    // =========================
+
+    private String markSucceeded(PaymentTransaction tx, String piId) {
+        if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
+            return "already_succeeded";
+        }
+
+        tx.setStatus(PaymentTransaction.Status.SUCCEEDED);
+        tx.setStripePaymentIntentId(piId);
+        paymentTransactionRepository.save(tx);
+
+        UUID reservationId = tx.getReservationId();
+        if (reservationId != null) {
+            reservationRepository.findById(reservationId).ifPresent(res -> {
+                if (res.getStatus() != Reservation.Status.CONFIRMED) {
+                    res.setStatus(Reservation.Status.CONFIRMED);
+                    reservationRepository.save(res);
+                }
+            });
+        }
+
+        return "succeeded";
+    }
+
     private String getMetadata(PaymentIntent pi, String key) {
         return (pi.getMetadata() == null) ? null : pi.getMetadata().get(key);
     }
@@ -290,25 +361,23 @@ public class StripeWebhookController {
                 : "Unknown";
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> T deserialize(Event event, Class<T> clazz) {
-        try {
-            Object obj = event.getDataObjectDeserializer().getObject().orElse(null);
-            if (obj == null || !clazz.isInstance(obj)) {
-                return null;
-            }
-            return (T) obj;
-        } catch (Exception e) {
-            log.warn("Stripe event deserialization failed for {}: {}",
-                    clazz.getSimpleName(), e.getMessage());
-            return null;
-        }
-    }
-
     private Optional<PaymentTransaction> findTxByPaymentIntentId(String piId) {
         if (!StringUtils.hasText(piId)) {
             return Optional.empty();
         }
-        return paymentTransactionRepository.findByStripePaymentIntentId(piId);
+
+        // Primary: stripe_payment_intent_id column
+        Optional<PaymentTransaction> byStripePi = paymentTransactionRepository.findByStripePaymentIntentId(piId);
+        if (byStripePi.isPresent()) {
+            return byStripePi;
+        }
+
+        // Secondary: transaction_id column (requires repository method below)
+        try {
+            return paymentTransactionRepository.findByTransactionId(piId);
+        } catch (Exception e) {
+            // If you haven't added findByTransactionId yet, you will hit a compile error, not runtime.
+            return Optional.empty();
+        }
     }
 }

@@ -13,6 +13,8 @@ public interface PaymentTransactionRepository
 
     Optional<PaymentTransaction> findByStripePaymentIntentId(String paymentIntentId);
 
+    Optional<PaymentTransaction> findByTransactionId(String transactionId);
+
     Optional<PaymentTransaction> findByReservationId(UUID reservationId);
 
     Optional<PaymentTransaction> findByReservationIdAndUserId(UUID reservationId, UUID userId);
