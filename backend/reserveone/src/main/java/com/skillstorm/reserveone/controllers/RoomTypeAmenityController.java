@@ -48,7 +48,11 @@ public class RoomTypeAmenityController {
     public List<RoomTypeAmenityResponseDTO> readAll(
             @RequestParam(required = false) UUID roomTypeId,
             @RequestParam(required = false) UUID amenityId) {
-        // If service has filter methods, use them here
+        // Filter by roomTypeId if provided
+        if (roomTypeId != null) {
+            return service.readByRoomTypeId(roomTypeId);
+        }
+        // Otherwise return all (or filter by amenityId if needed in the future)
         return service.readAll();
     }
 

@@ -102,6 +102,16 @@
                   @if (roomType.description) {
                     <p class="description">{{ roomType.description }}</p>
                   }
+                  @if (getRoomTypeAmenities(roomType.roomTypeId).length > 0) {
+                    <div class="room-type-card-amenities">
+                      <span class="amenities-label">Amenities:</span>
+                      <div class="amenities-list">
+                        @for (rta of getRoomTypeAmenities(roomType.roomTypeId); track rta.amenityId) {
+                          <span class="amenity-tag-small">{{ getAmenityName(rta.amenityId) }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
                   <span
                     class="status-badge"
                     [ngClass]="roomType.isActive ? 'status-active' : 'status-inactive'"

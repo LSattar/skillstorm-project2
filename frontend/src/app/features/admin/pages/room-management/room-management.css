@@ -134,6 +134,39 @@
   color: #888;
 }
 
+.room-type-card-amenities {
+  margin: 0.75rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.room-type-card-amenities .amenities-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.room-type-card-amenities .amenities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.amenity-tag-small {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  background: rgba(163, 177, 138, 0.1);
+  border: 1px solid rgba(163, 177, 138, 0.2);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #344e41;
+}
+
 .status-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
