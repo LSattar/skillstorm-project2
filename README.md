@@ -5,22 +5,37 @@ The platform supports OAuth2 authentication, real-time booking management, and c
 
 ---
 
-## 🖥️ Demo & Screenshots
+## 🖥️ Screenshots
 
 ### Landing Page
-![Landing Page](docs/screenshots/landing-page.png)
+![Landing Page](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/landing-page.png)
 
-### Hotel Search & Availability
-![Hotel Search](docs/screenshots/hotel-search.png)
+### Admin Dashboard
+![Admin Dashboard](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/admin-dashboard.png)
 
-### Reservation Flow
-![Reservation Flow](docs/screenshots/reservation-flow.png)
+### System Settings
+![System Settings](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/system-settings.png)
 
-### Payment Confirmation
-![Payment Confirmation](docs/screenshots/payment-confirmation.png)
+### Profile Settings
+![Profile Settings](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/profile-settings.png)
 
-### Admin / Manager Dashboard
-![Admin Dashboard](docs/screenshots/admin-dashboard.png)
+### Search Reservations
+![Search Reservations](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/search-reservations.png)
+
+### Recent Bookings
+![Recent Bookings](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/recent-bookings.png)
+
+### Rooms Management
+![Rooms Management](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/manage-rooms.png)
+
+### Room Selection & Booking
+![Rooms Selection and Booking](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/rooms-page.png)
+
+### Payment Transactions
+![Payment Transactions](https://raw.githubusercontent.com/LSattar/skillstorm-project2/main/frontend/public/images/readme-screenshots/payment-transactions.png)
+
+
+
 
 ---
 ```
