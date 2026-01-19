@@ -1,8 +1,19 @@
 package com.skillstorm.reserveone.controllers;
 
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.skillstorm.reserveone.models.PaymentTransaction;
+import com.skillstorm.reserveone.models.Reservation;
+import com.skillstorm.reserveone.repositories.PaymentTransactionRepository;
+import com.skillstorm.reserveone.repositories.ReservationRepository;
+import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Charge;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.net.Webhook;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,16 +27,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.skillstorm.reserveone.models.PaymentTransaction;
-import com.skillstorm.reserveone.models.Reservation;
-import com.skillstorm.reserveone.repositories.PaymentTransactionRepository;
-import com.skillstorm.reserveone.repositories.ReservationRepository;
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Charge;
-import com.stripe.model.Event;
-import com.stripe.model.PaymentIntent;
-import com.stripe.net.Webhook;
-
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
@@ -37,8 +39,6 @@ public class StripeWebhookController {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final ReservationRepository reservationRepository;
 
-    // application.properties:
-    // stripe.webhook-secret=${STRIPE_WEBHOOK_SECRET:}
     @Value("${stripe.webhook-secret:}")
     private String webhookSecret;
 
@@ -54,18 +54,47 @@ public class StripeWebhookController {
     public ResponseEntity<?> handleStripeWebhook(
             @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader,
             @RequestBody String payload,
+            HttpServletRequest req,
             HttpServletResponse res) {
 
         res.setHeader("X-Webhook-Reached", "YES");
 
-        // If misconfigured, acknowledge to avoid Stripe retry storms, but log loudly
+        // ---- DEBUG: log what CloudFront/ALB actually sends ----
+        try {
+            log.info("WEBHOOK DEBUG start: method={}, uri={}, remoteAddr={}",
+                    req.getMethod(), req.getRequestURI(), req.getRemoteAddr());
+
+            // Common proxy headers
+            log.info("WEBHOOK DEBUG x-forwarded-for={}", req.getHeader("X-Forwarded-For"));
+            log.info("WEBHOOK DEBUG x-forwarded-proto={}", req.getHeader("X-Forwarded-Proto"));
+            log.info("WEBHOOK DEBUG x-forwarded-host={}", req.getHeader("X-Forwarded-Host"));
+            log.info("WEBHOOK DEBUG host={}", req.getHeader("Host"));
+            log.info("WEBHOOK DEBUG content-type={}", req.getHeader("Content-Type"));
+
+            // IMPORTANT: print ALL headers to see if stripe-signature is present under any
+            // casing
+            Enumeration<String> names = req.getHeaderNames();
+            while (names != null && names.hasMoreElements()) {
+                String name = names.nextElement();
+                String value = req.getHeader(name);
+                log.info("WEBHOOK HDR {} = {}", name, value);
+            }
+
+            // Compare direct lookup via Servlet API vs Spring @RequestHeader binding
+            log.info("WEBHOOK DEBUG Spring-bound Stripe-Signature={}", sigHeader);
+            log.info("WEBHOOK DEBUG Servlet getHeader('Stripe-Signature')={}", req.getHeader("Stripe-Signature"));
+            log.info("WEBHOOK DEBUG Servlet getHeader('stripe-signature')={}", req.getHeader("stripe-signature"));
+            log.info("WEBHOOK DEBUG payloadLength={}", payload == null ? 0 : payload.length());
+        } catch (Exception e) {
+            log.warn("WEBHOOK DEBUG logging failed: {}", e.getMessage());
+        }
+        // ---- END DEBUG ----
+
         if (!StringUtils.hasText(webhookSecret)) {
             log.error("Stripe webhook secret not configured (stripe.webhook-secret is blank)");
             return ResponseEntity.ok(Map.of("status", "ignored", "reason", "webhook_secret_missing"));
         }
 
-        // If signature header missing (CloudFront header forwarding), acknowledge but
-        // log
         if (!StringUtils.hasText(sigHeader)) {
             log.warn("Missing Stripe-Signature header (check CloudFront forwarding)");
             return ResponseEntity.ok(Map.of("status", "ignored", "reason", "missing_signature_header"));
@@ -75,8 +104,6 @@ public class StripeWebhookController {
         try {
             event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
         } catch (SignatureVerificationException e) {
-            // Invalid signature can be malicious or misconfigured secret; acknowledge but
-            // log
             log.warn("Stripe signature verification failed: {}", e.getMessage());
             return ResponseEntity.ok(Map.of("status", "ignored", "reason", "invalid_signature"));
         } catch (Exception e) {
@@ -93,7 +120,6 @@ public class StripeWebhookController {
                 default -> "ignored:" + event.getType();
             };
         } catch (Exception e) {
-            // For reliability: log error but ACK so Stripe doesn't retry forever
             log.error("Stripe webhook processing error: id={}, type={}",
                     event.getId(), event.getType(), e);
             return ResponseEntity.ok(Map.of("status", "ignored", "reason", "processing_error"));
@@ -102,7 +128,6 @@ public class StripeWebhookController {
         log.info("Stripe webhook handled: id={}, type={}, result={}",
                 event.getId(), event.getType(), result);
 
-        // Always return 200 for all webhook deliveries so Stripe does not retry
         return ResponseEntity.ok(Map.of("status", "ok", "result", result));
     }
 
@@ -115,7 +140,6 @@ public class StripeWebhookController {
         String reservationIdStr = getMetadata(pi, "reservation_id");
         String userIdStr = getMetadata(pi, "user_id");
 
-        // Preferred path: metadata present
         if (StringUtils.hasText(reservationIdStr) && StringUtils.hasText(userIdStr)) {
             UUID reservationId;
             UUID userId;
@@ -140,7 +164,6 @@ public class StripeWebhookController {
 
             PaymentTransaction tx = txOpt.get();
             if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
-                // Idempotent success
                 return "already_succeeded";
             }
 
@@ -158,7 +181,6 @@ public class StripeWebhookController {
             return "succeeded";
         }
 
-        // Fallback: lookup by payment intent ID
         return handleSucceededByPaymentIntentId(pi);
     }
 
@@ -170,15 +192,12 @@ public class StripeWebhookController {
 
         return findTxByPaymentIntentId(piId)
                 .map(tx -> {
-                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED)
+                    if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
                         return "already_succeeded";
+                    }
 
                     tx.setStatus(PaymentTransaction.Status.SUCCEEDED);
-
-                    // (Optional but recommended) keep both columns aligned
                     tx.setStripePaymentIntentId(piId);
-                    // If you have a setter for transactionId, set it too:
-                    // tx.setTransactionId(piId);
 
                     paymentTransactionRepository.save(tx);
 
@@ -209,7 +228,6 @@ public class StripeWebhookController {
 
         return findTxByPaymentIntentId(piId)
                 .map(tx -> {
-                    // Idempotency: if it already succeeded, do not downgrade it
                     if (tx.getStatus() == PaymentTransaction.Status.SUCCEEDED) {
                         return "already_succeeded";
                     }
@@ -238,18 +256,8 @@ public class StripeWebhookController {
         return findTxByPaymentIntentId(paymentIntentId)
                 .map(tx -> {
                     tx.setStatus(PaymentTransaction.Status.REFUNDED);
-
-                    // Optional: store Stripe charge id / receipt if your entity has fields for it
-                    // tx.setStripeChargeId(charge.getId());
-                    // tx.setReceiptUrl(charge.getReceiptUrl());
-
                     paymentTransactionRepository.save(tx);
 
-                    // IMPORTANT:
-                    // Your reservations.status constraint does NOT include REFUNDED.
-                    // So do NOT set reservation status to REFUNDED unless you update DB + enum.
-                    // A common approach is to CANCELLED the reservation on refund (if that matches
-                    // your business rules).
                     UUID reservationId = tx.getReservationId();
                     if (reservationId != null) {
                         reservationRepository.findById(reservationId).ifPresent(res -> {
