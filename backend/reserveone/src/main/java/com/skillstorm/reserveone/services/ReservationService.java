@@ -36,8 +36,8 @@ public class ReservationService {
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final ReservationMapper mapper;
-
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public ReservationService(
             ReservationRepository reservationRepository,
@@ -45,13 +45,15 @@ public class ReservationService {
             RoomRepository roomRepository,
             RoomTypeRepository roomTypeRepository,
             ReservationMapper mapper,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            EmailService emailService) {
         this.reservationRepository = reservationRepository;
         this.hotelRepository = hotelRepository;
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.mapper = mapper;
         this.userRepository = userRepository;
+        this.emailService = emailService;
     }
 
     public ReservationResponseDTO createOne(ReservationRequestDTO dto) {
@@ -96,6 +98,10 @@ public class ReservationService {
 
         Reservation reservation = mapper.toEntity(dto, hotel, user, room, roomType);
         Reservation saved = reservationRepository.save(reservation);
+        
+        // Send email confirmation (non-blocking - errors are logged but don't fail reservation)
+        emailService.sendReservationConfirmation(saved, user);
+        
         return mapper.toResponse(saved);
     }
 
