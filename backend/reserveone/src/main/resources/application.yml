@@ -10,9 +10,37 @@ stripe:
   secret-key: ${STRIPE_SECRET_KEY}
   webhook-secret: ${STRIPE_WEBHOOK_SECRET}
   api-version: ${STRIPE_API_VERSION:2023-10-16}
+
+# ============================================================
+# EMAIL CONFIGURATION (Gmail SMTP)
+# ============================================================
+# Values are supplied by:
+# - Local dev: .env file
+# - Elastic Beanstalk: Environment Properties
+# Never commit real keys.
+
+mail:
+  from: ${MAIL_FROM:${MAIL_USERNAME}}
+
 spring:
   application:
     name: reserveone
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   config:
     # Loads .env locally only. EB ignores this and uses Environment Properties instead.
