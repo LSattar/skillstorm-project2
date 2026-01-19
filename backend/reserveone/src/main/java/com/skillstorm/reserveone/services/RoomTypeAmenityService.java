@@ -68,6 +68,13 @@ public class RoomTypeAmenityService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<RoomTypeAmenityResponseDTO> readByRoomTypeId(UUID roomTypeId) {
+        return roomTypeAmenityRepository.findByRoomType_RoomTypeId(roomTypeId).stream()
+            .map(mapper::toResponse)
+            .collect(Collectors.toList());
+    }
+
     public RoomTypeAmenityResponseDTO updateOne(UUID roomTypeId, UUID amenityId, RoomTypeAmenityRequestDTO dto) {
         RoomTypeAmenityId id = new RoomTypeAmenityId(roomTypeId, amenityId);
         RoomTypeAmenity existing = roomTypeAmenityRepository.findById(id)

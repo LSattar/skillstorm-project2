@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { forkJoin, map, catchError, of } from 'rxjs';
 import { Header } from '../../../../shared/header/header';
 import { AuthService } from '../../../auth/services/auth.service';
 import {
@@ -49,6 +50,7 @@ export class RoomManagement implements OnInit {
   filteredRooms: RoomResponse[] = [];
   allAmenities: AmenityResponse[] = [];
   roomTypeAmenities: RoomTypeAmenityResponse[] = [];
+  roomTypeAmenitiesMap: Map<string, RoomTypeAmenityResponse[]> = new Map();
 
   // Loading and error states
   loading = false;
@@ -130,6 +132,8 @@ export class RoomManagement implements OnInit {
     this.roomService.getAllRoomTypes(this.selectedHotelId).subscribe({
       next: (roomTypes) => {
         this.roomTypes = roomTypes;
+        // Load amenities for all room types
+        this.loadAllRoomTypeAmenities(roomTypes);
         // Also load all rooms and filter client-side since backend might not filter
         this.roomService.getAllRooms().subscribe({
           next: (allRooms) => {
@@ -179,6 +183,7 @@ export class RoomManagement implements OnInit {
     this.roomService.getRoomTypeAmenities(roomTypeId).subscribe({
       next: (amenities) => {
         this.roomTypeAmenities = amenities;
+        this.roomTypeAmenitiesMap.set(roomTypeId, amenities);
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -186,6 +191,36 @@ export class RoomManagement implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  loadAllRoomTypeAmenities(roomTypes: RoomTypeResponse[]): void {
+    // Load amenities for each room type in parallel
+    const amenityRequests = roomTypes.map((roomType) =>
+      this.roomService.getRoomTypeAmenities(roomType.roomTypeId).pipe(
+        map((amenities) => ({ roomTypeId: roomType.roomTypeId, amenities })),
+        catchError(() => of({ roomTypeId: roomType.roomTypeId, amenities: [] }))
+      )
+    );
+
+    if (amenityRequests.length === 0) {
+      return;
+    }
+
+    forkJoin(amenityRequests).subscribe({
+      next: (results) => {
+        results.forEach(({ roomTypeId, amenities }) => {
+          this.roomTypeAmenitiesMap.set(roomTypeId, amenities);
+        });
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading room type amenities:', err);
+      },
+    });
+  }
+
+  getRoomTypeAmenities(roomTypeId: string): RoomTypeAmenityResponse[] {
+    return this.roomTypeAmenitiesMap.get(roomTypeId) || [];
   }
 
   // Room CRUD
@@ -327,6 +362,7 @@ export class RoomManagement implements OnInit {
     this.showRoomTypeModal = false;
     this.editingRoomType = null;
     this.showAmenityModal = false;
+    this.roomTypeAmenities = [];
     this.error = null;
   }
 
@@ -440,6 +476,9 @@ export class RoomManagement implements OnInit {
     this.roomService.addAmenityToRoomType(this.editingRoomType.roomTypeId, amenityId).subscribe({
       next: (added) => {
         this.roomTypeAmenities.push(added);
+        // Update the map to keep it in sync
+        const currentAmenities = this.roomTypeAmenitiesMap.get(this.editingRoomType!.roomTypeId) || [];
+        this.roomTypeAmenitiesMap.set(this.editingRoomType!.roomTypeId, [...currentAmenities, added]);
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -459,6 +498,12 @@ export class RoomManagement implements OnInit {
         next: () => {
           this.roomTypeAmenities = this.roomTypeAmenities.filter(
             (rta) => rta.amenityId !== amenityId
+          );
+          // Update the map to keep it in sync
+          const currentAmenities = this.roomTypeAmenitiesMap.get(this.editingRoomType!.roomTypeId) || [];
+          this.roomTypeAmenitiesMap.set(
+            this.editingRoomType!.roomTypeId,
+            currentAmenities.filter((rta) => rta.amenityId !== amenityId)
           );
           this.cdr.detectChanges();
         },
