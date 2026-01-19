@@ -475,6 +475,11 @@ export class RoomManagement implements OnInit {
     return this.allAmenities.filter((a) => !addedIds.has(a.amenityId));
   }
 
+  getAmenityName(amenityId: string): string {
+    const amenity = this.allAmenities.find((a) => a.amenityId === amenityId);
+    return amenity?.name || 'Unknown';
+  }
+
   getCurrentRoomTypeName(): string {
     if (!this.selectedRoomTypeId) return '—';
     const roomType = this.roomTypes.find((rt) => rt.roomTypeId === this.selectedRoomTypeId);
