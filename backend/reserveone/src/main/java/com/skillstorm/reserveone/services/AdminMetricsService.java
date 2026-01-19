@@ -72,37 +72,36 @@ public class AdminMetricsService {
             ? (occupiedRooms * 100.0 / totalRooms) 
             : 0.0;
         
-        List<Reservation> checkInsToday;
+        // Check-ins Today: All reservations scheduled to check in today (CONFIRMED + CHECKED_IN)
+        List<Reservation> checkInsTodayConfirmed;
+        List<Reservation> checkInsTodayCheckedIn;
         if (hotelId != null) {
-            checkInsToday = reservationRepository.findByHotel_HotelIdAndStatusAndStartDate(
+            checkInsTodayConfirmed = reservationRepository.findByHotel_HotelIdAndStatusAndStartDate(
+                hotelId, Status.CONFIRMED, today);
+            checkInsTodayCheckedIn = reservationRepository.findByHotel_HotelIdAndStatusAndStartDate(
                 hotelId, Status.CHECKED_IN, today);
         } else {
-            checkInsToday = reservationRepository.findByStatusAndStartDate(Status.CHECKED_IN, today);
+            checkInsTodayConfirmed = reservationRepository.findByStatusAndStartDate(Status.CONFIRMED, today);
+            checkInsTodayCheckedIn = reservationRepository.findByStatusAndStartDate(Status.CHECKED_IN, today);
         }
+        // Combine both lists for total check-ins today
+        List<Reservation> checkInsToday = new ArrayList<>(checkInsTodayConfirmed);
+        checkInsToday.addAll(checkInsTodayCheckedIn);
         
-        List<Reservation> checkInsPending;
-        if (hotelId != null) {
-            checkInsPending = reservationRepository.findByHotel_HotelIdAndStatusAndStartDate(
-                hotelId, Status.CONFIRMED, today);
-        } else {
-            checkInsPending = reservationRepository.findByStatusAndStartDate(Status.CONFIRMED, today);
-        }
+        // Check-ins Pending: CONFIRMED reservations scheduled to check in today
+        List<Reservation> checkInsPending = checkInsTodayConfirmed;
         
+        // Check-outs Today: CHECKED_IN reservations scheduled to check out today
         List<Reservation> checkOutsToday;
         if (hotelId != null) {
             checkOutsToday = reservationRepository.findByHotel_HotelIdAndStatusAndEndDate(
-                hotelId, Status.CHECKED_OUT, today);
-        } else {
-            checkOutsToday = reservationRepository.findByStatusAndEndDate(Status.CHECKED_OUT, today);
-        }
-        
-        List<Reservation> checkOutsPending;
-        if (hotelId != null) {
-            checkOutsPending = reservationRepository.findByHotel_HotelIdAndStatusAndEndDate(
                 hotelId, Status.CHECKED_IN, today);
         } else {
-            checkOutsPending = reservationRepository.findByStatusAndEndDate(Status.CHECKED_IN, today);
+            checkOutsToday = reservationRepository.findByStatusAndEndDate(Status.CHECKED_IN, today);
         }
+        
+        // Check-outs Pending: Same as check-outs today (CHECKED_IN with endDate = today)
+        List<Reservation> checkOutsPending = checkOutsToday;
         
         return new OperationalMetricsDTO(
             totalRooms,
